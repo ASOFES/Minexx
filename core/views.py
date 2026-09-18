@@ -407,18 +407,32 @@ def vehicule_list(request):
         'sort': sort,
     })
 
+def _vehicule_accessoires_formset(request, instance=None):
+    """Construit le formset accessoires; ignore un POST sans ManagementForm."""
+    prefix = 'accessoires'
+    if request.method == 'POST' and f'{prefix}-TOTAL_FORMS' in request.POST:
+        if instance is not None:
+            return VehiculeAccessoireFormSet(request.POST, instance=instance, prefix=prefix)
+        return VehiculeAccessoireFormSet(request.POST, prefix=prefix)
+    if instance is not None:
+        return VehiculeAccessoireFormSet(instance=instance, prefix=prefix)
+    return VehiculeAccessoireFormSet(prefix=prefix)
+
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def vehicule_create(request):
     """Vue pour créer un nouveau véhicule (réservée aux administrateurs)"""
     if request.method == 'POST':
         form = VehiculeForm(request.POST, request.FILES, user=request.user, createur=request.user)
-        formset = VehiculeAccessoireFormSet(request.POST, prefix='accessoires')
-        if form.is_valid() and formset.is_valid():
+        formset = _vehicule_accessoires_formset(request)
+        formset_ok = (not formset.is_bound) or formset.is_valid()
+        if form.is_valid() and formset_ok:
             try:
                 vehicule = form.save()
-                formset.instance = vehicule
-                formset.save()
+                if formset.is_bound:
+                    formset.instance = vehicule
+                    formset.save()
                 
                 ActionTraceur.objects.create(
                     utilisateur=request.user,
@@ -437,8 +451,12 @@ def vehicule_create(request):
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"Erreur dans le champ {field}: {error}")
-            for err in formset.non_form_errors():
-                messages.error(request, str(err))
+            if formset.is_bound and not formset.is_valid():
+                for err in formset.non_form_errors():
+                    messages.error(request, str(err))
+            # Réafficher un formset propre si le ManagementForm était cassé
+            if formset.is_bound and not formset.is_valid() and formset.non_form_errors():
+                formset = VehiculeAccessoireFormSet(prefix='accessoires')
     else:
         form = VehiculeForm(user=request.user, createur=request.user)
         formset = VehiculeAccessoireFormSet(prefix='accessoires')
@@ -458,11 +476,13 @@ def vehicule_edit(request, pk):
     
     if request.method == 'POST':
         form = VehiculeForm(request.POST, request.FILES, instance=vehicule, createur=request.user)
-        formset = VehiculeAccessoireFormSet(request.POST, instance=vehicule, prefix='accessoires')
-        if form.is_valid() and formset.is_valid():
+        formset = _vehicule_accessoires_formset(request, instance=vehicule)
+        formset_ok = (not formset.is_bound) or formset.is_valid()
+        if form.is_valid() and formset_ok:
             try:
                 form.save()
-                formset.save()
+                if formset.is_bound:
+                    formset.save()
                 
                 ActionTraceur.objects.create(
                     utilisateur=request.user,
@@ -478,8 +498,11 @@ def vehicule_edit(request, pk):
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"Erreur dans le champ {field}: {error}")
-            for err in formset.non_form_errors():
-                messages.error(request, str(err))
+            if formset.is_bound and not formset.is_valid():
+                for err in formset.non_form_errors():
+                    messages.error(request, str(err))
+            if formset.is_bound and not formset.is_valid() and formset.non_form_errors():
+                formset = VehiculeAccessoireFormSet(instance=vehicule, prefix='accessoires')
     else:
         form = VehiculeForm(instance=vehicule, createur=request.user)
         formset = VehiculeAccessoireFormSet(instance=vehicule, prefix='accessoires')

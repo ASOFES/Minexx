@@ -15,6 +15,11 @@
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data" novalidate>
                         {% csrf_token %}
+                        {# ManagementForm explicite — doit être dans le <form> pour éviter l'erreur TOTAL_FORMS #}
+                        <input type="hidden" name="accessoires-TOTAL_FORMS" value="{{ accessoires_formset.total_form_count }}" id="id_accessoires-TOTAL_FORMS">
+                        <input type="hidden" name="accessoires-INITIAL_FORMS" value="{{ accessoires_formset.initial_form_count }}" id="id_accessoires-INITIAL_FORMS">
+                        <input type="hidden" name="accessoires-MIN_NUM_FORMS" value="0" id="id_accessoires-MIN_NUM_FORMS">
+                        <input type="hidden" name="accessoires-MAX_NUM_FORMS" value="1000" id="id_accessoires-MAX_NUM_FORMS">
                         {{ form.non_field_errors }}
 
                         <div class="alert alert-info py-2">
@@ -106,20 +111,19 @@
                             <strong>Ajouter un accessoire</strong> pour en ajouter d'autres.
                         </p>
 
-                        {{ accessoires_formset.management_form }}
                         <datalist id="accessoires-suggestions">
-                            <option value="Extincteur">
-                            <option value="Triangle de signalisation">
-                            <option value="Trousse de secours">
-                            <option value="Cric">
-                            <option value="Clé à molette">
-                            <option value="Roue de secours">
-                            <option value="Gilet de sécurité">
-                            <option value="Câbles de démarrage">
-                            <option value="Tapis">
-                            <option value="Radio / GPS">
-                            <option value="Climatisation">
-                            <option value="Barre anti-brouillard">
+                            <option value="Extincteur"></option>
+                            <option value="Triangle de signalisation"></option>
+                            <option value="Trousse de secours"></option>
+                            <option value="Cric"></option>
+                            <option value="Clé à molette"></option>
+                            <option value="Roue de secours"></option>
+                            <option value="Gilet de sécurité"></option>
+                            <option value="Câbles de démarrage"></option>
+                            <option value="Tapis"></option>
+                            <option value="Radio / GPS"></option>
+                            <option value="Climatisation"></option>
+                            <option value="Barre anti-brouillard"></option>
                         </datalist>
 
                         <div id="accessoires-formset">
