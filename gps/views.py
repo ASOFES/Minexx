@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta
 import json
 
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -145,28 +146,62 @@ def api_geocode(request):
 
 @gps_manager_required
 def historique(request):
+    """
+    Historique des missions pour le suivi GPS.
+    Affiche les courses validées / en cours / terminées de la période,
+    même sans points GPS (démarrage web sans app mobile).
+    """
     qs = courses_queryset_for_user(request.user).filter(
-        positions_gps__isnull=False
-    ).distinct().order_by('-date_demande')
+        statut__in=['validee', 'en_cours', 'terminee']
+    ).order_by('-date_depart', '-date_validation', '-date_demande')
 
-    # Filtres
     date_from = parse_date(request.GET.get('date_from') or '')
     date_to = parse_date(request.GET.get('date_to') or '')
     chauffeur_id = request.GET.get('chauffeur')
     vehicule_id = request.GET.get('vehicule')
     mission_id = request.GET.get('mission')
+    # Par défaut : aujourd'hui (évite le filtre « dernière heure » trop étroit)
     periode = request.GET.get('periode')
+    if periode is None and not any(
+        request.GET.get(k) for k in ('date_from', 'date_to', 'chauffeur', 'vehicule', 'mission')
+    ):
+        periode = 'aujourdhui'
+    periode = periode or ''
 
     now = timezone.now()
     if periode == 'derniere_heure':
-        qs = qs.filter(positions_gps__timestamp__gte=now - timedelta(hours=1))
+        since = now - timedelta(hours=1)
+        qs = qs.filter(
+            Q(date_depart__gte=since)
+            | Q(date_fin__gte=since)
+            | Q(date_validation__gte=since)
+            | Q(positions_gps__timestamp__gte=since)
+        )
     elif periode == 'aujourdhui':
-        start = timezone.make_aware(datetime.combine(now.date(), time.min))
-        qs = qs.filter(positions_gps__timestamp__gte=start)
+        start = timezone.make_aware(
+            datetime.combine(timezone.localdate(), time.min)
+        )
+        qs = qs.filter(
+            Q(date_depart__gte=start)
+            | Q(date_fin__gte=start)
+            | Q(date_validation__gte=start)
+            | Q(date_demande__date=timezone.localdate())
+            | Q(positions_gps__timestamp__gte=start)
+        )
     if date_from:
-        qs = qs.filter(date_demande__date__gte=date_from)
+        qs = qs.filter(
+            Q(date_depart__date__gte=date_from)
+            | Q(date_fin__date__gte=date_from)
+            | Q(date_validation__date__gte=date_from)
+            | Q(date_demande__date__gte=date_from)
+        )
     if date_to:
-        qs = qs.filter(date_demande__date__lte=date_to)
+        qs = qs.filter(
+            Q(date_depart__date__lte=date_to)
+            | Q(date_fin__date__lte=date_to)
+            | Q(date_validation__date__lte=date_to)
+            | Q(date_demande__date__lte=date_to)
+        )
     if chauffeur_id:
         qs = qs.filter(chauffeur_id=chauffeur_id)
     if vehicule_id:
@@ -182,6 +217,7 @@ def historique(request):
             'course': c,
             'resume': r,
             'duree_label': _format_duration(r['duree_secondes']),
+            'sans_gps': r['nb_points'] == 0,
         })
 
     log_gps_access(request.user, 'liste_historique', details=request.GET.urlencode())
@@ -198,7 +234,7 @@ def historique(request):
         'chauffeurs': chauffeurs.order_by('last_name', 'first_name'),
         'vehicules': vehicules.order_by('immatriculation'),
         'filters': {
-            'periode': periode or '',
+            'periode': periode,
             'date_from': request.GET.get('date_from') or '',
             'date_to': request.GET.get('date_to') or '',
             'chauffeur': chauffeur_id or '',
