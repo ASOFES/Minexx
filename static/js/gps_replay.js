@@ -59,10 +59,9 @@ window.MinexxGPSReplay = (function () {
       try { positions = JSON.parse(positions); } catch (e) { positions = []; }
     }
     map = L.map(options.mapId || 'gps-replay-map').setView([-11.66, 27.48], 12);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20,
-      subdomains: 'abcd',
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, OpenStreetMap'
     }).addTo(map);
 
     const scrub = document.getElementById('gps-scrubber');
