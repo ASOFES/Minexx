@@ -547,8 +547,14 @@ def vehicule_delete(request, pk):
 def vehicule_detail(request, pk):
     """Vue pour afficher les détails d'un véhicule (réservée aux administrateurs)"""
     vehicule = get_object_or_404(Vehicule, pk=pk)
+
+    from entretien.models import Entretien, ReparationMecanique
+
+    reparations = vehicule.reparations_mecaniques.all()[:20]
+    cout_entretiens = Entretien.cout_total_par_vehicule(vehicule)
+    cout_reparations = ReparationMecanique.cout_confirme_par_vehicule(vehicule)
+    cout_provisoire_ouvert = ReparationMecanique.cout_provisoire_ouvert_par_vehicule(vehicule)
     
-    # Enregistrer l'action
     ActionTraceur.objects.create(
         utilisateur=request.user,
         action=f"Consultation des détails du véhicule {vehicule.immatriculation}",
@@ -556,7 +562,12 @@ def vehicule_detail(request, pk):
     )
     
     context = {
-        'vehicule': vehicule
+        'vehicule': vehicule,
+        'reparations': reparations,
+        'cout_entretiens': cout_entretiens,
+        'cout_reparations': cout_reparations,
+        'cout_provisoire_ouvert': cout_provisoire_ouvert,
+        'bilan_depenses': (cout_entretiens or 0) + (cout_reparations or 0),
     }
     
     return render(request, 'core/vehicule_detail.html', context)

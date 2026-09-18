@@ -15,5 +15,11 @@ urlpatterns = [
     path('supprimer/<int:entretien_id>/', views.supprimer_entretien, name='supprimer_entretien'),
     path('exporter-entretien-pdf/<int:entretien_id>/', views.exporter_entretien_pdf, name='exporter_entretien_pdf'),
     path('exporter-entretien-excel/<int:entretien_id>/', views.exporter_entretien_excel, name='exporter_entretien_excel'),
-    # Exemple : path('', views.ma_vue, name='nom_url'),
+    # Réparations mécaniques
+    path('reparations/', views.liste_reparations, name='liste_reparations'),
+    path('reparations/ajouter/', views.creer_reparation, name='creer_reparation'),
+    path('reparations/<int:reparation_id>/', views.detail_reparation, name='detail_reparation'),
+    path('reparations/<int:reparation_id>/modifier/', views.modifier_reparation, name='modifier_reparation'),
+    path('reparations/<int:reparation_id>/confirmer/', views.confirmer_reparation, name='confirmer_reparation'),
+    path('reparations/<int:reparation_id>/supprimer/', views.supprimer_reparation, name='supprimer_reparation'),
 ]

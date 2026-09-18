@@ -8,11 +8,16 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Tableau de bord - Entretien</h5>
-                    <a href="{% url 'entretien:creer_entretien' %}" class="btn btn-light btn-sm">
-                        <i class="fas fa-plus me-1"></i>Nouvel Entretien
-                    </a>
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Tableau de bord - Maintenance</h5>
+                    <div>
+                        <a href="{% url 'entretien:creer_reparation' %}" class="btn btn-warning btn-sm me-1">
+                            <i class="fas fa-wrench me-1"></i>Signaler un problème
+                        </a>
+                        <a href="{% url 'entretien:creer_entretien' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i>Nouvel Entretien
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if messages %}
@@ -25,21 +30,82 @@
                     {% endif %}
                     
                     <div class="row">
-                        <div class="col-md-4 mb-4">
+                        <div class="col-md-3 mb-4">
                             <div class="card h-100 border-0 shadow-sm">
                                 <div class="card-body text-center">
                                     <i class="fas fa-tools fa-3x text-primary mb-3"></i>
                                     <h3 class="display-5 fw-bold">{{ entretiens_count|default:"0" }}</h3>
-                                    <p class="text-muted">Entretiens enregistrés</p>
-                                    <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-primary mt-2">
-                                        <i class="fas fa-list me-1"></i>Voir tous
+                                    <p class="text-muted">Entretiens</p>
+                                    <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-primary mt-2 btn-sm">
+                                        <i class="fas fa-list me-1"></i>Voir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card h-100 border-0 shadow-sm border-start border-warning border-4">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-wrench fa-3x text-warning mb-3"></i>
+                                    <h3 class="display-5 fw-bold">{{ reparations_ouvertes|default:"0" }}</h3>
+                                    <p class="text-muted">Réparations ouvertes</p>
+                                    <a href="{% url 'entretien:liste_reparations' %}?statut=en_attente" class="btn btn-outline-warning mt-2 btn-sm">
+                                        {{ reparations_attente }} en attente
                                     </a>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-8 mb-4">
+                        <div class="col-md-6 mb-4">
                             <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-wrench me-2"></i>Réparations récentes</h5>
+                                    <a href="{% url 'entretien:liste_reparations' %}" class="btn btn-sm btn-outline-secondary">Tout</a>
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if reparations_recentes %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Véhicule</th>
+                                                    <th>Problème</th>
+                                                    <th>Statut</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for r in reparations_recentes %}
+                                                <tr>
+                                                    <td>{{ r.vehicule.immatriculation }}</td>
+                                                    <td>{{ r.titre|truncatechars:40 }}</td>
+                                                    <td>
+                                                        {% if r.statut == 'en_attente' %}
+                                                        <span class="badge bg-warning text-dark">{{ r.get_statut_display }}</span>
+                                                        {% elif r.statut == 'en_cours' %}
+                                                        <span class="badge bg-info text-dark">{{ r.get_statut_display }}</span>
+                                                        {% elif r.statut == 'repare' %}
+                                                        <span class="badge bg-success">{{ r.get_statut_display }}</span>
+                                                        {% else %}
+                                                        <span class="badge bg-secondary">{{ r.get_statut_display }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{% url 'entretien:detail_reparation' r.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-center py-4 text-muted mb-0">Aucune réparation. <a href="{% url 'entretien:creer_reparation' %}">Signaler un problème</a></p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-2">
+                            <div class="card border-0 shadow-sm">
                                 <div class="card-header bg-light">
                                     <h5 class="mb-0"><i class="fas fa-history me-2"></i>Entretiens récents</h5>
                                 </div>
@@ -50,9 +116,9 @@
                                             <thead>
                                                 <tr>
                                                     <th>Véhicule</th>
-                                                    <th>Type</th>
                                                     <th>Date</th>
-                                                    <th>Kilométrage</th>
+                                                    <th>Statut</th>
+                                                    <th>Coût</th>
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
@@ -60,9 +126,9 @@
                                                 {% for entretien in entretiens_recents %}
                                                 <tr>
                                                     <td>{{ entretien.vehicule.immatriculation }}</td>
-                                                    <td>{{ entretien.type }}</td>
-                                                    <td>{{ entretien.date|date:"d/m/Y" }}</td>
-                                                    <td>{{ entretien.kilometrage|default:'-' }} km</td>
+                                                    <td>{{ entretien.date_entretien|date:"d/m/Y" }}</td>
+                                                    <td>{{ entretien.get_statut_display }}</td>
+                                                    <td>{{ entretien.cout }} $</td>
                                                     <td>
                                                         <a href="{% url 'entretien:detail_entretien' entretien.id %}" class="btn btn-sm btn-outline-primary">
                                                             <i class="fas fa-eye"></i>

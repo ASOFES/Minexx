@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Réparation — {{ reparation.titre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-wrench me-2"></i>{{ reparation.titre }}</h5>
+            <div>
+                <a href="{% url 'entretien:liste_reparations' %}" class="btn btn-outline-light btn-sm">Liste</a>
+                {% if reparation.est_ouverte %}
+                <a href="{% url 'entretien:modifier_reparation' reparation.id %}" class="btn btn-warning btn-sm">Modifier</a>
+                <a href="{% url 'entretien:confirmer_reparation' reparation.id %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-check me-1"></i>Confirmer réparé
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <p class="mb-1 text-muted">Véhicule</p>
+                    <h4>
+                        <a href="{% url 'vehicule_detail' reparation.vehicule.id %}">{{ reparation.vehicule.immatriculation }}</a>
+                        <small class="text-muted">{{ reparation.vehicule.marque }} {{ reparation.vehicule.modele }}</small>
+                    </h4>
+                    <p class="mt-3 mb-1 text-muted">Description</p>
+                    <p style="white-space: pre-wrap;">{{ reparation.description }}</p>
+                    {% if reparation.commentaires %}
+                    <p class="mb-1 text-muted">Commentaires</p>
+                    <p style="white-space: pre-wrap;">{{ reparation.commentaires }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <p class="mb-2">
+                            Statut :
+                            {% if reparation.statut == 'en_attente' %}
+                            <span class="badge bg-warning text-dark">{{ reparation.get_statut_display }}</span>
+                            {% elif reparation.statut == 'en_cours' %}
+                            <span class="badge bg-info text-dark">{{ reparation.get_statut_display }}</span>
+                            {% elif reparation.statut == 'repare' %}
+                            <span class="badge bg-success">{{ reparation.get_statut_display }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ reparation.get_statut_display }}</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-1"><strong>Devis provisoire :</strong> {{ reparation.devis_provisoire }} $</p>
+                        <p class="mb-1"><strong>Devis confirmé :</strong>
+                            {% if reparation.devis_confirme %}<span class="text-success">{{ reparation.devis_confirme }} $</span>{% else %}—{% endif %}
+                        </p>
+                        <hr>
+                        <p class="mb-1 small">Signalé le : {{ reparation.date_signalement|date:"d/m/Y" }}</p>
+                        {% if reparation.date_debut_reparation %}
+                        <p class="mb-1 small">Début : {{ reparation.date_debut_reparation|date:"d/m/Y" }}</p>
+                        {% endif %}
+                        {% if reparation.date_reparation %}
+                        <p class="mb-1 small">Terminé le : {{ reparation.date_reparation|date:"d/m/Y" }}</p>
+                        {% endif %}
+                        {% if reparation.garage %}
+                        <p class="mb-1 small">Garage : {{ reparation.garage }}</p>
+                        {% endif %}
+                        {% if reparation.confirme_par %}
+                        <p class="mb-1 small">Confirmé par : {{ reparation.confirme_par.get_full_name|default:reparation.confirme_par.username }}</p>
+                        {% endif %}
+                        {% if reparation.piece_justificative %}
+                        <p class="mb-0 small mt-2">
+                            <a href="{{ reparation.piece_justificative.url }}" target="_blank"><i class="fas fa-file me-1"></i>Pièce justificative</a>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if reparation.est_ouverte %}
+            <div class="alert alert-warning mb-0">
+                En attente de clôture : utilisez <strong>Confirmer réparé</strong> pour saisir le devis réel et l’intégrer au bilan du véhicule.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

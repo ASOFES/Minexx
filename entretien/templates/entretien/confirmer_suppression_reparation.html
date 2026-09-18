@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer la réparation{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">Confirmer la suppression</div>
+        <div class="card-body">
+            <p>Supprimer la réparation <strong>{{ reparation.titre }}</strong> pour {{ reparation.vehicule.immatriculation }} ?</p>
+            <form method="post">
+                {% csrf_token %}
+                <a href="{% url 'entretien:detail_reparation' reparation.id %}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-danger">Supprimer</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

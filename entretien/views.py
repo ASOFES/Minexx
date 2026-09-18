@@ -7,8 +7,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from core.models import Vehicule, ActionTraceur, Course
-from .models import Entretien
-from .forms import EntretienForm
+from .models import Entretien, ReparationMecanique
+from .forms import EntretienForm, ReparationMecaniqueForm, ConfirmerReparationForm
 from core.utils import render_to_pdf, export_to_excel
 from core.decorators import is_admin_or_dispatch_or_superuser
 from ravitaillement.models import Ravitaillement
@@ -75,21 +75,32 @@ def _get_latest_kilometrage_for_vehicule(vehicule, exclude_entretien_id=None):
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def dashboard(request):
     """Vue pour le tableau de bord du module Entretien"""
-    # Récupérer les statistiques
-    entretiens_count = Entretien.objects.count()
-    entretiens_recents = Entretien.objects.all().order_by('-date_creation')[:5]
-    
-    # Tracer l'action
+    entretiens_qs = Entretien.objects.all()
+    reparations_qs = ReparationMecanique.objects.all()
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        etab = request.user.etablissement
+        entretiens_qs = entretiens_qs.filter(vehicule__etablissement=etab)
+        reparations_qs = reparations_qs.filter(vehicule__etablissement=etab)
+
+    entretiens_count = entretiens_qs.count()
+    entretiens_recents = entretiens_qs.order_by('-date_creation')[:5]
+    reparations_ouvertes = reparations_qs.filter(statut__in=['en_attente', 'en_cours']).count()
+    reparations_attente = reparations_qs.filter(statut='en_attente').count()
+    reparations_recentes = reparations_qs.order_by('-date_creation')[:5]
+
     ActionTraceur.objects.create(
         utilisateur=request.user,
         action="Consultation du tableau de bord Entretien",
     )
-    
+
     context = {
         'entretiens_count': entretiens_count,
         'entretiens_recents': entretiens_recents,
+        'reparations_ouvertes': reparations_ouvertes,
+        'reparations_attente': reparations_attente,
+        'reparations_recentes': reparations_recentes,
     }
-    
+
     return render(request, 'entretien/dashboard.html', context)
 
 @login_required
@@ -717,3 +728,162 @@ def get_vehicule_kilometrage(request):
         except Vehicule.DoesNotExist:
             return JsonResponse({'error': 'Véhicule non trouvé'}, status=404)
     return JsonResponse({'error': 'ID du véhicule manquant'}, status=400)
+
+
+def _reparations_queryset(request):
+    qs = ReparationMecanique.objects.select_related('vehicule', 'vehicule__etablissement', 'createur')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        qs = qs.filter(vehicule__etablissement=request.user.etablissement)
+    return qs
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def liste_reparations(request):
+    queryset = _reparations_queryset(request)
+    vehicule_id = request.GET.get('vehicule')
+    statut = request.GET.get('statut')
+    recherche = request.GET.get('recherche')
+
+    if vehicule_id:
+        queryset = queryset.filter(vehicule_id=vehicule_id)
+    if statut:
+        queryset = queryset.filter(statut=statut)
+    if recherche:
+        queryset = queryset.filter(
+            Q(titre__icontains=recherche)
+            | Q(description__icontains=recherche)
+            | Q(vehicule__immatriculation__icontains=recherche)
+            | Q(garage__icontains=recherche)
+        )
+
+    paginator = Paginator(queryset.order_by('-date_signalement', '-id'), 15)
+    page = request.GET.get('page')
+    try:
+        reparations = paginator.page(page)
+    except PageNotAnInteger:
+        reparations = paginator.page(1)
+    except EmptyPage:
+        reparations = paginator.page(paginator.num_pages)
+
+    vehicules = Vehicule.objects.all().order_by('immatriculation')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        vehicules = vehicules.filter(etablissement=request.user.etablissement)
+
+    return render(request, 'entretien/liste_reparations.html', {
+        'reparations': reparations,
+        'vehicules': vehicules,
+        'statuts': ReparationMecanique.STATUS_CHOICES,
+        'filtre_vehicule': vehicule_id or '',
+        'filtre_statut': statut or '',
+        'recherche': recherche or '',
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def creer_reparation(request):
+    if request.method == 'POST':
+        form = ReparationMecaniqueForm(request.POST, createur=request.user, user=request.user)
+        if form.is_valid():
+            reparation = form.save()
+            messages.success(
+                request,
+                f"Problème signalé pour {reparation.vehicule.immatriculation} — devis provisoire {reparation.devis_provisoire} $."
+            )
+            return redirect('entretien:detail_reparation', reparation_id=reparation.id)
+    else:
+        initial = {}
+        if request.GET.get('vehicule'):
+            initial['vehicule'] = request.GET.get('vehicule')
+        form = ReparationMecaniqueForm(createur=request.user, user=request.user, initial=initial)
+
+    return render(request, 'entretien/formulaire_reparation.html', {
+        'form': form,
+        'title': 'Signaler un problème mécanique',
+        'mode': 'create',
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def detail_reparation(request, reparation_id):
+    reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
+    return render(request, 'entretien/detail_reparation.html', {'reparation': reparation})
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def modifier_reparation(request, reparation_id):
+    reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
+    if reparation.statut == 'repare':
+        messages.warning(request, "Cette réparation est clôturée. Utilisez la fiche détail pour consulter le devis confirmé.")
+        return redirect('entretien:detail_reparation', reparation_id=reparation.id)
+
+    if request.method == 'POST':
+        form = ReparationMecaniqueForm(
+            request.POST, instance=reparation, createur=request.user, user=request.user
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Réparation mise à jour.")
+            return redirect('entretien:detail_reparation', reparation_id=reparation.id)
+    else:
+        form = ReparationMecaniqueForm(instance=reparation, createur=request.user, user=request.user)
+
+    return render(request, 'entretien/formulaire_reparation.html', {
+        'form': form,
+        'title': 'Modifier la réparation',
+        'reparation': reparation,
+        'mode': 'edit',
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def confirmer_reparation(request, reparation_id):
+    """Passe en statut Réparé avec devis confirmé (bilan comptable)."""
+    reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
+    if reparation.statut == 'repare':
+        messages.info(request, "Cette réparation est déjà clôturée.")
+        return redirect('entretien:detail_reparation', reparation_id=reparation.id)
+    if reparation.statut == 'annule':
+        messages.error(request, "Impossible de confirmer une réparation annulée.")
+        return redirect('entretien:detail_reparation', reparation_id=reparation.id)
+
+    if request.method == 'POST':
+        form = ConfirmerReparationForm(request.POST, request.FILES, instance=reparation)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.statut = 'repare'
+            obj.confirme_par = request.user
+            if not obj.date_reparation:
+                obj.date_reparation = timezone.localdate()
+            obj.save()
+            messages.success(
+                request,
+                f"Réparation clôturée — devis confirmé {obj.devis_confirme} $ enregistré pour le bilan."
+            )
+            return redirect('entretien:detail_reparation', reparation_id=reparation.id)
+    else:
+        form = ConfirmerReparationForm(instance=reparation)
+
+    return render(request, 'entretien/confirmer_reparation.html', {
+        'form': form,
+        'reparation': reparation,
+        'title': 'Confirmer la réparation (devis réel)',
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def supprimer_reparation(request, reparation_id):
+    reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
+    if request.method == 'POST':
+        immat = reparation.vehicule.immatriculation
+        reparation.delete()
+        messages.success(request, f"Réparation de {immat} supprimée.")
+        return redirect('entretien:liste_reparations')
+    return render(request, 'entretien/confirmer_suppression_reparation.html', {
+        'reparation': reparation,
+    })
