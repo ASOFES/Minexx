@@ -366,6 +366,7 @@
                                 <li><a class="dropdown-item" href="{% url 'rapport:vehicules' %}"><i class="fas fa-car me-2"></i>Véhicules</a></li>
                                 <li><a class="dropdown-item" href="{% url 'rapport:evaluation_chauffeurs' %}"><i class="fas fa-user-tie me-2"></i>Chauffeurs</a></li>
                                 <li><a class="dropdown-item" href="{% url 'rapport:depenses_carburant_entretien' %}"><i class="fas fa-dollar-sign me-2"></i>Dépenses (carburant, entretien, réparations)</a></li>
+                                <li><a class="dropdown-item" href="{% url 'rapport:liste_budgets' %}"><i class="fas fa-wallet me-2"></i>Budgets flotte</a></li>
                                 {% if user.role == 'demandeur' or user.role == 'admin' or user.is_superuser %}
                                 <li><a class="dropdown-item" href="{% url 'chauffeur:rapport_demandeur' %}"><i class="fas fa-user me-2"></i>Mon rapport demandeur</a></li>
                                 {% endif %}

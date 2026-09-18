@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between">
+                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>{{ title }}</h5>
+                    <a href="{% url 'rapport:liste_budgets' %}" class="btn btn-outline-light btn-sm">Liste</a>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small">
+                        <strong>Mensuel :</strong> choisissez année + mois.<br>
+                        <strong>Annuel :</strong> choisissez l’année (le mois est ignoré).<br>
+                        Répartissez le budget entre carburant, entretien, réparations et divers.
+                    </div>
+                    <form method="post" novalidate id="budget-form">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.etablissement.label }}</label>
+                                {{ form.etablissement }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.periode_type.label }} *</label>
+                                {{ form.periode_type }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.annee.label }} *</label>
+                                {{ form.annee }}
+                                {% for e in form.annee.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6" id="mois-wrap">
+                                <label class="form-label">{{ form.mois.label }}</label>
+                                {{ form.mois }}
+                                {% for e in form.mois.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.budget_carburant.label }}</label>
+                                {{ form.budget_carburant }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.budget_entretien.label }}</label>
+                                {{ form.budget_entretien }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.budget_reparations.label }}</label>
+                                {{ form.budget_reparations }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.budget_divers.label }}</label>
+                                {{ form.budget_divers }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notes</label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'rapport:liste_budgets' %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function () {
+    var typeEl = document.getElementById('id_periode_type');
+    var moisWrap = document.getElementById('mois-wrap');
+    function sync() {
+        if (!typeEl || !moisWrap) return;
+        moisWrap.style.display = typeEl.value === 'annuel' ? 'none' : '';
+    }
+    if (typeEl) typeEl.addEventListener('change', sync);
+    sync();
+})();
+</script>
+{% endblock %}

@@ -10,6 +10,7 @@
         <a href="{% url 'rapport:vehicules' %}" class="list-group-item list-group-item-action"><i class="fas fa-car me-2"></i>Rapport Véhicules</a>
         <a href="{% url 'rapport:evaluation_chauffeurs' %}" class="list-group-item list-group-item-action"><i class="fas fa-user-tie me-2"></i>Rapport Chauffeurs</a>
         <a href="{% url 'rapport:depenses_carburant_entretien' %}" class="list-group-item list-group-item-action"><i class="fas fa-dollar-sign me-2"></i>Rapport Dépenses (carburant, entretien, réparations)</a>
+        <a href="{% url 'rapport:liste_budgets' %}" class="list-group-item list-group-item-action"><i class="fas fa-wallet me-2"></i>Budgets flotte (mensuel / annuel)</a>
         <a href="{% url 'rapport:vehicule_advanced' %}" class="list-group-item list-group-item-action" {% if user.role not in 'admin,dispatch' and not user.is_superuser %}style="display:none;"{% endif %}><i class="fas fa-star me-2"></i>Rapport Véhicule Avancé</a>
     </div>
 </div>

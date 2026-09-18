@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import budget_views
 
 app_name = 'rapport'
 
@@ -18,4 +19,10 @@ urlpatterns = [
     path('generer/<str:type_rapport>/', views.generer_rapport, name='generer_rapport'),
     path('rapport-journalier-flotte/', views.rapport_journalier_flotte, name='rapport_journalier_flotte'),
     path('vehicule/advanced/', views.rapport_vehicule_advanced, name='vehicule_advanced'),
+    # Budgets flotte
+    path('budgets/', budget_views.liste_budgets, name='liste_budgets'),
+    path('budgets/ajouter/', budget_views.creer_budget, name='creer_budget'),
+    path('budgets/<int:budget_id>/', budget_views.detail_budget, name='detail_budget'),
+    path('budgets/<int:budget_id>/modifier/', budget_views.modifier_budget, name='modifier_budget'),
+    path('budgets/<int:budget_id>/supprimer/', budget_views.supprimer_budget, name='supprimer_budget'),
 ]
