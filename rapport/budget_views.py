@@ -5,8 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from core.models import ActionTraceur
-from .forms import BudgetFlotteForm
-from .models import BudgetFlotte
+from .forms import BudgetFlotteForm, AchatDocumentBordForm
+from .models import BudgetFlotte, AchatDocumentBord
 
 
 def is_admin_or_dispatch_or_superuser(user):
@@ -121,3 +121,36 @@ def supprimer_budget(request, budget_id):
         messages.success(request, f"Budget supprimé : {label}")
         return redirect('rapport:liste_budgets')
     return render(request, 'rapport/confirmer_suppression_budget.html', {'budget': budget})
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def liste_achats_documents(request):
+    qs = AchatDocumentBord.objects.select_related('vehicule', 'etablissement', 'createur')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        qs = qs.filter(etablissement=request.user.etablissement)
+    return render(request, 'rapport/liste_achats_documents.html', {
+        'achats': qs[:200],
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def creer_achat_document(request):
+    if request.method == 'POST':
+        form = AchatDocumentBordForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            achat = form.save()
+            ActionTraceur.objects.create(
+                utilisateur=request.user,
+                action="Achat document de bord",
+                details=str(achat),
+            )
+            messages.success(request, f"Achat enregistré : {achat}")
+            return redirect('rapport:liste_achats_documents')
+    else:
+        form = AchatDocumentBordForm(user=request.user)
+    return render(request, 'rapport/formulaire_achat_document.html', {
+        'form': form,
+        'title': 'Enregistrer un achat de document de bord',
+    })

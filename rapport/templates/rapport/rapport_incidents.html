@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Rapport incidents / accidents{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h1 class="h3 mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Rapport incidents &amp; accidents</h1>
+        <a href="{% url 'securite:signaler_incident' %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-plus me-1"></i>Signaler un incident</a>
+    </div>
+
+    <div class="row mb-3 g-2">
+        <div class="col-md-3">
+            <div class="card border-0 bg-light text-center py-3">
+                <div class="fs-4 fw-bold">{{ stats.total }}</div>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-danger text-white text-center py-3">
+                <div class="fs-4 fw-bold">{{ stats.ouverts }}</div>
+                <small>Ouverts</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-warning text-dark text-center py-3">
+                <div class="fs-4 fw-bold">{{ stats.traites }}</div>
+                <small>Traités</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-success text-white text-center py-3">
+                <div class="fs-4 fw-bold">{{ stats.clos }}</div>
+                <small>Clos</small>
+            </div>
+        </div>
+    </div>
+
+    <form method="get" class="card card-body mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Du</label>
+                <input type="date" name="date_debut" class="form-control" value="{{ date_debut }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Au</label>
+                <input type="date" name="date_fin" class="form-control" value="{{ date_fin }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type_incident" class="form-select">
+                    <option value="">Tous</option>
+                    {% for val, label in types %}
+                    <option value="{{ val }}" {% if type_incident == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Statut</label>
+                <select name="statut" class="form-select">
+                    <option value="">Tous</option>
+                    {% for val, label in statuts %}
+                    <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Véhicule</label>
+                <select name="vehicule" class="form-select">
+                    <option value="">Tous</option>
+                    {% for v in vehicules %}
+                    <option value="{{ v.id }}" {% if vehicule_id == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i>Filtrer</button>
+            </div>
+        </div>
+    </form>
+
+    {% if stats_par_type %}
+    <div class="mb-3">
+        <span class="text-muted me-2">Par type :</span>
+        {% for row in stats_par_type %}
+        <span class="badge bg-secondary me-1">{{ row.label }} : {{ row.count }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="table-responsive card">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Véhicule</th>
+                    <th>Type</th>
+                    <th>Statut</th>
+                    <th>Agent</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in incidents %}
+                <tr>
+                    <td>{{ i.id }}</td>
+                    <td>{{ i.date_signalement|date:"d/m/Y H:i" }}</td>
+                    <td>{{ i.vehicule.immatriculation }}</td>
+                    <td>
+                        {% if i.type_incident == 'accident' %}
+                        <span class="badge bg-danger">{{ i.get_type_incident_display }}</span>
+                        {% elif i.type_incident == 'defaut_grave' %}
+                        <span class="badge bg-warning text-dark">{{ i.get_type_incident_display }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ i.get_type_incident_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if i.statut == 'ouvert' %}
+                        <span class="badge bg-danger">{{ i.get_statut_display }}</span>
+                        {% elif i.statut == 'traite' %}
+                        <span class="badge bg-warning text-dark">{{ i.get_statut_display }}</span>
+                        {% else %}
+                        <span class="badge bg-success">{{ i.get_statut_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if i.agent %}{{ i.agent.get_full_name|default:i.agent.username }}{% else %}—{% endif %}</td>
+                    <td><small>{{ i.description|truncatechars:80 }}</small></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">Aucun incident / accident trouvé.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

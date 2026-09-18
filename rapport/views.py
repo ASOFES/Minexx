@@ -893,6 +893,67 @@ def rapport_entretiens(request):
     }
     return render(request, 'rapport/rapport_entretiens.html', context)
 
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def rapport_incidents(request):
+    """Rapport des incidents et accidents (module sécurité)."""
+    from securite.models import IncidentSecurite
+
+    date_debut = request.GET.get('date_debut') or ''
+    date_fin = request.GET.get('date_fin') or ''
+    type_incident = request.GET.get('type_incident') or ''
+    statut = request.GET.get('statut') or ''
+    vehicule_id = request.GET.get('vehicule') or ''
+
+    qs = IncidentSecurite.objects.select_related('vehicule', 'agent').order_by('-date_signalement')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        qs = qs.filter(vehicule__etablissement=request.user.etablissement)
+
+    if date_debut:
+        qs = qs.filter(date_signalement__date__gte=date_debut)
+    if date_fin:
+        qs = qs.filter(date_signalement__date__lte=date_fin)
+    if type_incident:
+        qs = qs.filter(type_incident=type_incident)
+    if statut:
+        qs = qs.filter(statut=statut)
+    if vehicule_id:
+        qs = qs.filter(vehicule_id=vehicule_id)
+
+    type_labels = dict(IncidentSecurite._meta.get_field('type_incident').choices)
+    stats_par_type = []
+    for row in qs.values('type_incident').annotate(count=Count('id')).order_by('-count'):
+        stats_par_type.append({
+            'label': type_labels.get(row['type_incident'], row['type_incident']),
+            'count': row['count'],
+        })
+
+    vehicules = Vehicule.objects.all().order_by('immatriculation')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        vehicules = vehicules.filter(etablissement=request.user.etablissement)
+
+    context = {
+        'incidents': qs[:300],
+        'stats': {
+            'total': qs.count(),
+            'ouverts': qs.filter(statut='ouvert').count(),
+            'traites': qs.filter(statut='traite').count(),
+            'clos': qs.filter(statut='clos').count(),
+        },
+        'stats_par_type': stats_par_type,
+        'types': IncidentSecurite._meta.get_field('type_incident').choices,
+        'statuts': IncidentSecurite._meta.get_field('statut').choices,
+        'vehicules': vehicules,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+        'type_incident': type_incident,
+        'statut': statut,
+        'vehicule_id': vehicule_id,
+    }
+    return render(request, 'rapport/rapport_incidents.html', context)
+
+
 @login_required
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def rapport_carburant(request):

@@ -13,7 +13,7 @@
                     <div class="alert alert-info py-2 small">
                         <strong>Mensuel :</strong> choisissez année + mois.<br>
                         <strong>Annuel :</strong> choisissez l’année (le mois est ignoré).<br>
-                        Répartissez le budget entre carburant, entretien, réparations et divers.
+                        Répartissez le budget entre carburant, entretien, réparations, documents de bord et divers.
                     </div>
                     <form method="post" novalidate id="budget-form">
                         {% csrf_token %}
@@ -48,6 +48,11 @@
                             <div class="col-md-6">
                                 <label class="form-label">{{ form.budget_reparations.label }}</label>
                                 {{ form.budget_reparations }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.budget_documents_bord.label }}</label>
+                                {{ form.budget_documents_bord }}
+                                <div class="form-text small">Assurance, vignette, carte rose, contrôle technique…</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">{{ form.budget_divers.label }}</label>

@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
-from .models import BudgetFlotte
-from core.models import Etablissement
+from .models import BudgetFlotte, AchatDocumentBord
+from core.models import Etablissement, Vehicule
 
 
 class BudgetFlotteForm(forms.ModelForm):
@@ -9,7 +9,8 @@ class BudgetFlotteForm(forms.ModelForm):
         model = BudgetFlotte
         fields = [
             'etablissement', 'periode_type', 'annee', 'mois',
-            'budget_carburant', 'budget_entretien', 'budget_reparations', 'budget_divers',
+            'budget_carburant', 'budget_entretien', 'budget_reparations',
+            'budget_documents_bord', 'budget_divers',
             'notes',
         ]
         widgets = {
@@ -20,6 +21,7 @@ class BudgetFlotteForm(forms.ModelForm):
             'budget_carburant': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'budget_entretien': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'budget_reparations': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'budget_documents_bord': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'budget_divers': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Commentaires / hypothèses…'}),
         }
@@ -45,6 +47,7 @@ class BudgetFlotteForm(forms.ModelForm):
         self.fields['budget_carburant'].label = "Budget carburant ($)"
         self.fields['budget_entretien'].label = "Budget entretien ($)"
         self.fields['budget_reparations'].label = "Budget réparations mécaniques ($)"
+        self.fields['budget_documents_bord'].label = "Budget achat documents de bord ($)"
         self.fields['budget_divers'].label = "Divers / imprévus ($)"
         self.fields['periode_type'].label = "Type de période"
         self.fields['annee'].label = "Année"
@@ -65,6 +68,49 @@ class BudgetFlotteForm(forms.ModelForm):
             instance.createur = self.user
             if getattr(self.fields.get('etablissement'), 'disabled', False) and self.user.etablissement_id:
                 instance.etablissement = self.user.etablissement
+        if commit:
+            instance.save()
+        return instance
+
+
+class AchatDocumentBordForm(forms.ModelForm):
+    class Meta:
+        model = AchatDocumentBord
+        fields = [
+            'vehicule', 'type_document', 'libelle', 'montant',
+            'date_achat', 'date_expiration', 'piece_jointe', 'notes',
+        ]
+        widgets = {
+            'vehicule': forms.Select(attrs={'class': 'form-select'}),
+            'type_document': forms.Select(attrs={'class': 'form-select'}),
+            'libelle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex. AXA, quittance n°…'}),
+            'montant': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'date_achat': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date_expiration': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'piece_jointe': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        qs = Vehicule.objects.all().order_by('immatriculation')
+        if self.user and not self.user.is_superuser and getattr(self.user, 'etablissement_id', None):
+            qs = qs.filter(etablissement=self.user.etablissement)
+        self.fields['vehicule'].queryset = qs
+        self.fields['type_document'].label = "Type de document"
+        self.fields['libelle'].label = "Libellé / précision"
+        self.fields['montant'].label = "Montant ($)"
+        self.fields['date_achat'].label = "Date d'achat"
+        self.fields['date_expiration'].label = "Date d'expiration (si applicable)"
+        self.fields['piece_jointe'].label = "Justificatif"
+        if not self.instance.pk:
+            self.fields['date_achat'].initial = timezone.localdate()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.user:
+            instance.createur = self.user
         if commit:
             instance.save()
         return instance

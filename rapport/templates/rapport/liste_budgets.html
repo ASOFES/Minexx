@@ -11,8 +11,9 @@
         </div>
         <div class="card-body">
             <p class="text-muted">
-                Définissez un budget <strong>mensuel</strong> ou <strong>annuel</strong> (carburant, entretien, réparations).
+                Définissez un budget <strong>mensuel</strong> ou <strong>annuel</strong> (carburant, entretien, réparations, documents de bord).
                 Le suivi compare automatiquement ces montants aux dépenses réelles enregistrées.
+                <a href="{% url 'rapport:liste_achats_documents' %}">Gérer les achats de documents de bord</a>.
             </p>
             <form method="get" class="row g-2 mb-4">
                 <div class="col-md-3">

@@ -314,8 +314,7 @@ def signaler_incident(request):
             incident.agent = request.user
             incident.save()
             messages.success(request, "Incident signalé avec succès.")
-            # Notifier les admins/dispatchers ici si besoin
-            return redirect('securite:dashboard')
+            return redirect('rapport:incidents')
     else:
         form = IncidentSecuriteForm()
     return render(request, 'securite/signalement_incident.html', {'form': form})

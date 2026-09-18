@@ -15,6 +15,7 @@ urlpatterns = [
     path('evaluation-chauffeurs-advanced/', views.rapport_evaluation_chauffeurs_advanced, name='evaluation_chauffeurs_advanced'),
     path('demandeurs/', views.rapport_demandeurs, name='demandeurs'),
     path('vehicules-utilisation/', views.generer_rapport, {'type_rapport': 'vehicules_utilisation'}, name='vehicules_utilisation'),
+    path('incidents/', views.rapport_incidents, name='incidents'),
     path('depenses-carburant-entretien/', views.rapport_depenses_carburant_entretien, name='depenses_carburant_entretien'),
     path('generer/<str:type_rapport>/', views.generer_rapport, name='generer_rapport'),
     path('rapport-journalier-flotte/', views.rapport_journalier_flotte, name='rapport_journalier_flotte'),
@@ -25,4 +26,6 @@ urlpatterns = [
     path('budgets/<int:budget_id>/', budget_views.detail_budget, name='detail_budget'),
     path('budgets/<int:budget_id>/modifier/', budget_views.modifier_budget, name='modifier_budget'),
     path('budgets/<int:budget_id>/supprimer/', budget_views.supprimer_budget, name='supprimer_budget'),
+    path('documents-bord/', budget_views.liste_achats_documents, name='liste_achats_documents'),
+    path('documents-bord/ajouter/', budget_views.creer_achat_document, name='creer_achat_document'),
 ]

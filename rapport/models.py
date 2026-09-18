@@ -80,6 +80,11 @@ class BudgetFlotte(models.Model):
     budget_carburant = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'))
     budget_entretien = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'))
     budget_reparations = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'))
+    budget_documents_bord = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('0'),
+        verbose_name="Budget achat documents de bord ($)",
+        help_text="Assurance, vignette, carte rose, contrôle technique, stationnement, etc.",
+    )
     budget_divers = models.DecimalField(
         max_digits=14, decimal_places=2, default=Decimal('0'),
         verbose_name="Divers / imprévus ($)",
@@ -117,6 +122,7 @@ class BudgetFlotte(models.Model):
             (self.budget_carburant or 0)
             + (self.budget_entretien or 0)
             + (self.budget_reparations or 0)
+            + (self.budget_documents_bord or 0)
             + (self.budget_divers or 0)
         )
 
@@ -139,7 +145,7 @@ class BudgetFlotte(models.Model):
         return date(self.annee, self.mois, 1), date(self.annee, self.mois, last)
 
     def depenses_reelles(self):
-        """Agrège carburant + entretiens terminés + réparations confirmées sur la période."""
+        """Agrège carburant + entretiens + réparations + documents de bord sur la période."""
         from ravitaillement.models import Ravitaillement
         from entretien.models import Entretien, ReparationMecanique
 
@@ -159,20 +165,30 @@ class BudgetFlotte(models.Model):
         ).annotate(
             date_comptable=Coalesce('date_reparation', 'date_signalement')
         ).filter(date_comptable__gte=debut, date_comptable__lte=fin)
+        docs = AchatDocumentBord.objects.filter(
+            date_achat__gte=debut,
+            date_achat__lte=fin,
+        )
 
         if self.etablissement_id:
             ravs = ravs.filter(vehicule__etablissement=self.etablissement)
             ents = ents.filter(vehicule__etablissement=self.etablissement)
             reps = reps.filter(vehicule__etablissement=self.etablissement)
+            docs = docs.filter(
+                models.Q(vehicule__etablissement=self.etablissement)
+                | models.Q(etablissement=self.etablissement)
+            )
 
         carburant = ravs.aggregate(t=Coalesce(Sum('cout_total'), Decimal('0')))['t']
         entretien = ents.aggregate(t=Coalesce(Sum('cout'), Decimal('0')))['t']
         reparations = reps.aggregate(t=Coalesce(Sum('devis_confirme'), Decimal('0')))['t']
-        total = carburant + entretien + reparations
+        documents = docs.aggregate(t=Coalesce(Sum('montant'), Decimal('0')))['t']
+        total = carburant + entretien + reparations + documents
         return {
             'carburant': carburant,
             'entretien': entretien,
             'reparations': reparations,
+            'documents_bord': documents,
             'total': total,
         }
 
@@ -182,6 +198,7 @@ class BudgetFlotte(models.Model):
         budg_c = self.budget_carburant or Decimal('0')
         budg_e = self.budget_entretien or Decimal('0')
         budg_r = self.budget_reparations or Decimal('0')
+        budg_d = self.budget_documents_bord or Decimal('0')
         budg_t = self.budget_total
 
         def pct(spent, budget):
@@ -197,7 +214,60 @@ class BudgetFlotte(models.Model):
             'pct_carburant': pct(reel['carburant'], budg_c),
             'pct_entretien': pct(reel['entretien'], budg_e),
             'pct_reparations': pct(reel['reparations'], budg_r),
+            'pct_documents_bord': pct(reel['documents_bord'], budg_d),
             'ecart_carburant': budg_c - reel['carburant'],
             'ecart_entretien': budg_e - reel['entretien'],
             'ecart_reparations': budg_r - reel['reparations'],
+            'ecart_documents_bord': budg_d - reel['documents_bord'],
         }
+
+
+class AchatDocumentBord(models.Model):
+    """Achat / renouvellement de documents de bord d'un véhicule."""
+    TYPE_CHOICES = (
+        ('assurance', 'Assurance'),
+        ('vignette', 'Vignette'),
+        ('carte_rose', 'Carte rose'),
+        ('controle_technique', 'Contrôle technique'),
+        ('stationnement', 'Autorisation de stationnement'),
+        ('autre', 'Autre document de bord'),
+    )
+
+    vehicule = models.ForeignKey(
+        'core.Vehicule', on_delete=models.CASCADE,
+        related_name='achats_documents_bord',
+    )
+    etablissement = models.ForeignKey(
+        Etablissement, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='achats_documents_bord',
+    )
+    type_document = models.CharField(max_length=30, choices=TYPE_CHOICES)
+    libelle = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text="Précision optionnelle (ex. assureur, n° quittance)",
+    )
+    montant = models.DecimalField(max_digits=14, decimal_places=2)
+    date_achat = models.DateField()
+    date_expiration = models.DateField(null=True, blank=True)
+    piece_jointe = models.FileField(
+        upload_to='documents_bord/achats/', blank=True, null=True,
+    )
+    notes = models.TextField(blank=True, default='')
+    createur = models.ForeignKey(
+        Utilisateur, on_delete=models.SET_NULL, null=True,
+        related_name='achats_documents_bord',
+    )
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_achat', '-id']
+        verbose_name = 'Achat document de bord'
+        verbose_name_plural = 'Achats documents de bord'
+
+    def __str__(self):
+        return f"{self.get_type_document_display()} — {self.vehicule.immatriculation} ({self.montant} $)"
+
+    def save(self, *args, **kwargs):
+        if self.vehicule_id and not self.etablissement_id:
+            self.etablissement_id = self.vehicule.etablissement_id
+        super().save(*args, **kwargs)
