@@ -376,6 +376,19 @@ def rapport_missions(request):
             course.duree_heures = round(duree, 2)
         else:
             course.duree_heures = 0
+
+        try:
+            from gps.services import compute_mission_resume
+            gps_resume = compute_mission_resume(course)
+            course.distance_gps_km = gps_resume['distance_gps_km']
+            course.ecart_gps_km = gps_resume['ecart_km']
+            course.nb_points_gps = gps_resume['nb_points']
+            course.vitesse_max_gps = gps_resume['vitesse_max']
+        except Exception:
+            course.distance_gps_km = 0
+            course.ecart_gps_km = None
+            course.nb_points_gps = 0
+            course.vitesse_max_gps = None
     
         # === CALCUL DU SCORE DE LA MISSION ===
         score_total = 0

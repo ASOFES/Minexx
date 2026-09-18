@@ -343,7 +343,11 @@
                                     <li><a class="dropdown-item {% if 'entretien' in request.path %}active{% endif %}" href="{% url 'entretien:dashboard' %}"><i class="fas fa-tools me-2"></i>Maintenance</a></li>
                                     {% endif %}
                                     <li><a class="dropdown-item {% if 'ravitaillement' in request.path %}active{% endif %}" href="{% url 'ravitaillement:dashboard' %}"><i class="fas fa-gas-pump me-2"></i>Ravitaillement</a></li>
-                                    <li><a class="dropdown-item">TEST-MENU</a></li>
+                                    {% if user.role == 'admin' or user.role == 'dispatch' or user.is_superuser %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item {% if 'gps' in request.path %}active{% endif %}" href="{% url 'gps:live_map' %}"><i class="fas fa-map-marked-alt me-2"></i>Suivi GPS live</a></li>
+                                    <li><a class="dropdown-item {% if '/gps/historique' in request.path %}active{% endif %}" href="{% url 'gps:historique' %}"><i class="fas fa-route me-2"></i>Historique GPS</a></li>
+                                    {% endif %}
                                 {% endif %}
                             </ul>
                         </li>

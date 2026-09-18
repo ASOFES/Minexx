@@ -140,6 +140,8 @@
                             <th>Score</th>
                             <th>Classification</th>
                             <th>Distance</th>
+                            <th>GPS</th>
+                            <th>Écart</th>
                             <th>Durée</th>
                             <th>Statut</th>
                             <th>Coût</th>
@@ -166,6 +168,13 @@
                                 <span class="badge {{ course.badge_class }} fs-6">{{ course.classification }}</span>
                             </td>
                             <td>{% if course.distance_parcourue %}{{ course.distance_parcourue|floatformat:2 }} km{% else %}—{% endif %}</td>
+                            <td>
+                              {% if course.nb_points_gps %}
+                                {{ course.distance_gps_km }} km
+                                <a class="small d-block" href="{% url 'gps:mission_detail' course.id %}">carte</a>
+                              {% else %}—{% endif %}
+                            </td>
+                            <td>{% if course.ecart_gps_km != None %}{{ course.ecart_gps_km }} km{% else %}—{% endif %}</td>
                             <td>{% if course.duree_heures %}{{ course.duree_heures }}h{% else %}—{% endif %}</td>
                             <td>
                                 <span class="badge {% if course.statut == 'terminee' %}bg-success{% elif course.statut == 'en_cours' %}bg-warning{% elif course.statut == 'validee' %}bg-info{% else %}bg-secondary{% endif %}">

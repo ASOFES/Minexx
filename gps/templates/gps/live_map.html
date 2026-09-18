@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Suivi GPS en direct{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  #gps-live-map { height: 70vh; min-height: 420px; border-radius: 8px; }
+  .gps-mission-card { border-left: 4px solid #22c55e; }
+  .gps-status-connecte { color: #16a34a; }
+  .gps-status-derniere_recue { color: #ca8a04; }
+  .gps-status-aucune { color: #94a3b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 mb-1"><i class="fas fa-map-marked-alt me-2"></i>Suivi GPS en direct</h1>
+    <p class="text-muted mb-0">Missions en cours — positions et tracés (établissement)</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'gps:historique' %}" class="btn btn-outline-secondary"><i class="fas fa-history me-1"></i>Historique</a>
+    <button type="button" class="btn btn-primary" id="gps-refresh"><i class="fas fa-sync-alt me-1"></i>Actualiser</button>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div id="gps-live-map" class="border shadow-sm"></div>
+  </div>
+  <div class="col-lg-4">
+    <div id="gps-mission-list" class="d-flex flex-column gap-2" style="max-height:70vh;overflow:auto;"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'js/gps_live.js' %}"></script>
+<script>
+  MinexxGPSLive.init({
+    apiUrl: "{% url 'gps:api_live' %}",
+    detailUrlTemplate: "{% url 'gps:mission_detail' 0 %}".replace('/0/', '/{id}/'),
+    pollMs: 10000
+  });
+</script>
+{% endblock %}

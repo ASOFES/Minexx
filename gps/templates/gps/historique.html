@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Historique GPS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 mb-1"><i class="fas fa-history me-2"></i>Historique GPS des missions</h1>
+    <p class="text-muted mb-0">Filtrer par période, chauffeur, véhicule ou mission</p>
+  </div>
+  <a href="{% url 'gps:live_map' %}" class="btn btn-primary"><i class="fas fa-broadcast-tower me-1"></i>Carte live</a>
+</div>
+
+<form method="get" class="card card-body mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-2">
+      <label class="form-label">Période</label>
+      <select name="periode" class="form-select">
+        <option value="">Toutes</option>
+        <option value="derniere_heure" {% if filters.periode == 'derniere_heure' %}selected{% endif %}>Dernière heure</option>
+        <option value="aujourdhui" {% if filters.periode == 'aujourdhui' %}selected{% endif %}>Aujourd'hui</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Du</label>
+      <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Au</label>
+      <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Chauffeur</label>
+      <select name="chauffeur" class="form-select">
+        <option value="">Tous</option>
+        {% for c in chauffeurs %}
+        <option value="{{ c.id }}" {% if filters.chauffeur == c.id|stringformat:'s' %}selected{% endif %}>{{ c.get_full_name|default:c.username }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Véhicule</label>
+      <select name="vehicule" class="form-select">
+        <option value="">Tous</option>
+        {% for v in vehicules %}
+        <option value="{{ v.id }}" {% if filters.vehicule == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Mission</label>
+      <input type="number" name="mission" value="{{ filters.mission }}" class="form-control" placeholder="#">
+    </div>
+    <div class="col-md-1">
+      <button class="btn btn-primary w-100" type="submit"><i class="fas fa-search"></i></button>
+    </div>
+  </div>
+</form>
+
+<div class="table-responsive card">
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th>Mission</th>
+        <th>Chauffeur</th>
+        <th>Véhicule</th>
+        <th>Statut</th>
+        <th>Distance GPS</th>
+        <th>Déclarée</th>
+        <th>Écart</th>
+        <th>Durée</th>
+        <th>Points</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in missions %}
+      <tr>
+        <td>#{{ item.course.id }}</td>
+        <td>{% if item.course.chauffeur %}{{ item.course.chauffeur.get_full_name|default:item.course.chauffeur.username }}{% else %}—{% endif %}</td>
+        <td>{% if item.course.vehicule %}{{ item.course.vehicule.immatriculation }}{% else %}—{% endif %}</td>
+        <td>{{ item.course.get_statut_display }}</td>
+        <td>{{ item.resume.distance_gps_km }} km</td>
+        <td>{{ item.resume.distance_declaree_km }} km</td>
+        <td>{% if item.resume.ecart_km != None %}{{ item.resume.ecart_km }} km{% else %}—{% endif %}</td>
+        <td>{{ item.duree_label }}</td>
+        <td>{{ item.resume.nb_points }}</td>
+        <td><a class="btn btn-sm btn-outline-primary" href="{% url 'gps:mission_detail' item.course.id %}">Carte / Replay</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" class="text-center text-muted py-4">Aucune mission GPS trouvée.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

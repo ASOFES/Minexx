@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     'ravitaillement',
     'rapport',
     'suivi',
+    'gps',
     'notifications',
     
     # Applications tierces

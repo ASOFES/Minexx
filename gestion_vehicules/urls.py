@@ -29,6 +29,7 @@ urlpatterns = [
     path('entretien/', include('entretien.urls')),
     path('ravitaillement/', include('ravitaillement.urls')),
     path('suivi/', include('suivi.urls')),
+    path('gps/', include('gps.urls')),
     path('rapport/', include('rapport.urls')),
     path('notifications/', include('notifications.urls')),
     # path('chat/', include('chat.urls')),  # Module chat désactivé car non présent

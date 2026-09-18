@@ -423,6 +423,20 @@ def api_verify_token(request):
 
 
 @csrf_exempt
+@require_http_methods(["POST"])
+def api_chauffeur_gps_proxy(request, course_id):
+    from gps.api import api_chauffeur_gps_positions
+    return api_chauffeur_gps_positions(request, course_id)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_chauffeur_gps_track_proxy(request, course_id):
+    from gps.api import api_mission_gps_track
+    return api_mission_gps_track(request, course_id)
+
+
+@csrf_exempt
 @require_http_methods(["GET"])
 def api_chauffeur_missions(request):
     """Endpoint API pour récupérer les missions d'un chauffeur (assignées)"""

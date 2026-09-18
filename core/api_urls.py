@@ -11,6 +11,8 @@ api_urlpatterns = [
     path('chauffeur/missions/', api.api_chauffeur_missions, name='api_chauffeur_missions'),
     path('chauffeur/missions/<int:course_id>/demarrer/', api.api_chauffeur_demarrer, name='api_chauffeur_demarrer'),
     path('chauffeur/missions/<int:course_id>/terminer/', api.api_chauffeur_terminer, name='api_chauffeur_terminer'),
+    path('chauffeur/missions/<int:course_id>/gps/', api.api_chauffeur_gps_proxy, name='api_chauffeur_gps'),
+    path('chauffeur/missions/<int:course_id>/gps/track/', api.api_chauffeur_gps_track_proxy, name='api_chauffeur_gps_track'),
 
     # Demandeur
     path('demandeur/demandes/', api.api_demandeur_demandes_list, name='api_demandeur_demandes_list'),
