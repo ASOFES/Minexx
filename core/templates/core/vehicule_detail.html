@@ -232,6 +232,30 @@
                                         </div>
                                     </div>
                                     <div class="row mt-3">
+                                        <div class="col-12">
+                                            <p class="mb-2 fw-bold text-muted text-center">
+                                                <i class="fas fa-toolbox me-1"></i>{% trans "Accessoires" %}
+                                            </p>
+                                            {% with accs=vehicule.accessoires.all %}
+                                            {% if accs %}
+                                            <ul class="list-group list-group-flush text-start mx-auto" style="max-width: 420px;">
+                                                {% for acc in accs %}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-2 py-2">
+                                                    <span>
+                                                        <strong>{{ acc.nom }}</strong>
+                                                        {% if acc.remarque %}<br><small class="text-muted">{{ acc.remarque }}</small>{% endif %}
+                                                    </span>
+                                                    <span class="badge bg-primary rounded-pill">×{{ acc.quantite }}</span>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                            {% else %}
+                                            <p class="info-badge bg-light mb-0 text-muted">{% trans "Aucun accessoire enregistré" %}</p>
+                                            {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
                                         <div class="col-md-12">
                                             <div class="mb-3 text-center">
                                                 <p class="mb-1 fw-bold text-muted">{% trans "Prochain entretien estimé" %}</p>

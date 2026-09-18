@@ -129,10 +129,10 @@ class Vehicule(models.Model):
     """Modèle pour les véhicules"""
     etablissement = models.ForeignKey('Etablissement', on_delete=models.CASCADE, null=True, blank=True, related_name='vehicules')
     immatriculation = models.CharField(max_length=20, unique=True)
-    marque = models.CharField(max_length=50)
-    modele = models.CharField(max_length=50)
-    couleur = models.CharField(max_length=30)
-    numero_chassis = models.CharField(max_length=50, unique=True)
+    marque = models.CharField(max_length=50, blank=True, default='')
+    modele = models.CharField(max_length=50, blank=True, default='')
+    couleur = models.CharField(max_length=30, blank=True, default='')
+    numero_chassis = models.CharField(max_length=50, unique=True, null=True, blank=True)
     numero_moteur = models.CharField(max_length=80, blank=True, default='', verbose_name="Numéro de moteur")
     numero_carte_rose = models.CharField(max_length=80, blank=True, default='', verbose_name="Numéro carte rose")
     document_carte_rose = models.FileField(
@@ -155,10 +155,10 @@ class Vehicule(models.Model):
     )
     image = models.ImageField(upload_to='images_vehicules/', blank=True, null=True)
     date_immatriculation = models.DateField(null=True, blank=True)
-    date_expiration_assurance = models.DateField()
-    date_expiration_controle_technique = models.DateField()
-    date_expiration_vignette = models.DateField()
-    date_expiration_stationnement = models.DateField()
+    date_expiration_assurance = models.DateField(null=True, blank=True)
+    date_expiration_controle_technique = models.DateField(null=True, blank=True)
+    date_expiration_vignette = models.DateField(null=True, blank=True)
+    date_expiration_stationnement = models.DateField(null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     createur = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL, null=True, related_name='vehicules_crees')
@@ -166,7 +166,30 @@ class Vehicule(models.Model):
     kilometrage_actuel = models.PositiveIntegerField(null=True, blank=True, help_text="Kilométrage actuel du véhicule (centralisé)")
     
     def __str__(self):
-        return f"{self.immatriculation} - {self.marque} {self.modele}"
+        label = f"{self.marque} {self.modele}".strip() or "À compléter"
+        return f"{self.immatriculation} - {label}"
+
+    def fiche_incomplete(self):
+        """True si des infos importantes manquent (enregistrement partiel)."""
+        missing = []
+        if not (self.marque or '').strip():
+            missing.append('marque')
+        if not (self.modele or '').strip():
+            missing.append('modele')
+        if not self.numero_chassis:
+            missing.append('chassis')
+        if not (self.numero_moteur or '').strip():
+            missing.append('moteur')
+        if not (self.numero_carte_rose or '').strip():
+            missing.append('carte_rose')
+        if not self.date_expiration_assurance:
+            missing.append('assurance')
+        if not self.date_expiration_controle_technique:
+            missing.append('controle')
+        return missing
+
+    def est_fiche_complete(self):
+        return len(self.fiche_incomplete()) == 0
 
     def pneus_identifies(self):
         """Liste des pneus avec position et numéro (non vides)."""
@@ -186,14 +209,20 @@ class Vehicule(models.Model):
     
     def jours_avant_expiration_assurance(self):
         """Retourne le nombre de jours avant l'expiration de l'assurance"""
+        if not self.date_expiration_assurance:
+            return None
         return (self.date_expiration_assurance - timezone.now().date()).days
     
     def jours_avant_expiration_controle(self):
         """Retourne le nombre de jours avant l'expiration du contrôle technique"""
+        if not self.date_expiration_controle_technique:
+            return None
         return (self.date_expiration_controle_technique - timezone.now().date()).days
     
     def jours_avant_expiration_vignette(self):
         """Retourne le nombre de jours avant l'expiration de la vignette"""
+        if not self.date_expiration_vignette:
+            return None
         return (self.date_expiration_vignette - timezone.now().date()).days
     
     def entretien_necessaire(self, kilometrage_actuel):
@@ -254,6 +283,24 @@ class Vehicule(models.Model):
         jours_restant = int(km_restant / moyenne_journaliere)
         date_estimee = timezone.now().date() + timezone.timedelta(days=jours_restant)
         return date_estimee, None
+
+
+class VehiculeAccessoire(models.Model):
+    """Accessoire / équipement associé à un véhicule (liste dynamique)."""
+    vehicule = models.ForeignKey(Vehicule, on_delete=models.CASCADE, related_name='accessoires')
+    nom = models.CharField(max_length=120, verbose_name="Accessoire")
+    quantite = models.PositiveIntegerField(default=1, verbose_name="Quantité")
+    remarque = models.CharField(max_length=255, blank=True, default='', verbose_name="Remarque")
+    date_ajout = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nom']
+        verbose_name = 'Accessoire véhicule'
+        verbose_name_plural = 'Accessoires véhicule'
+
+    def __str__(self):
+        return f"{self.nom} (x{self.quantite}) — {self.vehicule.immatriculation}"
+
 
 class Course(models.Model):
     """Modèle pour les courses/missions"""

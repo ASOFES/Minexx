@@ -49,6 +49,9 @@
                                         {% else %}
                                             <span class="badge bg-danger">{% trans "Inactif" %}</span>
                                         {% endif %}
+                                        {% if not vehicule.est_fiche_complete %}
+                                            <span class="badge bg-warning text-dark" title="{% trans 'Informations à compléter' %}">{% trans "À compléter" %}</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <a href="{% url 'vehicule_detail' vehicule.id %}" class="btn btn-sm btn-outline-primary" title="{% trans "Détails" %}">

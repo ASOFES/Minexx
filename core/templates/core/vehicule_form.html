@@ -17,6 +17,11 @@
                         {% csrf_token %}
                         {{ form.non_field_errors }}
 
+                        <div class="alert alert-info py-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Seule l'<strong>immatriculation</strong> est obligatoire. Les autres champs peuvent être complétés plus tard.
+                        </div>
+
                         <h5 class="mb-3 text-primary"><i class="fas fa-info-circle me-2"></i>{% trans "Identification" %}</h5>
                         <div class="row">
                             {% for field in form %}
@@ -32,10 +37,10 @@
                         </div>
 
                         <hr>
-                        <h5 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>{% trans "Carte rose" %}</h5>
+                        <h5 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>{% trans "Carte rose" %} <span class="badge bg-secondary fw-normal">optionnel</span></h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.numero_carte_rose.id_for_label }}" class="form-label">{{ form.numero_carte_rose.label }} *</label>
+                                <label for="{{ form.numero_carte_rose.id_for_label }}" class="form-label">{{ form.numero_carte_rose.label }}</label>
                                 {{ form.numero_carte_rose }}
                                 {% for error in form.numero_carte_rose.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
@@ -47,26 +52,26 @@
                         </div>
 
                         <hr>
-                        <h5 class="mb-3 text-primary"><i class="fas fa-circle-notch me-2"></i>{% trans "Identification des pneus" %}</h5>
-                        <p class="text-muted small">{% trans "Chaque pneu doit avoir un numéro distinct." %}</p>
+                        <h5 class="mb-3 text-primary"><i class="fas fa-circle-notch me-2"></i>{% trans "Identification des pneus" %} <span class="badge bg-secondary fw-normal">optionnel</span></h5>
+                        <p class="text-muted small">{% trans "Si renseignés, chaque pneu doit avoir un numéro distinct." %}</p>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.numero_pneu_avant_gauche.id_for_label }}" class="form-label">{{ form.numero_pneu_avant_gauche.label }} *</label>
+                                <label for="{{ form.numero_pneu_avant_gauche.id_for_label }}" class="form-label">{{ form.numero_pneu_avant_gauche.label }}</label>
                                 {{ form.numero_pneu_avant_gauche }}
                                 {% for error in form.numero_pneu_avant_gauche.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.numero_pneu_avant_droit.id_for_label }}" class="form-label">{{ form.numero_pneu_avant_droit.label }} *</label>
+                                <label for="{{ form.numero_pneu_avant_droit.id_for_label }}" class="form-label">{{ form.numero_pneu_avant_droit.label }}</label>
                                 {{ form.numero_pneu_avant_droit }}
                                 {% for error in form.numero_pneu_avant_droit.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.numero_pneu_arriere_gauche.id_for_label }}" class="form-label">{{ form.numero_pneu_arriere_gauche.label }} *</label>
+                                <label for="{{ form.numero_pneu_arriere_gauche.id_for_label }}" class="form-label">{{ form.numero_pneu_arriere_gauche.label }}</label>
                                 {{ form.numero_pneu_arriere_gauche }}
                                 {% for error in form.numero_pneu_arriere_gauche.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.numero_pneu_arriere_droit.id_for_label }}" class="form-label">{{ form.numero_pneu_arriere_droit.label }} *</label>
+                                <label for="{{ form.numero_pneu_arriere_droit.id_for_label }}" class="form-label">{{ form.numero_pneu_arriere_droit.label }}</label>
                                 {{ form.numero_pneu_arriere_droit }}
                                 {% for error in form.numero_pneu_arriere_droit.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
@@ -91,6 +96,69 @@
                             {% endfor %}
                         </div>
 
+                        <hr>
+                        <h5 class="mb-3 text-primary">
+                            <i class="fas fa-toolbox me-2"></i>{% trans "Accessoires du véhicule" %}
+                            <span class="badge bg-secondary fw-normal">optionnel</span>
+                        </h5>
+                        <p class="text-muted small mb-3">
+                            Cliquez dans le champ pour saisir un accessoire, puis utilisez
+                            <strong>Ajouter un accessoire</strong> pour en ajouter d'autres.
+                        </p>
+
+                        {{ accessoires_formset.management_form }}
+                        <datalist id="accessoires-suggestions">
+                            <option value="Extincteur">
+                            <option value="Triangle de signalisation">
+                            <option value="Trousse de secours">
+                            <option value="Cric">
+                            <option value="Clé à molette">
+                            <option value="Roue de secours">
+                            <option value="Gilet de sécurité">
+                            <option value="Câbles de démarrage">
+                            <option value="Tapis">
+                            <option value="Radio / GPS">
+                            <option value="Climatisation">
+                            <option value="Barre anti-brouillard">
+                        </datalist>
+
+                        <div id="accessoires-formset">
+                            {% for f in accessoires_formset %}
+                            <div class="accessoire-row border rounded p-3 mb-2 bg-light">
+                                {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-5">
+                                        <label class="form-label small mb-1">{{ f.nom.label }}</label>
+                                        {{ f.nom }}
+                                        {% for error in f.nom.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">{{ f.quantite.label }}</label>
+                                        {{ f.quantite }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-1">{{ f.remarque.label }}</label>
+                                        {{ f.remarque }}
+                                    </div>
+                                    <div class="col-md-1">
+                                        {% if f.DELETE %}
+                                        <div class="form-check" title="{% trans 'Supprimer' %}">
+                                            {{ f.DELETE }}
+                                            <label class="form-check-label small" for="{{ f.DELETE.id_for_label }}">
+                                                <i class="fas fa-trash text-danger"></i>
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <button type="button" id="btn-add-accessoire" class="btn btn-outline-primary btn-sm mb-3">
+                            <i class="fas fa-plus me-1"></i>{% trans "Ajouter un accessoire" %}
+                        </button>
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>{% trans "Enregistrer" %}</button>
                             <a href="{% url 'vehicule_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{% trans "Annuler" %}</a>
@@ -101,4 +169,68 @@
         </div>
     </div>
 </div>
+
+<template id="accessoire-empty-form">
+    <div class="accessoire-row border rounded p-3 mb-2 bg-light">
+        {% with f=accessoires_formset.empty_form %}
+        {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label small mb-1">{{ f.nom.label }}</label>
+                {{ f.nom }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">{{ f.quantite.label }}</label>
+                {{ f.quantite }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">{{ f.remarque.label }}</label>
+                {{ f.remarque }}
+            </div>
+            <div class="col-md-1">
+                {% if f.DELETE %}
+                <div class="form-check" title="{% trans 'Supprimer' %}">
+                    {{ f.DELETE }}
+                    <label class="form-check-label small" for="{{ f.DELETE.id_for_label }}">
+                        <i class="fas fa-trash text-danger"></i>
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function () {
+    const container = document.getElementById('accessoires-formset');
+    const addBtn = document.getElementById('btn-add-accessoire');
+    const tmpl = document.getElementById('accessoire-empty-form');
+    const totalInput = document.getElementById('id_accessoires-TOTAL_FORMS');
+    if (!container || !addBtn || !tmpl || !totalInput) return;
+
+    addBtn.addEventListener('click', function () {
+        const idx = parseInt(totalInput.value, 10);
+        let html = tmpl.innerHTML.replace(/__prefix__/g, idx);
+        container.insertAdjacentHTML('beforeend', html);
+        totalInput.value = idx + 1;
+        const rows = container.querySelectorAll('.accessoire-row');
+        const last = rows[rows.length - 1];
+        const nom = last && last.querySelector('.accessoire-nom, input[name$="-nom"]');
+        if (nom) nom.focus();
+    });
+
+    container.addEventListener('click', function (e) {
+        if (e.target.matches('input, label, .form-check')) return;
+        const row = e.target.closest('.accessoire-row');
+        if (!row) return;
+        const nom = row.querySelector('.accessoire-nom, input[name$="-nom"]');
+        if (nom) nom.focus();
+    });
+})();
+</script>
 {% endblock %}

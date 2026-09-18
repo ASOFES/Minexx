@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Utilisateur, Vehicule, Course, ActionTraceur, Etablissement, ApplicationControl
+from .models import Utilisateur, Vehicule, VehiculeAccessoire, Course, ActionTraceur, Etablissement, ApplicationControl
 from django.utils import timezone
 from datetime import datetime, time
 
@@ -29,12 +29,20 @@ class UtilisateurAdmin(UserAdmin):
         }),
     )
 
+
+class VehiculeAccessoireInline(admin.TabularInline):
+    model = VehiculeAccessoire
+    extra = 1
+    fields = ('nom', 'quantite', 'remarque')
+
+
 class VehiculeAdmin(admin.ModelAdmin):
     list_display = ('immatriculation', 'marque', 'modele', 'numero_moteur', 'numero_carte_rose', 'kilometrage_debut', 'kilometrage_actuel', 'date_expiration_assurance')
     list_filter = ('marque', 'modele', 'etablissement')
     search_fields = ('immatriculation', 'marque', 'modele', 'numero_chassis', 'numero_moteur', 'numero_carte_rose',
                      'numero_pneu_avant_gauche', 'numero_pneu_avant_droit', 'numero_pneu_arriere_gauche', 'numero_pneu_arriere_droit')
     date_hierarchy = 'date_creation'
+    inlines = [VehiculeAccessoireInline]
 
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('id', 'demandeur', 'point_embarquement', 'destination', 'chauffeur', 'vehicule', 'statut', 'date_demande')
@@ -54,6 +62,7 @@ class ActionTraceurAdmin(admin.ModelAdmin):
 
 admin.site.register(Utilisateur, UtilisateurAdmin)
 admin.site.register(Vehicule, VehiculeAdmin)
+admin.site.register(VehiculeAccessoire)
 admin.site.register(Course, CourseAdmin)
 admin.site.register(ActionTraceur, ActionTraceurAdmin)
 admin.site.register(Etablissement)

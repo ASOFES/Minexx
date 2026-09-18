@@ -9,7 +9,7 @@ from django.http import HttpResponse, JsonResponse
 import os
 from .models import Vehicule, Course, ActionTraceur, Utilisateur, Etablissement, ApplicationControl, Message
 from .forms import UtilisateurCreationForm, UtilisateurChangeForm, ApplicationControlForm, AdminPasswordForm, EtablissementForm, ProfileSelfEditForm
-from .vehicule_forms import VehiculeForm, VehiculeChangeEtablissementForm
+from .vehicule_forms import VehiculeForm, VehiculeChangeEtablissementForm, VehiculeAccessoireFormSet
 from .utils import render_to_pdf, get_latest_vehicle_kilometrage, export_to_excel
 from entretien.models import Entretien
 from ravitaillement.models import Ravitaillement
@@ -413,30 +413,42 @@ def vehicule_create(request):
     """Vue pour créer un nouveau véhicule (réservée aux administrateurs)"""
     if request.method == 'POST':
         form = VehiculeForm(request.POST, request.FILES, user=request.user, createur=request.user)
-        if form.is_valid():
+        formset = VehiculeAccessoireFormSet(request.POST, prefix='accessoires')
+        if form.is_valid() and formset.is_valid():
             try:
                 vehicule = form.save()
+                formset.instance = vehicule
+                formset.save()
                 
-                # Tracer l'action
                 ActionTraceur.objects.create(
                     utilisateur=request.user,
                     action=f"Création du véhicule {vehicule.immatriculation}",
                     details=f"Marque: {vehicule.marque}, Modèle: {vehicule.modele}"
                 )
                 
-                messages.success(request, f"Le véhicule {vehicule.immatriculation} a été créé avec succès.")
+                msg = f"Le véhicule {vehicule.immatriculation} a été créé avec succès."
+                if not vehicule.est_fiche_complete():
+                    msg += " Fiche partielle — à compléter plus tard."
+                messages.success(request, msg)
                 return redirect('vehicule_list')
             except Exception as e:
                 messages.error(request, f"Erreur lors de la création du véhicule: {str(e)}")
         else:
-            # Afficher les erreurs du formulaire
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"Erreur dans le champ {field}: {error}")
+            for err in formset.non_form_errors():
+                messages.error(request, str(err))
     else:
         form = VehiculeForm(user=request.user, createur=request.user)
+        formset = VehiculeAccessoireFormSet(prefix='accessoires')
     
-    return render(request, 'core/vehicule_form.html', {'form': form, 'title': 'Ajouter un véhicule', 'mode': 'create'})
+    return render(request, 'core/vehicule_form.html', {
+        'form': form,
+        'accessoires_formset': formset,
+        'title': 'Ajouter un véhicule',
+        'mode': 'create',
+    })
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -446,11 +458,12 @@ def vehicule_edit(request, pk):
     
     if request.method == 'POST':
         form = VehiculeForm(request.POST, request.FILES, instance=vehicule, createur=request.user)
-        if form.is_valid():
+        formset = VehiculeAccessoireFormSet(request.POST, instance=vehicule, prefix='accessoires')
+        if form.is_valid() and formset.is_valid():
             try:
                 form.save()
+                formset.save()
                 
-                # Tracer l'action
                 ActionTraceur.objects.create(
                     utilisateur=request.user,
                     action=f"Modification du véhicule {vehicule.immatriculation}",
@@ -462,14 +475,22 @@ def vehicule_edit(request, pk):
             except Exception as e:
                 messages.error(request, f"Erreur lors de la modification du véhicule: {str(e)}")
         else:
-            # Afficher les erreurs du formulaire
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"Erreur dans le champ {field}: {error}")
+            for err in formset.non_form_errors():
+                messages.error(request, str(err))
     else:
         form = VehiculeForm(instance=vehicule, createur=request.user)
+        formset = VehiculeAccessoireFormSet(instance=vehicule, prefix='accessoires')
     
-    return render(request, 'core/vehicule_form.html', {'form': form, 'title': 'Modifier un véhicule', 'vehicule': vehicule, 'mode': 'edit'})
+    return render(request, 'core/vehicule_form.html', {
+        'form': form,
+        'accessoires_formset': formset,
+        'title': 'Modifier un véhicule',
+        'vehicule': vehicule,
+        'mode': 'edit',
+    })
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
