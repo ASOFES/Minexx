@@ -30,10 +30,16 @@
                         <h5 class="mb-3 text-primary"><i class="fas fa-info-circle me-2"></i>{% trans "Identification" %}</h5>
                         <div class="row">
                             {% for field in form %}
-                                {% if field.name in "etablissement,immatriculation,marque,modele,couleur,numero_chassis,numero_moteur,kilometrage_debut,image" %}
+                                {% if field.name == "etablissement" or field.name == "immatriculation" or field.name == "marque" or field.name == "modele" or field.name == "couleur" or field.name == "numero_chassis" or field.name == "numero_moteur" or field.name == "kilometrage_debut" or field.name == "image" %}
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
                                     {{ field }}
+                                    {% if field.name == "image" and vehicule and vehicule.image %}
+                                    <div class="mt-2">
+                                        <img src="{{ vehicule.image.url }}" alt="{{ vehicule.immatriculation }}" class="img-thumbnail" style="max-height:140px;">
+                                        <div class="form-text">{% trans "Image actuelle — choisissez un nouveau fichier pour la remplacer." %}</div>
+                                    </div>
+                                    {% endif %}
                                     {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
                                     {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                                 </div>

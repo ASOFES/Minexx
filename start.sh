@@ -33,6 +33,9 @@ if [ ! -d "staticfiles" ]; then
     python manage.py collectstatic --noinput
 fi
 
+# Dossier média pour photos / documents uploadés
+mkdir -p media/images_vehicules media/documents_vehicules
+
 # Créer un superutilisateur uniquement si les variables d'environnement sont fournies
 echo "👤 Vérification du superutilisateur..."
 python manage.py shell -c "
