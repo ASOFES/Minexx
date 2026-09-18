@@ -49,29 +49,33 @@
                     
                     <div class="mb-3">
                         <label for="id_point_embarquement" class="form-label">Point d'embarquement</label>
-                        <input type="text" name="point_embarquement" id="id_point_embarquement" class="form-control {% if form.point_embarquement.errors %}is-invalid{% endif %}" value="{{ form.point_embarquement.value|default:'' }}" required>
-                        {% if form.point_embarquement.errors %}
-                        <div class="invalid-feedback">
-                            {% for error in form.point_embarquement.errors %}
-                            {{ error }}
-                            {% endfor %}
+                        <div class="input-group">
+                            <input type="text" name="point_embarquement" id="id_point_embarquement" class="form-control {% if form.point_embarquement.errors %}is-invalid{% endif %}" value="{{ form.point_embarquement.value|default:'' }}" required>
+                            <button type="button" class="btn btn-outline-secondary" id="btn-geocode-embarquement" title="Géocoder"><i class="fas fa-map-marker-alt"></i></button>
                         </div>
-                        {% endif %}
-                        <div class="form-text">Indiquez l'adresse précise du point de départ.</div>
+                        <input type="hidden" name="embarquement_latitude" id="id_embarquement_latitude" value="{{ form.embarquement_latitude.value|default:'' }}">
+                        <input type="hidden" name="embarquement_longitude" id="id_embarquement_longitude" value="{{ form.embarquement_longitude.value|default:'' }}">
+                        <div class="form-text" id="embarquement-geo-status">Indiquez l'adresse, puis géocodez (ou laissez le système le faire à l'enregistrement).</div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="id_destination" class="form-label">Destination</label>
-                        <input type="text" name="destination" id="id_destination" class="form-control {% if form.destination.errors %}is-invalid{% endif %}" value="{{ form.destination.value|default:'' }}" required>
-                        {% if form.destination.errors %}
-                        <div class="invalid-feedback">
-                            {% for error in form.destination.errors %}
-                            {{ error }}
-                            {% endfor %}
+                        <div class="input-group">
+                            <input type="text" name="destination" id="id_destination" class="form-control {% if form.destination.errors %}is-invalid{% endif %}" value="{{ form.destination.value|default:'' }}" required>
+                            <button type="button" class="btn btn-outline-secondary" id="btn-geocode-destination" title="Géocoder"><i class="fas fa-map-marker-alt"></i></button>
                         </div>
-                        {% endif %}
-                        <div class="form-text">Indiquez l'adresse précise de la destination.</div>
+                        <input type="hidden" name="destination_latitude" id="id_destination_latitude" value="{{ form.destination_latitude.value|default:'' }}">
+                        <input type="hidden" name="destination_longitude" id="id_destination_longitude" value="{{ form.destination_longitude.value|default:'' }}">
+                        <div class="form-text" id="destination-geo-status">Adresse d'arrivée pour la zone d'évaluation GPS.</div>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="id_rayon_arrivee_metres" class="form-label">Rayon zone d'arrivée (m)</label>
+                        <input type="number" name="rayon_arrivee_metres" id="id_rayon_arrivee_metres" min="50" max="2000" step="10" class="form-control" value="{{ form.rayon_arrivee_metres.value|default:'150' }}">
+                        <div class="form-text">Le véhicule est considéré « arrivé » s'il entre dans ce rayon (défaut 150 m).</div>
+                    </div>
+
+                    <div id="demande-map" class="mb-3 border rounded" style="height:260px;display:none;"></div>
                     
                     <div class="mb-3">
                         <label for="id_motif" class="form-label">Motif de la demande</label>
@@ -155,4 +159,81 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  const geocodeUrl = "{% url 'gps:api_geocode' %}";
+  let map, embMarker, destMarker, destCircle;
+
+  function ensureMap() {
+    const el = document.getElementById('demande-map');
+    if (!el) return;
+    el.style.display = 'block';
+    if (map) { map.invalidateSize(); return; }
+    map = L.map('demande-map').setView([-11.66, 27.48], 12);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    }).addTo(map);
+  }
+
+  function refreshMarkers() {
+    const elat = parseFloat(document.getElementById('id_embarquement_latitude').value);
+    const elng = parseFloat(document.getElementById('id_embarquement_longitude').value);
+    const dlat = parseFloat(document.getElementById('id_destination_latitude').value);
+    const dlng = parseFloat(document.getElementById('id_destination_longitude').value);
+    const rayon = parseInt(document.getElementById('id_rayon_arrivee_metres').value || '150', 10);
+    if (!((elat && elng) || (dlat && dlng))) return;
+    ensureMap();
+    const bounds = [];
+    if (elat && elng) {
+      if (embMarker) embMarker.setLatLng([elat, elng]);
+      else embMarker = L.marker([elat, elng]).addTo(map).bindPopup('Embarquement');
+      bounds.push([elat, elng]);
+    }
+    if (dlat && dlng) {
+      if (destMarker) destMarker.setLatLng([dlat, dlng]);
+      else destMarker = L.marker([dlat, dlng], {title: 'Destination'}).addTo(map).bindPopup('Destination');
+      if (destCircle) map.removeLayer(destCircle);
+      destCircle = L.circle([dlat, dlng], {radius: rayon, color: '#16a34a', fillOpacity: 0.15}).addTo(map);
+      bounds.push([dlat, dlng]);
+    }
+    if (bounds.length) map.fitBounds(bounds, {padding: [40, 40], maxZoom: 15});
+  }
+
+  function geocode(kind) {
+    const input = document.getElementById(kind === 'embarquement' ? 'id_point_embarquement' : 'id_destination');
+    const status = document.getElementById(kind === 'embarquement' ? 'embarquement-geo-status' : 'destination-geo-status');
+    const q = (input.value || '').trim();
+    if (!q) { status.textContent = 'Saisissez une adresse.'; return; }
+    status.textContent = 'Recherche…';
+    fetch(geocodeUrl + '?q=' + encodeURIComponent(q), {credentials: 'same-origin'})
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success || !data.results || !data.results.length) {
+          status.textContent = 'Aucun résultat. Affinez l\'adresse.';
+          return;
+        }
+        const r = data.results[0];
+        document.getElementById('id_' + kind + '_latitude').value = r.latitude;
+        document.getElementById('id_' + kind + '_longitude').value = r.longitude;
+        status.textContent = 'OK : ' + r.display_name + ' (' + r.latitude.toFixed(5) + ', ' + r.longitude.toFixed(5) + ')';
+        refreshMarkers();
+      })
+      .catch(() => { status.textContent = 'Erreur de géocodage.'; });
+  }
+
+  document.getElementById('btn-geocode-embarquement')?.addEventListener('click', () => geocode('embarquement'));
+  document.getElementById('btn-geocode-destination')?.addEventListener('click', () => geocode('destination'));
+  document.getElementById('id_rayon_arrivee_metres')?.addEventListener('change', refreshMarkers);
+  refreshMarkers();
+})();
+</script>
 {% endblock %}

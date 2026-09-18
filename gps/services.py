@@ -110,6 +110,139 @@ def gps_status_label(position, connected_threshold=90):
     return 'derniere_recue'
 
 
+def haversine_m(lat1, lon1, lat2, lon2):
+    return haversine_km(lat1, lon1, lat2, lon2) * 1000.0
+
+
+def planned_points(course):
+    """Points planifiés + rayon pour affichage carte / évaluation."""
+    rayon = int(getattr(course, 'rayon_arrivee_metres', None) or 150)
+    embarquement = None
+    destination = None
+    if course.embarquement_latitude is not None and course.embarquement_longitude is not None:
+        embarquement = {
+            'latitude': float(course.embarquement_latitude),
+            'longitude': float(course.embarquement_longitude),
+            'label': course.point_embarquement,
+        }
+    if course.destination_latitude is not None and course.destination_longitude is not None:
+        destination = {
+            'latitude': float(course.destination_latitude),
+            'longitude': float(course.destination_longitude),
+            'label': course.destination,
+            'rayon_m': rayon,
+        }
+    return {
+        'embarquement': embarquement,
+        'destination': destination,
+        'rayon_arrivee_metres': rayon,
+        'distance_prevue_km': course.distance_prevue_km,
+    }
+
+
+def evaluate_mission(course, persist=True):
+    """
+    Évalue l'arrivée en zone destination, durée d'arrêt sur place,
+    écart trajet réel vs distance prévue.
+    """
+    resume = compute_mission_resume(course)
+    planned = planned_points(course)
+    dest = planned['destination']
+    rayon = planned['rayon_arrivee_metres']
+
+    result = {
+        **resume,
+        'arrivee_ok': None,
+        'heure_arrivee': None,
+        'duree_arret_destination_s': 0,
+        'ecart_trajet_km': None,
+        'distance_prevue_km': planned['distance_prevue_km'],
+        'rayon_arrivee_metres': rayon,
+        'score': None,
+        'has_destination_coords': bool(dest),
+        'planned': planned,
+    }
+
+    if not dest:
+        if persist:
+            _persist_eval(course, result)
+        return result
+
+    qs = positions_queryset(course)
+    points = list(qs.values('latitude', 'longitude', 'timestamp', 'vitesse'))
+    if not points:
+        result['arrivee_ok'] = False
+        if persist:
+            _persist_eval(course, result)
+        return result
+
+    STOP_SPEED = 3.0
+    first_in_zone_ts = None
+    duree_arret_zone = 0.0
+    in_zone = False
+    prev = None
+
+    for cur in points:
+        dist_m = haversine_m(
+            cur['latitude'], cur['longitude'],
+            dest['latitude'], dest['longitude'],
+        )
+        inside = dist_m <= rayon
+        if inside and first_in_zone_ts is None:
+            first_in_zone_ts = cur['timestamp']
+        if prev is not None:
+            dt = (cur['timestamp'] - prev['timestamp']).total_seconds()
+            if dt > 0 and inside:
+                v = cur.get('vitesse')
+                if v is None or float(v) < STOP_SPEED:
+                    duree_arret_zone += dt
+        prev = cur
+        in_zone = inside
+
+    # Arrivée = au moins un point dans la zone
+    result['arrivee_ok'] = first_in_zone_ts is not None
+    result['heure_arrivee'] = first_in_zone_ts
+    result['duree_arret_destination_s'] = int(duree_arret_zone)
+
+    prevue = planned['distance_prevue_km']
+    if prevue is not None and resume['distance_gps_km'] is not None:
+        result['ecart_trajet_km'] = round(abs(float(resume['distance_gps_km']) - float(prevue)), 2)
+
+    # Score 0-100
+    score = 0
+    if result['arrivee_ok']:
+        score += 50
+    if result['duree_arret_destination_s'] >= 60:
+        score += 20
+    elif result['duree_arret_destination_s'] > 0:
+        score += 10
+    if result['ecart_trajet_km'] is not None:
+        if result['ecart_trajet_km'] <= max(0.5, 0.15 * float(prevue or 1)):
+            score += 30
+        elif result['ecart_trajet_km'] <= max(1.5, 0.35 * float(prevue or 1)):
+            score += 15
+    result['score'] = min(100, score)
+
+    if persist:
+        _persist_eval(course, result)
+    return result
+
+
+def _persist_eval(course, result):
+    updates = {
+        'eval_arrivee_ok': result.get('arrivee_ok'),
+        'eval_heure_arrivee': result.get('heure_arrivee'),
+        'eval_duree_arret_destination_s': result.get('duree_arret_destination_s') or 0,
+        'eval_ecart_trajet_km': result.get('ecart_trajet_km'),
+        'eval_score': result.get('score'),
+    }
+    if result.get('distance_prevue_km') is not None:
+        updates['distance_prevue_km'] = result['distance_prevue_km']
+    type(course).objects.filter(pk=course.pk).update(**updates)
+    for k, v in updates.items():
+        setattr(course, k, v)
+
+
 def purge_expired_positions(retention_jours=365):
     cutoff = timezone.now() - timedelta(days=retention_jours)
     deleted, _ = GPSPosition.objects.filter(timestamp__lt=cutoff).delete()

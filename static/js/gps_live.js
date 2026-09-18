@@ -1,5 +1,5 @@
 window.MinexxGPSLive = (function () {
-  let map, markers = {}, polylines = {}, cfg = {};
+  let map, markers = {}, polylines = {}, plannedLayers = {}, cfg = {};
 
   function statusClass(s) {
     return 'gps-status-' + (s || 'aucune');
@@ -43,6 +43,8 @@ window.MinexxGPSLive = (function () {
               'Départ: ' + (m.date_depart ? new Date(m.date_depart).toLocaleString() : '—') + '<br>' +
               'Vitesse: ' + (m.vitesse != null ? Math.round(m.vitesse) + ' km/h' : '—') +
               ' · GPS: ' + (m.distance_gps_km || 0) + ' km' +
+              (m.evaluation && m.evaluation.arrivee_ok === true ? '<br><span class="text-success">Arrivée zone: OUI</span>' : '') +
+              (m.evaluation && m.evaluation.arrivee_ok === false ? '<br><span class="text-warning">Arrivée zone: NON</span>' : '') +
             '</div>' +
             '<a class="btn btn-sm btn-outline-primary mt-2" href="' + detail + '">Détail / Replay</a>' +
           '</div>' +
@@ -57,6 +59,31 @@ window.MinexxGPSLive = (function () {
     const seen = {};
     missions.forEach(function (m) {
       seen[m.id] = true;
+      if (m.planned && (m.planned.embarquement || m.planned.destination)) {
+        if (plannedLayers[m.id]) {
+          plannedLayers[m.id].forEach(function (layer) { map.removeLayer(layer); });
+        }
+        plannedLayers[m.id] = [];
+        if (m.planned.embarquement) {
+          const emb = L.circleMarker(
+            [m.planned.embarquement.latitude, m.planned.embarquement.longitude],
+            { radius: 6, color: '#2563eb', fillOpacity: 0.9 }
+          ).addTo(map).bindPopup('Départ: ' + (m.planned.embarquement.label || ''));
+          plannedLayers[m.id].push(emb);
+          bounds.push([m.planned.embarquement.latitude, m.planned.embarquement.longitude]);
+        }
+        if (m.planned.destination) {
+          const dll = [m.planned.destination.latitude, m.planned.destination.longitude];
+          const dest = L.marker(dll).addTo(map).bindPopup('Destination: ' + (m.planned.destination.label || ''));
+          const circle = L.circle(dll, {
+            radius: m.planned.destination.rayon_m || 150,
+            color: '#16a34a',
+            fillOpacity: 0.12
+          }).addTo(map);
+          plannedLayers[m.id].push(dest, circle);
+          bounds.push(dll);
+        }
+      }
       if (m.track && m.track.length > 1) {
         const latlngs = m.track.map(function (p) { return [p.latitude, p.longitude]; });
         if (polylines[m.id]) {
@@ -92,6 +119,12 @@ window.MinexxGPSLive = (function () {
       if (!seen[id]) {
         map.removeLayer(polylines[id]);
         delete polylines[id];
+      }
+    });
+    Object.keys(plannedLayers).forEach(function (id) {
+      if (!seen[id]) {
+        (plannedLayers[id] || []).forEach(function (layer) { map.removeLayer(layer); });
+        delete plannedLayers[id];
       }
     });
     if (bounds.length) {

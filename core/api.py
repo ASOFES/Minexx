@@ -393,6 +393,12 @@ def api_chauffeur_terminer(request, course_id):
     except (ValidationError, ValueError) as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+    try:
+        from gps.services import evaluate_mission
+        evaluate_mission(course, persist=True)
+    except Exception:
+        pass
+
     # Synchroniser le kilométrage même si la distance est 0
     if course.vehicule_id and course.kilometrage_fin is not None:
         veh = course.vehicule

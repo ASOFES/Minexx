@@ -275,6 +275,26 @@ class Course(models.Model):
     demandeur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='courses_demandees')
     point_embarquement = models.CharField(max_length=255)
     destination = models.CharField(max_length=255)
+    # Coordonnées GPS planifiées (évaluation de course)
+    embarquement_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    embarquement_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    destination_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    destination_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    rayon_arrivee_metres = models.PositiveIntegerField(
+        default=150,
+        help_text="Rayon de la zone d'arrivée autour de la destination (mètres)",
+    )
+    distance_prevue_km = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Distance théorique embarquement → destination (vol d'oiseau)",
+    )
+    # Résultats d'évaluation GPS (mis à jour après analyse trajectoire)
+    eval_arrivee_ok = models.BooleanField(null=True, blank=True)
+    eval_heure_arrivee = models.DateTimeField(null=True, blank=True)
+    eval_duree_arret_destination_s = models.PositiveIntegerField(null=True, blank=True)
+    eval_ecart_trajet_km = models.FloatField(null=True, blank=True)
+    eval_score = models.PositiveSmallIntegerField(null=True, blank=True)
     motif = models.TextField()
     nombre_passagers = models.PositiveIntegerField(default=1, verbose_name="Nombre de passagers")
     date_demande = models.DateTimeField(auto_now_add=True)
@@ -310,6 +330,19 @@ class Course(models.Model):
         # Calcul de la distance parcourue (is not None pour ne pas ignorer 0)
         if self.kilometrage_fin is not None and self.kilometrage_depart is not None:
             self.distance_parcourue = self.kilometrage_fin - self.kilometrage_depart
+        # Distance prévue embarquement → destination
+        if (
+            self.embarquement_latitude is not None and self.embarquement_longitude is not None
+            and self.destination_latitude is not None and self.destination_longitude is not None
+        ):
+            try:
+                from gps.services import haversine_km
+                self.distance_prevue_km = round(haversine_km(
+                    self.embarquement_latitude, self.embarquement_longitude,
+                    self.destination_latitude, self.destination_longitude,
+                ), 2)
+            except Exception:
+                pass
         # Mise à jour des dates
         if self.statut == 'validee' and not self.date_validation:
             self.date_validation = timezone.now()

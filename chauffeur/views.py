@@ -286,6 +286,12 @@ def terminer_mission(request, mission_id):
             mission.distance_parcourue = mission.kilometrage_fin - mission.kilometrage_depart
             mission.save()
 
+            try:
+                from gps.services import evaluate_mission
+                evaluate_mission(mission, persist=True)
+            except Exception:
+                pass
+
             # Mettre à jour le kilométrage du véhicule si le kilométrage de fin de mission est plus élevé
             if mission.kilometrage_fin is not None and mission.vehicule and (
                 mission.vehicule.kilometrage_actuel is None

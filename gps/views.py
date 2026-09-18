@@ -19,8 +19,10 @@ from .access import (
 from .models import GPSPosition
 from .services import (
     compute_mission_resume,
+    evaluate_mission,
     gps_status_label,
     last_position_age_seconds,
+    planned_points,
     serialize_position,
 )
 
@@ -62,6 +64,8 @@ def api_live_missions(request):
             .first()
         )
         resume = compute_mission_resume(course)
+        evaluation = evaluate_mission(course, persist=False)
+        planned = planned_points(course)
         track = [
             serialize_position(p)
             for p in GPSPosition.objects.filter(course=course).order_by('timestamp')[:2000]
@@ -87,6 +91,12 @@ def api_live_missions(request):
             'distance_gps_km': resume['distance_gps_km'],
             'vitesse': last.vitesse if last else None,
             'track': track,
+            'planned': planned,
+            'evaluation': {
+                'arrivee_ok': evaluation.get('arrivee_ok'),
+                'score': evaluation.get('score'),
+                'heure_arrivee': evaluation['heure_arrivee'].isoformat() if evaluation.get('heure_arrivee') else None,
+            },
         })
     return JsonResponse({'success': True, 'missions': missions})
 
@@ -101,20 +111,36 @@ def mission_detail(request, course_id):
         details=f'Consultation GPS mission #{course.id}',
     )
     positions = list(GPSPosition.objects.filter(course=course).order_by('timestamp'))
-    resume = compute_mission_resume(course)
+    evaluation = evaluate_mission(course, persist=True)
     resume_display = {
-        **resume,
-        'duree_label': _format_duration(resume['duree_secondes']),
-        'temps_arret_label': _format_duration(resume['temps_arret_secondes']),
+        **evaluation,
+        'duree_label': _format_duration(evaluation['duree_secondes']),
+        'temps_arret_label': _format_duration(evaluation['temps_arret_secondes']),
+        'duree_arret_destination_label': _format_duration(evaluation.get('duree_arret_destination_s') or 0),
+        'heure_arrivee_label': (
+            evaluation['heure_arrivee'].strftime('%d/%m/%Y %H:%M:%S')
+            if evaluation.get('heure_arrivee') else None
+        ),
     }
     positions_payload = [serialize_position(p) for p in positions]
     return render(request, 'gps/mission_detail.html', {
         'mission': course,
         'positions': positions,
         'positions_json': json.dumps(positions_payload),
+        'planned_json': json.dumps(planned_points(course)),
         'resume': resume_display,
+        'evaluation': resume_display,
         'can_manage': user_can_manage_gps(request.user),
     })
+
+
+@login_required
+@require_GET
+def api_geocode(request):
+    from .geocode import geocode_address
+    q = request.GET.get('q', '')
+    results = geocode_address(q)
+    return JsonResponse({'success': True, 'results': results})
 
 
 @gps_manager_required

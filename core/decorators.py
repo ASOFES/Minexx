@@ -81,7 +81,13 @@ def require_departement_password(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         import os
-        expected = os.environ.get('DEPARTEMENT_ACCESS_PASSWORD', '')
+        expected = os.environ.get('DEPARTEMENT_ACCESS_PASSWORD', '').strip()
+        # Admin / superuser : pas de verrou supplémentaire
+        if request.user.is_authenticated and (
+            request.user.is_superuser or getattr(request.user, 'role', None) == 'admin'
+        ):
+            request.session['departement_access_granted'] = True
+            return view_func(request, *args, **kwargs)
         if not request.session.get('departement_access_granted', False):
             if request.method == 'POST' and 'departement_password' in request.POST:
                 if expected and request.POST['departement_password'] == expected:
@@ -90,7 +96,7 @@ def require_departement_password(view_func):
                 else:
                     messages.error(
                         request,
-                        "Mot de passe incorrect." if expected else "DEPARTEMENT_ACCESS_PASSWORD non configuré."
+                        "Mot de passe incorrect." if expected else "DEPARTEMENT_ACCESS_PASSWORD non configuré. Demandez à un administrateur."
                     )
             return render(request, 'core/departement/password.html')
         return view_func(request, *args, **kwargs)

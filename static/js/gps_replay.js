@@ -53,10 +53,37 @@ window.MinexxGPSReplay = (function () {
     }
   }
 
+  function drawPlanned(planned) {
+    if (!planned || !map) return;
+    if (planned.embarquement) {
+      L.marker(
+        [planned.embarquement.latitude, planned.embarquement.longitude],
+        { title: 'Embarquement' }
+      ).addTo(map).bindPopup('Embarquement: ' + (planned.embarquement.label || ''));
+    }
+    if (planned.destination) {
+      const ll = [planned.destination.latitude, planned.destination.longitude];
+      L.marker(ll, { title: 'Destination' }).addTo(map).bindPopup(
+        'Destination: ' + (planned.destination.label || '')
+      );
+      L.circle(ll, {
+        radius: planned.destination.rayon_m || planned.rayon_arrivee_metres || 150,
+        color: '#16a34a',
+        fillColor: '#22c55e',
+        fillOpacity: 0.12,
+        weight: 2
+      }).addTo(map);
+    }
+  }
+
   function init(options) {
     positions = options.positions || [];
     if (typeof positions === 'string') {
       try { positions = JSON.parse(positions); } catch (e) { positions = []; }
+    }
+    let planned = options.planned || null;
+    if (typeof planned === 'string') {
+      try { planned = JSON.parse(planned); } catch (e) { planned = null; }
     }
     map = L.map(options.mapId || 'gps-replay-map').setView([-11.66, 27.48], 12);
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -76,6 +103,8 @@ window.MinexxGPSReplay = (function () {
     document.getElementById('gps-play')?.addEventListener('click', play);
     document.getElementById('gps-pause')?.addEventListener('click', pause);
     document.getElementById('gps-reset')?.addEventListener('click', reset);
+
+    drawPlanned(planned);
 
     if (!positions.length) {
       setLabel();
