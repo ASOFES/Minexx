@@ -27,24 +27,34 @@ class RavitaillementForm(forms.ModelForm):
         self.createur = kwargs.pop('createur', None)
         super().__init__(*args, **kwargs)
 
+        from django.db.models import Q
+
         etablissement = None
         if self.createur and getattr(self.createur, 'etablissement', None):
             etablissement = self.createur.etablissement
         elif self.instance and self.instance.pk and self.instance.vehicule_id:
             etablissement = self.instance.vehicule.etablissement
 
-        # Filtrer les véhicules par établissement
-        if etablissement is not None:
-            self.fields['vehicule'].queryset = Vehicule.objects.filter(
-                etablissement=etablissement
-            ).order_by('immatriculation')
-            self.fields['station'].queryset = Station.objects.filter(
-                etablissement=etablissement,
-                est_active=True
-            ).order_by('nom')
+        user = self.createur
+        is_super = bool(user and user.is_superuser)
+
+        # Véhicules / stations — ne jamais renvoyer une liste vide (bug: admin sans établissement → none())
+        if is_super or etablissement is None:
+            vehicules_qs = Vehicule.objects.all()
+            stations_qs = Station.objects.filter(est_active=True)
         else:
-            self.fields['vehicule'].queryset = Vehicule.objects.none()
-            self.fields['station'].queryset = Station.objects.none()
+            # Flotte du département + véhicules sans département (fiches partielles)
+            vehicules_qs = Vehicule.objects.filter(
+                Q(etablissement=etablissement) | Q(etablissement__isnull=True)
+            )
+            stations_qs = Station.objects.filter(
+                Q(etablissement=etablissement) | Q(etablissement__isnull=True),
+                est_active=True,
+            )
+
+        self.fields['vehicule'].queryset = vehicules_qs.order_by('immatriculation')
+        self.fields['station'].queryset = stations_qs.order_by('nom')
+        self.fields['vehicule'].empty_label = "— Sélectionner un véhicule —"
         
         # Rendre le champ nom_station conditionnel via JavaScript
         self.fields['nom_station'].widget.attrs.update({
@@ -70,18 +80,18 @@ class RavitaillementForm(forms.ModelForm):
                 self.fields['chauffeur'].initial = self.createur.pk
                 self.fields['chauffeur'].widget.attrs['disabled'] = 'disabled'
             elif self.createur.role in ['admin', 'dispatch'] or self.createur.is_superuser:
-                self.fields['chauffeur'].queryset = Utilisateur.objects.filter(role='chauffeur').order_by('first_name')
+                chauffeurs = Utilisateur.objects.filter(role='chauffeur').order_by('first_name', 'username')
+                if etablissement and not self.createur.is_superuser:
+                    chauffeurs = chauffeurs.filter(
+                        Q(etablissement=etablissement) | Q(etablissement__isnull=True)
+                    )
+                self.fields['chauffeur'].queryset = chauffeurs
             else:
-                # Pour d'autres rôles, ne montrer aucun chauffeur ou un queryset vide
                 self.fields['chauffeur'].queryset = Utilisateur.objects.none()
                 self.fields['chauffeur'].widget.attrs['disabled'] = 'disabled'
         else:
-            # Si pas de createur (cas rare ou non connecté), aucun chauffeur sélectionnable
             self.fields['chauffeur'].queryset = Utilisateur.objects.none()
             self.fields['chauffeur'].widget.attrs['disabled'] = 'disabled'
-        
-        # Nous n'utilisons pas de champ calculé dans le formulaire pour éviter les erreurs
-        # Le calcul sera fait côté JavaScript dans le template
     
     def clean(self):
         cleaned_data = super().clean()
