@@ -222,9 +222,9 @@
           return;
         }
         const r = data.results[0];
-        document.getElementById('id_' + kind + '_latitude').value = r.latitude;
-        document.getElementById('id_' + kind + '_longitude').value = r.longitude;
-        status.textContent = 'OK : ' + r.display_name + ' (' + r.latitude.toFixed(5) + ', ' + r.longitude.toFixed(5) + ')';
+        document.getElementById('id_' + kind + '_latitude').value = Number(r.latitude).toFixed(7);
+        document.getElementById('id_' + kind + '_longitude').value = Number(r.longitude).toFixed(7);
+        status.textContent = 'OK : ' + r.display_name + ' (' + Number(r.latitude).toFixed(5) + ', ' + Number(r.longitude).toFixed(5) + ')';
         refreshMarkers();
       })
       .catch(() => { status.textContent = 'Erreur de géocodage.'; });
