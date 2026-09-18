@@ -136,126 +136,142 @@ def detail_mission(request, mission_id):
     
     return render(request, 'chauffeur/detail_mission.html', context)
 
+def _chauffeur_peut_tout_voir(user):
+    return user.role == 'admin' or user.is_superuser
+
+
+def _get_mission_chauffeur(request, mission_id, statut_requis=None):
+    """
+    Charge une mission pour le chauffeur/admin.
+    Retourne (mission, redirect_response). Si redirect_response est set, afficher ce redirect.
+    """
+    qs = Course.objects.select_related('demandeur', 'vehicule', 'dispatcher', 'chauffeur')
+    if not _chauffeur_peut_tout_voir(request.user):
+        qs = qs.filter(chauffeur=request.user)
+
+    try:
+        mission = qs.get(id=mission_id)
+    except Course.DoesNotExist:
+        messages.error(
+            request,
+            f"La course #{mission_id} n'existe pas ou n'est pas assignée à votre compte.",
+        )
+        return None, redirect('chauffeur:dashboard')
+
+    if statut_requis and mission.statut != statut_requis:
+        if mission.statut == 'en_cours' and statut_requis == 'validee':
+            messages.info(request, f"La course #{mission_id} est déjà en cours.")
+            return None, redirect('chauffeur:terminer_mission', mission_id)
+        if mission.statut == 'validee' and statut_requis == 'en_cours':
+            messages.info(request, f"La course #{mission_id} n'a pas encore été démarrée.")
+            return None, redirect('chauffeur:demarrer_mission', mission_id)
+        messages.error(
+            request,
+            f"La course #{mission_id} ne peut pas être traitée (statut actuel : {mission.get_statut_display()}).",
+        )
+        return None, redirect('chauffeur:dashboard')
+
+    return mission, None
+
+
 @login_required
 def demarrer_mission(request, mission_id):
     """Vue pour démarrer une mission"""
-    # Vérifier que l'utilisateur est bien un chauffeur, un admin ou un superuser
     if request.user.role != 'chauffeur' and request.user.role != 'admin' and not request.user.is_superuser:
         messages.error(request, "Vous n'avez pas les droits pour accéder à cette page.")
         return redirect('home')
-    
-    # Si l'utilisateur est admin ou superuser, permettre l'accès à toutes les missions
-    if request.user.role == 'admin' or request.user.is_superuser:
-        mission = get_object_or_404(Course, id=mission_id, statut='validee')
-    else:
-        mission = get_object_or_404(Course, id=mission_id, chauffeur=request.user, statut='validee')
-    
+
+    mission, early = _get_mission_chauffeur(request, mission_id, statut_requis='validee')
+    if early:
+        return early
+
     vehicule = mission.vehicule
-    
+
     if request.method == 'POST':
         form = DemarrerMissionForm(request.POST, vehicule=vehicule)
         if form.is_valid():
             kilometrage_depart = form.cleaned_data['kilometrage_depart']
-            
-            if vehicule and vehicule.est_bloque_par_securite():
+
+            if not vehicule:
+                messages.error(request, "Aucun véhicule n'est assigné à cette course.")
+                return render(request, 'chauffeur/demarrer_mission.html', {'mission': mission, 'form': form})
+
+            if vehicule.est_bloque_par_securite():
                 messages.error(
                     request,
                     "Ce véhicule est bloqué par la sécurité (checklist non conforme ou incident ouvert)."
                 )
                 return render(request, 'chauffeur/demarrer_mission.html', {'mission': mission, 'form': form})
 
-            # Utiliser la fonction utilitaire pour obtenir le dernier kilométrage enregistré
             dernier_kilometrage = get_latest_vehicle_kilometrage(vehicule)
-            
+
             if kilometrage_depart < dernier_kilometrage:
-                messages.error(request, f"Le kilométrage de départ ({kilometrage_depart} km) ne peut pas être inférieur au dernier kilométrage enregistré ({dernier_kilometrage} km).")
+                messages.error(
+                    request,
+                    f"Le kilométrage de départ ({kilometrage_depart} km) ne peut pas être inférieur "
+                    f"au dernier kilométrage enregistré ({dernier_kilometrage} km).",
+                )
                 return render(request, 'chauffeur/demarrer_mission.html', {'mission': mission, 'form': form})
-            
-            # Mettre à jour la mission
+
             mission.statut = 'en_cours'
             mission.kilometrage_depart = kilometrage_depart
             mission.date_depart = timezone.now()
             mission.save()
-            
-            # Créer une entrée dans l'historique des actions
+
             commentaire = form.cleaned_data['commentaire']
             action_details = f"Mission {mission.id} démarrée - Kilométrage de départ: {mission.kilometrage_depart} km"
             if commentaire:
                 action_details += f" - Commentaire: {commentaire}"
-            
+
             ActionTraceur.objects.create(
                 utilisateur=request.user,
                 action="Démarrage de mission",
                 details=action_details
             )
-            
-            # Message pour le demandeur
+
+            chauffeur_nom = mission.chauffeur.get_full_name() if mission.chauffeur else request.user.get_full_name()
             demandeur_title = f"Votre course #{mission.id} a démarré"
-            demandeur_message = f"Votre course de {mission.point_embarquement} à {mission.destination} a démarré. Chauffeur: {mission.chauffeur.get_full_name()}"
-            
-            # Notification interne au demandeur
-            notify_user(
-                mission.demandeur,
-                demandeur_title,
-                demandeur_message,
-                notification_type='all',
-                course=mission
+            demandeur_message = (
+                f"Votre course de {mission.point_embarquement} à {mission.destination} "
+                f"a démarré. Chauffeur: {chauffeur_nom}"
             )
-            
-            # Notification par SMS au demandeur
-            if mission.demandeur.telephone:
-                sms_message = f"{demandeur_title}\n{demandeur_message}"
-                send_sms(mission.demandeur.telephone, sms_message)
-            
-            # Notification par WhatsApp au demandeur
-            if mission.demandeur.telephone:
-                whatsapp_message = f"*{demandeur_title}*\n\n{demandeur_message}"
-                send_whatsapp(mission.demandeur.telephone, whatsapp_message)
-            
-            messages.success(request, f'La mission #{mission.id} a été démarrée avec succès.')
-            return redirect('chauffeur:detail_mission', mission.id)
+
+            if mission.demandeur:
+                notify_user(
+                    mission.demandeur,
+                    demandeur_title,
+                    demandeur_message,
+                    notification_type='all',
+                    course=mission
+                )
+                if mission.demandeur.telephone:
+                    send_sms(mission.demandeur.telephone, f"{demandeur_title}\n{demandeur_message}")
+                    send_whatsapp(
+                        mission.demandeur.telephone,
+                        f"*{demandeur_title}*\n\n{demandeur_message}",
+                    )
+
+            messages.success(request, f'La course #{mission.id} a été démarrée.')
+            return redirect('chauffeur:dashboard')
     else:
-        # Initialiser le formulaire avec le dernier kilométrage connu du véhicule
         initial_data = {}
         if vehicule:
             initial_data['kilometrage_depart'] = get_latest_vehicle_kilometrage(vehicule)
         form = DemarrerMissionForm(vehicule=vehicule, initial=initial_data)
-    
-    context = {
-        'mission': mission,
-        'form': form,
-    }
-    
-    return render(request, 'chauffeur/demarrer_mission.html', context)
+
+    return render(request, 'chauffeur/demarrer_mission.html', {'mission': mission, 'form': form})
 
 @login_required
 def terminer_mission(request, mission_id):
     """Vue pour terminer une mission"""
-    # Vérifier que l'utilisateur est bien un chauffeur, un admin ou un superuser
     if request.user.role != 'chauffeur' and request.user.role != 'admin' and not request.user.is_superuser:
         messages.error(request, "Vous n'avez pas les droits pour accéder à cette page.")
         return redirect('home')
-    
-    try:
-        # Si l'utilisateur est admin ou superuser, permettre l'accès à toutes les missions
-        if request.user.role == 'admin' or request.user.is_superuser:
-            # Utiliser select_related pour optimiser la requête
-            mission = Course.objects.select_related('demandeur', 'vehicule').get(id=mission_id, statut='en_cours')
-        else:
-            # Utiliser select_related pour optimiser la requête
-            mission = Course.objects.select_related('demandeur', 'vehicule').get(id=mission_id, chauffeur=request.user, statut='en_cours')
-    except Course.DoesNotExist:
-        # Vérifier si la mission existe mais n'est pas en cours
-        try:
-            if request.user.role == 'admin' or request.user.is_superuser:
-                mission_status = Course.objects.values_list('statut', flat=True).get(id=mission_id)
-            else:
-                mission_status = Course.objects.values_list('statut', flat=True).get(id=mission_id, chauffeur=request.user)
-            messages.error(request, f"La mission #{mission_id} ne peut pas être terminée car son statut actuel est '{mission_status}'")
-        except Course.DoesNotExist:
-            messages.error(request, f"La mission #{mission_id} n'existe pas ou n'est pas assignée à ce chauffeur.")
-        return redirect('chauffeur:dashboard')
-    
+
+    mission, early = _get_mission_chauffeur(request, mission_id, statut_requis='en_cours')
+    if early:
+        return early
+
     if request.method == 'POST':
         form = TerminerMissionForm(request.POST, kilometrage_depart=mission.kilometrage_depart)
         if form.is_valid():
