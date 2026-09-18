@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, Case, When, IntegerField
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -26,65 +26,81 @@ from django.contrib.admin.views.decorators import staff_member_required
 
 @login_required
 def dashboard(request):
-    """Vue pour le tableau de bord du chauffeur"""
-    # Vérifier que l'utilisateur est bien un chauffeur, un admin ou un superuser
+    """Tableau de bord chauffeur : courses actives en face ; terminées = historique."""
     if request.user.role != 'chauffeur' and request.user.role != 'admin' and not request.user.is_superuser:
         messages.error(request, "Vous n'avez pas les droits pour accéder à cette page.")
         return redirect('home')
-    
-    # Récupérer les missions assignées au chauffeur connecté avec leurs relations
-    missions = Course.objects.select_related('demandeur', 'vehicule', 'dispatcher').filter(chauffeur=request.user).filter(
-        Q(statut='validee') | Q(statut='en_cours') | Q(statut='terminee')
-    ).order_by('-date_validation')
-    
-    # Si l'utilisateur est admin ou superuser, montrer toutes les missions
-    if request.user.role == 'admin' or request.user.is_superuser:
-        missions = Course.objects.select_related('demandeur', 'vehicule', 'dispatcher').filter(
-            Q(statut='validee') | Q(statut='en_cours') | Q(statut='terminee')
-        ).order_by('-date_validation')
-    
-    # Filtres
-    statut = request.GET.get('statut')
+
+    is_admin_view = request.user.role == 'admin' or request.user.is_superuser
+
+    base = Course.objects.select_related('demandeur', 'vehicule', 'dispatcher', 'chauffeur')
+    if not is_admin_view:
+        base = base.filter(chauffeur=request.user)
+
+    # Actives uniquement : à démarrer ou en cours (pas dans l'historique)
+    missions_actives = base.filter(
+        Q(statut='validee') | Q(statut='en_cours')
+    ).order_by(
+        # En cours d'abord, puis à effectuer ; urgence ensuite
+        Case(
+            When(statut='en_cours', then=0),
+            When(statut='validee', then=1),
+            default=2,
+            output_field=IntegerField(),
+        ),
+        Case(
+            When(priorite='urgence', then=0),
+            When(priorite='haute_urgence', then=1),
+            default=2,
+            output_field=IntegerField(),
+        ),
+        '-date_validation',
+        '-date_souhaitee',
+    )
+
+    # Historique = terminées seulement
+    historique_qs = base.filter(statut='terminee').order_by('-date_fin', '-date_validation')
+
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
-    
-    if statut:
-        missions = missions.filter(statut=statut)
-    
     if date_debut:
-        date_debut = datetime.datetime.strptime(date_debut, '%Y-%m-%d').date()
-        missions = missions.filter(date_depart__date__gte=date_debut)
-    
+        try:
+            d0 = datetime.datetime.strptime(date_debut, '%Y-%m-%d').date()
+            historique_qs = historique_qs.filter(date_fin__date__gte=d0)
+        except ValueError:
+            pass
     if date_fin:
-        date_fin = datetime.datetime.strptime(date_fin, '%Y-%m-%d').date()
-        missions = missions.filter(date_depart__date__lte=date_fin)
-    
-    # Pagination
-    paginator = Paginator(missions, 12)  # 12 missions par page
-    page_number = request.GET.get('page')
-    missions_page = paginator.get_page(page_number)
-    
-    # Statistiques
-    if request.user.role == 'admin' or request.user.is_superuser:
+        try:
+            d1 = datetime.datetime.strptime(date_fin, '%Y-%m-%d').date()
+            historique_qs = historique_qs.filter(date_fin__date__lte=d1)
+        except ValueError:
+            pass
+
+    paginator = Paginator(historique_qs, 10)
+    historique_page = paginator.get_page(request.GET.get('page'))
+
+    if is_admin_view:
         stats = {
-            'total': Course.objects.filter(Q(statut='validee') | Q(statut='en_cours') | Q(statut='terminee')).count(),
-            'a_effectuer': Course.objects.filter(statut='validee').count(),
-            'en_cours': Course.objects.filter(statut='en_cours').count(),
-            'terminees': Course.objects.filter(statut='terminee').count(),
+            'total_actives': base.filter(Q(statut='validee') | Q(statut='en_cours')).count(),
+            'a_effectuer': base.filter(statut='validee').count(),
+            'en_cours': base.filter(statut='en_cours').count(),
+            'terminees': base.filter(statut='terminee').count(),
         }
     else:
         stats = {
-            'total': Course.objects.filter(chauffeur=request.user).count(),
+            'total_actives': Course.objects.filter(
+                chauffeur=request.user
+            ).filter(Q(statut='validee') | Q(statut='en_cours')).count(),
             'a_effectuer': Course.objects.filter(chauffeur=request.user, statut='validee').count(),
             'en_cours': Course.objects.filter(chauffeur=request.user, statut='en_cours').count(),
             'terminees': Course.objects.filter(chauffeur=request.user, statut='terminee').count(),
         }
-    
+
     context = {
-        'missions': missions_page,
+        'missions_actives': missions_actives,
+        'historique': historique_page,
         'stats': stats,
     }
-    
     return render(request, 'chauffeur/dashboard.html', context)
 
 @login_required
@@ -416,8 +432,8 @@ def terminer_mission(request, mission_id):
                     vehicule.kilometrage_actuel = mission.kilometrage_fin
                     vehicule.save(update_fields=["kilometrage_actuel"])
 
-            messages.success(request, f'La mission #{mission.id} a été terminée avec succès.')
-            return redirect('chauffeur:detail_mission', mission.id)
+            messages.success(request, f'La mission #{mission.id} a été terminée — elle est maintenant dans l’historique.')
+            return redirect('chauffeur:dashboard')
     else:
         form = TerminerMissionForm(kilometrage_depart=mission.kilometrage_depart)
     

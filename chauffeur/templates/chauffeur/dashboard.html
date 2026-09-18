@@ -3,256 +3,192 @@
 {% block title %}Tableau de bord - Chauffeur{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h1><i class="fas fa-car me-2"></i>Tableau de bord - Chauffeur</h1>
-        </div>
+        <h1 class="mb-0"><i class="fas fa-car me-2"></i>Mes courses</h1>
+        <p class="text-muted mb-0">Les courses assignées apparaissent ici. Une fois terminées, elles passent dans l’historique.</p>
         <hr>
     </div>
 </div>
 
-<!-- Statistiques -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-header module-chauffeur text-white">
-                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Total missions</h5>
-            </div>
-            <div class="card-body text-center">
-                <h3 class="display-4">{{ stats.total }}</h3>
-                <p>Missions assignées</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>À effectuer</h5>
-            </div>
-            <div class="card-body text-center">
-                <h3 class="display-4">{{ stats.a_effectuer }}</h3>
-                <p>Missions à effectuer</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-car-side me-2"></i>En cours</h5>
-            </div>
-            <div class="card-body text-center">
-                <h3 class="display-4">{{ stats.en_cours }}</h3>
-                <p>Missions en cours</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0"><i class="fas fa-flag-checkered me-2"></i>Terminées</h5>
-            </div>
-            <div class="card-body text-center">
-                <h3 class="display-4">{{ stats.terminees }}</h3>
-                <p>Missions terminées</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Filtres de recherche -->
-<div class="row mb-4">
+{% if missions_actives %}
+<!-- COURSES ACTIVES — bien en face, sans chercher -->
+<div class="row mb-2">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
-            </div>
+        <h4 class="text-success">
+            <i class="fas fa-bolt me-2"></i>Courses à traiter
+            <span class="badge bg-success">{{ missions_actives|length }}</span>
+        </h4>
+    </div>
+</div>
+<div class="row mb-4">
+    {% for mission in missions_actives %}
+    <div class="col-12 mb-3">
+        <div class="card shadow border-0 {% if mission.statut == 'en_cours' %}border-start border-primary border-5{% else %}border-start border-success border-5{% endif %}">
             <div class="card-body">
-                <form method="get" class="row g-3">
-                    <div class="col-md-3">
-                        <label for="statut" class="form-label">Statut</label>
-                        <select name="statut" id="statut" class="form-select">
-                            <option value="">Tous les statuts</option>
-                            <option value="validee" {% if request.GET.statut == 'validee' %}selected{% endif %}>À effectuer</option>
-                            <option value="en_cours" {% if request.GET.statut == 'en_cours' %}selected{% endif %}>En cours</option>
-                            <option value="terminee" {% if request.GET.statut == 'terminee' %}selected{% endif %}>Terminée</option>
-                        </select>
+                <div class="row align-items-center g-3">
+                    <div class="col-lg-8">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="badge bg-dark">#{{ mission.id }}</span>
+                            {% if mission.statut == 'en_cours' %}
+                            <span class="badge bg-primary fs-6">EN COURS</span>
+                            {% else %}
+                            <span class="badge bg-success fs-6">À DÉMARRER</span>
+                            {% endif %}
+                            {% if mission.priorite == 'urgence' %}
+                            <span class="badge bg-danger">Urgence</span>
+                            {% elif mission.priorite == 'haute_urgence' %}
+                            <span class="badge bg-warning text-dark">Haute urgence</span>
+                            {% else %}
+                            <span class="badge bg-info text-dark">Important</span>
+                            {% endif %}
+                        </div>
+                        <h3 class="mb-2">
+                            <i class="fas fa-map-marker-alt text-danger me-1"></i>{{ mission.point_embarquement }}
+                            <i class="fas fa-arrow-right mx-2 text-muted"></i>
+                            <i class="fas fa-flag-checkered text-success me-1"></i>{{ mission.destination }}
+                        </h3>
+                        <div class="row small text-muted">
+                            <div class="col-md-4 mb-1">
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ mission.date_souhaitee|date:"d/m/Y H:i"|default:"—" }}
+                            </div>
+                            <div class="col-md-4 mb-1">
+                                <i class="fas fa-car me-1"></i>
+                                {{ mission.vehicule.immatriculation|default:"Véhicule —" }}
+                            </div>
+                            <div class="col-md-4 mb-1">
+                                <i class="fas fa-user me-1"></i>
+                                {% if mission.demandeur %}{{ mission.demandeur.get_full_name|default:mission.demandeur.username }}{% else %}—{% endif %}
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label for="date_debut" class="form-label">Date début</label>
-                        <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+                    <div class="col-lg-4 text-lg-end">
+                        <div class="d-grid gap-2">
+                            {% if mission.statut == 'validee' %}
+                            <a href="{% url 'chauffeur:demarrer_mission' mission.id %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-play me-2"></i>Démarrer la course
+                            </a>
+                            {% elif mission.statut == 'en_cours' %}
+                            <a href="{% url 'chauffeur:terminer_mission' mission.id %}" class="btn btn-success btn-lg">
+                                <i class="fas fa-flag-checkered me-2"></i>Terminer la course
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'chauffeur:detail_mission' mission.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-eye me-1"></i>Voir le détail
+                            </a>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label for="date_fin" class="form-label">Date fin</label>
-                        <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="fas fa-search me-2"></i>Filtrer
-                        </button>
-                        <a href="{% url 'chauffeur:dashboard' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-redo me-2"></i>Réinitialiser
-                        </a>
-                    </div>
-                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-secondary mb-4">
+    <i class="fas fa-info-circle me-2"></i>Aucune course en attente ou en cours pour le moment.
+</div>
+{% endif %}
+
+<!-- Mini stats -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-2">
+        <div class="card border-0 bg-light">
+            <div class="card-body py-3 text-center">
+                <div class="fw-bold fs-4 text-success">{{ stats.a_effectuer }}</div>
+                <small class="text-muted">À démarrer</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-2">
+        <div class="card border-0 bg-light">
+            <div class="card-body py-3 text-center">
+                <div class="fw-bold fs-4 text-primary">{{ stats.en_cours }}</div>
+                <small class="text-muted">En cours</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-2">
+        <div class="card border-0 bg-light">
+            <div class="card-body py-3 text-center">
+                <div class="fw-bold fs-4 text-secondary">{{ stats.terminees }}</div>
+                <small class="text-muted">Terminées (historique)</small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Liste des missions -->
+<!-- HISTORIQUE — uniquement les terminées -->
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-end mb-3">
-            <div class="btn-group">
-                <a href="{% url 'chauffeur:missions_pdf' %}?{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}{% endif %}" class="btn btn-danger">
-                    <i class="fas fa-file-pdf me-1"></i>Exporter PDF
-                </a>
-                <a href="{% url 'chauffeur:missions_excel' %}?{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}{% endif %}" class="btn btn-success">
-                    <i class="fas fa-file-excel me-1"></i>Exporter Excel
-                </a>
-            </div>
-        </div>
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Mes missions</h5>
+            <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historique des courses terminées</h5>
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'chauffeur:missions_pdf' %}?statut=terminee" class="btn btn-outline-danger">PDF</a>
+                    <a href="{% url 'chauffeur:missions_excel' %}?statut=terminee" class="btn btn-outline-success">Excel</a>
+                </div>
             </div>
             <div class="card-body">
-                {% if missions %}
+                <form method="get" class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <input type="date" name="date_debut" class="form-control" value="{{ request.GET.date_debut }}" placeholder="Du">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="date" name="date_fin" class="form-control" value="{{ request.GET.date_fin }}" placeholder="Au">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-outline-primary w-100">Filtrer l’historique</button>
+                    </div>
+                </form>
+
+                {% if historique %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-sm table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Date mission</th>
-                                <th>Date validation</th>
-                                <th>Demandeur</th>
-                                <th>Point d'embarquement</th>
-                                <th>Destination</th>
+                                <th>#</th>
+                                <th>Terminée le</th>
+                                <th>Trajet</th>
                                 <th>Véhicule</th>
-                                <th>Dernier kilométrage</th>
-                                <th>Priorité</th>
-                                <th>Statut</th>
-                                <th>Chauffeur</th>
-                                <th>Actions</th>
+                                <th>Km</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for mission in missions %}
+                            {% for mission in historique %}
                             <tr>
                                 <td>{{ mission.id }}</td>
-                                <td>{{ mission.date_souhaitee|date:"d/m/Y H:i" }}</td>
-                                <td>{{ mission.date_validation|date:"d/m/Y H:i"|default:"Non validée" }}</td>
+                                <td>{{ mission.date_fin|date:"d/m/Y H:i"|default:mission.date_validation|date:"d/m/Y H:i" }}</td>
                                 <td>
-                                    {% if mission.demandeur %}
-                                        {% if mission.demandeur.get_full_name %}
-                                            {{ mission.demandeur.get_full_name }}
-                                        {% else %}
-                                            {{ mission.demandeur.username }}
-                                        {% endif %}
-                                        {% if mission.demandeur.email %}
-                                            <br><small class="text-muted">{{ mission.demandeur.email }}</small>
-                                        {% endif %}
-                                    {% else %}
-                                        Non spécifié
-                                    {% endif %}
+                                    <small>{{ mission.point_embarquement }} → {{ mission.destination }}</small>
                                 </td>
-                                <td>{{ mission.point_embarquement }}</td>
-                                <td>{{ mission.destination }}</td>
-                                <td>{{ mission.vehicule.immatriculation }}</td>
+                                <td>{{ mission.vehicule.immatriculation|default:"—" }}</td>
+                                <td>{{ mission.kilometrage_fin|default:"—" }}</td>
                                 <td>
-                                    {% if mission.statut == 'terminee' %}
-                                        {{ mission.kilometrage_fin|default:'-' }} km
-                                    {% else %}
-                                        {{ mission.kilometrage_depart|default:'-' }} km
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if mission.priorite == 'urgence' %}
-                                    <span class="badge" style="background-color:#ffcccc;color:#a94442;">Urgence</span>
-                                    {% elif mission.priorite == 'haute_urgence' %}
-                                    <span class="badge" style="background-color:#ffe5b4;color:#b36b00;">Haute urgence</span>
-                                    {% else %}
-                                    <span class="badge" style="background-color:#cce5ff;color:#004085;">Important</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if mission.statut == 'validee' %}
-                                    <span class="badge bg-success">À effectuer</span>
-                                    {% elif mission.statut == 'en_cours' %}
-                                    <span class="badge bg-primary">En cours</span>
-                                    {% elif mission.statut == 'terminee' %}
-                                    <span class="badge bg-secondary">Terminée</span>
-                                    {% else %}
-                                    <span class="badge bg-dark">{{ mission.get_statut_display }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{% if mission.chauffeur %}{{ mission.chauffeur.get_full_name|default:mission.chauffeur.username }}{% else %}Non assigné{% endif %}</td>
-                                <td>
-                                    <a href="{% url 'chauffeur:detail_mission' mission.id %}" class="btn btn-sm btn-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    {% if mission.statut == 'validee' %}
-                                    <a href="{% url 'chauffeur:demarrer_mission' mission.id %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-play"></i>
-                                    </a>
-                                    {% elif mission.statut == 'en_cours' %}
-                                    <a href="{% url 'chauffeur:terminer_mission' mission.id %}" class="btn btn-sm btn-success">
-                                        <i class="fas fa-flag-checkered"></i>
-                                    </a>
-                                    {% endif %}
+                                    <a href="{% url 'chauffeur:detail_mission' mission.id %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-eye"></i></a>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Pagination -->
-                {% if missions.has_other_pages %}
-                <nav aria-label="Page navigation">
-                    <ul class="pagination justify-content-center">
-                        {% if missions.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ missions.previous_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Previous">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">&laquo;</span>
-                        </li>
+                {% if historique.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if historique.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ historique.previous_page_number }}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}">&laquo;</a></li>
                         {% endif %}
-                        
-                        {% for i in missions.paginator.page_range %}
-                            {% if missions.number == i %}
-                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-                            {% else %}
-                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}">{{ i }}</a></li>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if missions.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ missions.next_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Next">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">&raquo;</span>
-                        </li>
+                        <li class="page-item disabled"><span class="page-link">{{ historique.number }} / {{ historique.paginator.num_pages }}</span></li>
+                        {% if historique.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ historique.next_page_number }}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}">&raquo;</a></li>
                         {% endif %}
                     </ul>
                 </nav>
                 {% endif %}
                 {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>Aucune mission à afficher.
-                </div>
+                <p class="text-muted mb-0 text-center py-3">Aucune course terminée dans l’historique.</p>
                 {% endif %}
             </div>
         </div>
