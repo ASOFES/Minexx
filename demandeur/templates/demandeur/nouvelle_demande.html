@@ -47,26 +47,60 @@
                     </div>
                     {% endif %}
                     
-                    <div class="mb-3">
-                        <label for="id_point_embarquement" class="form-label">Point d'embarquement</label>
-                        <div class="input-group">
-                            <input type="text" name="point_embarquement" id="id_point_embarquement" class="form-control {% if form.point_embarquement.errors %}is-invalid{% endif %}" value="{{ form.point_embarquement.value|default:'' }}" required>
-                            <button type="button" class="btn btn-outline-secondary" id="btn-geocode-embarquement" title="Géocoder"><i class="fas fa-map-marker-alt"></i></button>
-                        </div>
-                        <input type="hidden" name="embarquement_latitude" id="id_embarquement_latitude" value="{{ form.embarquement_latitude.value|default:'' }}">
-                        <input type="hidden" name="embarquement_longitude" id="id_embarquement_longitude" value="{{ form.embarquement_longitude.value|default:'' }}">
-                        <div class="form-text" id="embarquement-geo-status">Indiquez l'adresse, puis géocodez (ou laissez le système le faire à l'enregistrement).</div>
+                    <div class="alert alert-info py-2 small">
+                        <strong>Deux possibilités</strong> pour chaque lieu :<br>
+                        ① <strong>Écrire l’adresse</strong> (ex. camp, Barrière) puis cliquer sur l’épingle pour géocoder — ou laisser le système essayer à l’enregistrement.<br>
+                        ② <strong>Saisir les coordonnées GPS</strong> (latitude / longitude) directement dans les champs ci-dessous.
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="id_destination" class="form-label">Destination</label>
-                        <div class="input-group">
-                            <input type="text" name="destination" id="id_destination" class="form-control {% if form.destination.errors %}is-invalid{% endif %}" value="{{ form.destination.value|default:'' }}" required>
-                            <button type="button" class="btn btn-outline-secondary" id="btn-geocode-destination" title="Géocoder"><i class="fas fa-map-marker-alt"></i></button>
+
+                    <div class="mb-4 border rounded p-3">
+                        <h6 class="text-primary mb-3"><i class="fas fa-map-marker-alt me-1"></i>Point d'embarquement</h6>
+                        <div class="mb-2">
+                            <label for="id_point_embarquement" class="form-label">Adresse / lieu *</label>
+                            <div class="input-group">
+                                <input type="text" name="point_embarquement" id="id_point_embarquement" class="form-control {% if form.point_embarquement.errors %}is-invalid{% endif %}" value="{{ form.point_embarquement.value|default:'' }}" required placeholder="Ex: Camp Kibati, Lubumbashi">
+                                <button type="button" class="btn btn-outline-primary" id="btn-geocode-embarquement" title="Géocoder l'adresse">
+                                    <i class="fas fa-search-location me-1"></i>Géocoder
+                                </button>
+                            </div>
+                            <div class="form-text" id="embarquement-geo-status">Possibilité 1 : écrire l’adresse puis géocoder.</div>
                         </div>
-                        <input type="hidden" name="destination_latitude" id="id_destination_latitude" value="{{ form.destination_latitude.value|default:'' }}">
-                        <input type="hidden" name="destination_longitude" id="id_destination_longitude" value="{{ form.destination_longitude.value|default:'' }}">
-                        <div class="form-text" id="destination-geo-status">Adresse d'arrivée pour la zone d'évaluation GPS.</div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="id_embarquement_latitude" class="form-label">Latitude GPS</label>
+                                <input type="number" step="any" name="embarquement_latitude" id="id_embarquement_latitude" class="form-control" value="{{ form.embarquement_latitude.value|default:'' }}" placeholder="Ex: -11.664876">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_embarquement_longitude" class="form-label">Longitude GPS</label>
+                                <input type="number" step="any" name="embarquement_longitude" id="id_embarquement_longitude" class="form-control" value="{{ form.embarquement_longitude.value|default:'' }}" placeholder="Ex: 27.479383">
+                            </div>
+                        </div>
+                        <div class="form-text mt-1">Possibilité 2 : saisir lat / lng manuellement (les deux champs).</div>
+                    </div>
+
+                    <div class="mb-4 border rounded p-3">
+                        <h6 class="text-primary mb-3"><i class="fas fa-flag-checkered me-1"></i>Destination</h6>
+                        <div class="mb-2">
+                            <label for="id_destination" class="form-label">Adresse / lieu *</label>
+                            <div class="input-group">
+                                <input type="text" name="destination" id="id_destination" class="form-control {% if form.destination.errors %}is-invalid{% endif %}" value="{{ form.destination.value|default:'' }}" required placeholder="Ex: Barrière Kasumbalesa">
+                                <button type="button" class="btn btn-outline-primary" id="btn-geocode-destination" title="Géocoder l'adresse">
+                                    <i class="fas fa-search-location me-1"></i>Géocoder
+                                </button>
+                            </div>
+                            <div class="form-text" id="destination-geo-status">Possibilité 1 : écrire l’adresse puis géocoder.</div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="id_destination_latitude" class="form-label">Latitude GPS</label>
+                                <input type="number" step="any" name="destination_latitude" id="id_destination_latitude" class="form-control" value="{{ form.destination_latitude.value|default:'' }}" placeholder="Ex: -11.650000">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_destination_longitude" class="form-label">Longitude GPS</label>
+                                <input type="number" step="any" name="destination_longitude" id="id_destination_longitude" class="form-control" value="{{ form.destination_longitude.value|default:'' }}" placeholder="Ex: 27.480000">
+                            </div>
+                        </div>
+                        <div class="form-text mt-1">Possibilité 2 : saisir lat / lng manuellement (les deux champs).</div>
                     </div>
 
                     <div class="mb-3">
@@ -233,6 +267,9 @@
   document.getElementById('btn-geocode-embarquement')?.addEventListener('click', () => geocode('embarquement'));
   document.getElementById('btn-geocode-destination')?.addEventListener('click', () => geocode('destination'));
   document.getElementById('id_rayon_arrivee_metres')?.addEventListener('change', refreshMarkers);
+  ['embarquement_latitude','embarquement_longitude','destination_latitude','destination_longitude'].forEach(function(id){
+    document.getElementById('id_' + id)?.addEventListener('change', refreshMarkers);
+  });
   refreshMarkers();
 })();
 </script>
