@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: minexx-django-app-python
+    env: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn gestion_vehicules.wsgi:application --bind 0.0.0.0:$PORT
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: gestion_vehicules.settings
+      - key: DATABASE_URL
+        fromDatabase:
+          name: minexx-postgres
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://minexx-django-app-python.onrender.com"
+
+databases:
+  - name: minexx-postgres
+    databaseName: minexx_db
+    user: minexx_user

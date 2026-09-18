@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Départements{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Départements</h2>
+        </div>
+        {% if can_edit %}
+        <div class="col text-end">
+            <a href="{% url 'departement_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouveau département
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Type</th>
+                                    <th>Nom</th>
+                                    <th>Responsable</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for departement in departements %}
+                                <tr>
+                                    <td>{{ departement.code }}</td>
+                                    <td>{{ departement.get_type_display }}</td>
+                                    <td>
+                                        {% if departement.parent %}
+                                        <small class="text-muted">{{ departement.parent.nom }} ></small>
+                                        {% endif %}
+                                        {{ departement.nom }}
+                                    </td>
+                                    <td>
+                                        {% if departement.responsable %}
+                                        {{ departement.responsable.get_full_name }}
+                                        {% else %}
+                                        <span class="text-muted">Non assigné</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if departement.actif %}
+                                        <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'departement_detail' departement.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if can_edit %}
+                                        <a href="{% url 'departement_edit' departement.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Aucun département trouvé</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Traitement de la demande #{{ demande.id }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-tasks me-2"></i>Traitement de la demande #{{ demande.id }}</h1>
+            <a href="{% url 'dispatch:dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+            </a>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations de la demande</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Demandeur:</div>
+                    <div class="col-md-8">{{ demande.demandeur.get_full_name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de demande:</div>
+                    <div class="col-md-8">{{ demande.date_demande|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date souhaitée:</div>
+                    <div class="col-md-8">{{ demande.date_souhaitee|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Point d'embarquement:</div>
+                    <div class="col-md-8">{{ demande.point_embarquement }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Destination:</div>
+                    <div class="col-md-8">{{ demande.destination }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Motif:</div>
+                    <div class="col-md-8">{{ demande.motif|linebreaks }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Nombre de passagers:</div>
+                    <div class="col-md-8">{{ demande.nombre_passagers }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Commentaires:</div>
+                    <div class="col-md-8">{{ demande.commentaires|default:"Aucun commentaire"|linebreaks }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header module-dispatch text-white">
+                <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Formulaire de traitement</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <p><strong>Veuillez corriger les erreurs suivantes :</strong></p>
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                <li>{{ field.label }} : {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_decision" class="form-label">Décision</label>
+                        <select name="decision" id="id_decision" class="form-select {% if form.decision.errors %}is-invalid{% endif %}" required>
+                            <option value="">Sélectionnez une décision</option>
+                            <option value="valider" {% if form.decision.value == 'valider' %}selected{% endif %}>Valider la demande</option>
+                            <option value="refuser" {% if form.decision.value == 'refuser' %}selected{% endif %}>Refuser la demande</option>
+                        </select>
+                        {% if form.decision.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.decision.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="validation-fields" class="{% if form.decision.value != 'valider' %}d-none{% endif %}">
+                        <div class="mb-3">
+                            <label for="id_chauffeur" class="form-label">Chauffeur</label>
+                            <select name="chauffeur" id="id_chauffeur" class="form-select {% if form.chauffeur.errors %}is-invalid{% endif %}">
+                                <option value="">Sélectionnez un chauffeur</option>
+                                {% for chauffeur in chauffeurs %}
+                                <option value="{{ chauffeur.id }}" {% if form.chauffeur.value == chauffeur.id|stringformat:"i" %}selected{% endif %}>{{ chauffeur.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.chauffeur.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.chauffeur.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Sélectionnez le chauffeur qui effectuera cette mission.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_vehicule" class="form-label">Véhicule</label>
+                            <select name="vehicule" id="id_vehicule" class="form-select {% if form.vehicule.errors %}is-invalid{% endif %}">
+                                <option value="">Sélectionnez un véhicule</option>
+                                {% for vehicule in vehicules %}
+                                <option value="{{ vehicule.id }}" {% if form.vehicule.value == vehicule.id|stringformat:"i" %}selected{% endif %}>{{ vehicule.immatriculation }} - {{ vehicule.marque }} {{ vehicule.modele }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.vehicule.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.vehicule.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Sélectionnez le véhicule qui sera utilisé pour cette mission.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_commentaire" class="form-label">Commentaire</label>
+                        <textarea name="commentaire" id="id_commentaire" rows="3" class="form-control {% if form.commentaire.errors %}is-invalid{% endif %}">{{ form.commentaire.value|default:'' }}</textarea>
+                        {% if form.commentaire.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.commentaire.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Ajoutez un commentaire optionnel concernant votre décision.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Enregistrer la décision
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const decisionSelect = document.getElementById('id_decision');
+        const validationFields = document.getElementById('validation-fields');
+        
+        decisionSelect.addEventListener('change', function() {
+            if (this.value === 'valider') {
+                validationFields.classList.remove('d-none');
+            } else {
+                validationFields.classList.add('d-none');
+            }
+        });
+    });
+</script>
+{% endblock %}

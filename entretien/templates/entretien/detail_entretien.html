@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block extra_css %}
+<style>
+    /* Style pour l'immatriculation */
+    .immatriculation-badge {
+        background-color: #e3f2fd !important;
+        color: #0d6efd !important;
+        font-weight: 600 !important;
+        padding: 0.35em 0.65em !important;
+        font-size: 0.9em !important;
+    }
+    .immatriculation-badge i {
+        margin-right: 0.3em;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Détail de l'Entretien - {{ entretien.vehicule.immatriculation }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de page -->
+    <div class="page-header d-print-none">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-tools fa-2x text-blue"></i>
+                    </div>
+                    <div>
+                        <h2 class="page-title mb-0">
+                            Détail de l'Entretien
+                        </h2>
+                        <div class="d-flex align-items-center mt-1">
+                            <span class="badge bg-blue-lt fs-6 fw-normal py-1 px-2 d-flex align-items-center">
+                                <i class="fas fa-car me-1"></i>
+                                <span class="fw-bold">
+                                    {% if entretien.vehicule and entretien.vehicule.immatriculation %}
+                                        {{ entretien.vehicule.immatriculation }}
+                                    {% else %}
+                                        Immatriculation inconnue
+                                    {% endif %}
+                                </span>
+                            </span>
+                            <span class="ms-2 text-muted small">
+                                {{ entretien.vehicule.marque }} {{ entretien.vehicule.modele }}
+                                {% if entretien.vehicule.etablissement %}
+                                    • {{ entretien.vehicule.etablissement.nom }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                    <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-light d-none d-sm-inline-block">
+                        <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+                    </a>
+                    <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-light d-sm-none btn-icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <a href="{% url 'entretien:modifier_entretien' entretien.id %}" class="btn btn-warning">
+                        <i class="fas fa-edit me-2"></i>Modifier
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Carte Principale -->
+            {% if debug %}
+            <div class="card mt-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-bug me-2"></i>Mode Débogage
+                </div>
+                <div class="card-body">
+                    <h5>Données du véhicule :</h5>
+                    <div class="mb-3">
+                        <h6>Attributs :</h6>
+                        <pre>{{ entretien.vehicule|get_attrs|pprint }}</pre>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Détails :</h6>
+                        <pre>ID: {{ entretien.vehicule.id }}
+Immatriculation: {{ entretien.vehicule.immatriculation|default:"Non définie" }}
+Marque: {{ entretien.vehicule.marque|default:"Non définie" }}
+Modèle: {{ entretien.vehicule.modele|default:"Non défini" }}
+Établissement: {{ entretien.vehicule.etablissement|default:"Aucun" }}</pre>
+                    </div>
+                    
+                    <h5 class="mt-4">Données de l'entretien :</h5>
+                    <div class="mb-3">
+                        <pre>{{ entretien|pprint }}</pre>
+                    </div>
+                    
+                    <h5 class="mt-4">Méthodes disponibles :</h5>
+                    <div class="mb-3">
+                        <pre>{% for method in entretien.vehicule|get_methods %}{{ method }}
+{% endfor %}</pre>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tools me-2"></i>Détails de l'entretien
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <h4 class="card-subtitle mb-3 text-muted">
+                                    <i class="fas fa-car me-2"></i>Véhicule
+                                </h4>
+                                <div class="d-flex">
+                                    <div class="me-3" style="width: 120px;">
+                                        {% if entretien.vehicule.image %}
+                                            <img src="{{ entretien.vehicule.image.url }}" 
+                                                 alt="Photo du véhicule" 
+                                                 class="img-fluid rounded"
+                                                 style="max-height: 100px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                 style="width: 120px; height: 100px; border: 1px dashed #ddd; border-radius: 4px;">
+                                                <i class="fas fa-car text-muted" style="font-size: 2rem;"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-2">
+                                            <span class="fw-bold">Immatriculation:</span>
+                                            <span class="badge immatriculation-badge ms-2">
+                                                <i class="fas fa-car"></i>
+                                                {% if entretien.vehicule and entretien.vehicule.immatriculation %}
+                                                    {{ entretien.vehicule.immatriculation }}
+                                                {% else %}
+                                                    Non définie
+                                                {% endif %}
+                                            </span>
+                                        </p>
+                                        <p class="mb-2">
+                                            <span class="fw-bold">Marque/Modèle:</span> 
+                                            <span class="ms-2">
+                                                {{ entretien.vehicule.marque }} {{ entretien.vehicule.modele }}
+                                            </span>
+                                        </p>
+                                        <p class="mb-0">
+                                            <span class="fw-bold">Département:</span> 
+                                            <span class="ms-2">
+                                                {% if entretien.vehicule.etablissement %}
+                                                    {{ entretien.vehicule.etablissement.nom }}
+                                                {% else %}
+                                                    Non défini
+                                                {% endif %}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <h4 class="card-subtitle mb-3 text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>Informations
+                                </h4>
+                                <div class="mb-3">
+                                    <span class="fw-bold">Véhicule:</span>
+                                    <span class="badge immatriculation-badge ms-2">
+                                        <i class="fas fa-car"></i>
+                                        {% if entretien.vehicule and entretien.vehicule.immatriculation %}
+                                            {{ entretien.vehicule.immatriculation }}
+                                        {% else %}
+                                            Non définie
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="ps-4">
+                                    <p class="mb-2">
+                                        <span class="fw-bold">Date:</span> 
+                                        <span class="ms-2">
+                                            {{ entretien.date_entretien|date:"d/m/Y" }}
+                                        </span>
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="fw-bold">Statut:</span> 
+                                        <span class="ms-2">
+                                            {% if entretien.statut == 'planifie' %}
+                                                <span class="badge bg-info">
+                                                    <i class="far fa-calendar-check me-1"></i>{{ entretien.get_statut_display }}
+                                                </span>
+                                            {% elif entretien.statut == 'en_cours' %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-tools me-1"></i>{{ entretien.get_statut_display }}
+                                                </span>
+                                            {% elif entretien.statut == 'termine' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i>{{ entretien.get_statut_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle me-1"></i>{{ entretien.get_statut_display }}
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="fw-bold">Garage:</span> 
+                                        <span class="ms-2">{{ entretien.garage|default:"Non spécifié" }}</span>
+                                    </p>
+                                    <p class="mb-0">
+                                        <span class="fw-bold">Coût:</span> 
+                                        <span class="ms-2 fw-bold text-primary">{{ entretien.cout|default:"0.00" }} $</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section Kilométrage -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h4 class="card-subtitle mb-3 text-muted">
+                                <i class="fas fa-tachometer-alt me-2"></i>Kilométrage
+                            </h4>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <div class="text-muted small mb-1">Kilométrage actuel</div>
+                                            <div class="h4 mb-0">{{ entretien.kilometrage|default:"-" }} km</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <div class="text-muted small mb-1">Kilométrage après entretien</div>
+                                            <div class="h4 mb-0">{{ entretien.kilometrage_apres|default:"-" }} km</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <div class="text-muted small mb-1">Prochaine révision</div>
+                                            <div class="h4 mb-0">{{ projection_prochain_entretien|default:"-" }} km</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section Motif et Commentaires -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <h4 class="card-subtitle mb-3 text-muted">
+                                    <i class="fas fa-clipboard-list me-2"></i>Motif
+                                </h4>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        {{ entretien.motif|linebreaksbr|default:"Aucun motif renseigné" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if entretien.commentaires %}
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <h4 class="card-subtitle mb-3 text-muted">
+                                    <i class="fas fa-comment me-2"></i>Commentaires
+                                </h4>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        {{ entretien.commentaires|linebreaksbr }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Carte Informations supplémentaires -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>Informations supplémentaires
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h4 class="card-subtitle mb-3 text-muted">
+                            <i class="fas fa-history me-2"></i>Historique
+                        </h4>
+                        <ul class="list-unstyled space-y-3">
+                            <li>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <span class="avatar bg-blue-lt">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p class="mb-0">Créé par</p>
+                                        <div class="text-muted">
+                                            {{ entretien.createur.get_full_name|default:entretien.createur.username }}
+                                            <span class="text-muted small d-block">
+                                                Le {{ entretien.date_creation|date:"d/m/Y à H:i" }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            {% if entretien.date_modification %}
+                            <li>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <span class="avatar bg-blue-lt">
+                                            <i class="fas fa-edit"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p class="mb-0">Dernière modification</p>
+                                        <div class="text-muted small">
+                                            {{ entretien.date_modification|date:"d/m/Y à H:i" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Pièces justificatives -->
+                    {% if entretien.pieces_justificatives.all %}
+                    <div class="mb-4">
+                        <h4 class="card-subtitle mb-3 text-muted">
+                            <i class="fas fa-paperclip me-2"></i>Pièces justificatives
+                        </h4>
+                        <div class="list-group list-group-flush">
+                            {% for piece in entretien.pieces_justificatives.all %}
+                            <div class="list-group-item px-0">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="badge bg-blue-lt">
+                                            <i class="fas fa-file-alt"></i>
+                                        </span>
+                                    </div>
+                                    <div class="col text-truncate">
+                                        <a href="{{ piece.fichier.url }}" class="text-reset d-block" target="_blank">{{ piece.nom }}</a>
+                                        <div class="text-muted small text-truncate mt-1">
+                                            <i class="far fa-calendar me-1"></i>{{ piece.date_ajout|date:"d/m/Y" }}
+                                            <span class="mx-1">•</span>
+                                            {{ piece.fichier.size|filesizeformat }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="btn-list">
+                                            <a href="{{ piece.fichier.url }}" class="btn btn-sm btn-icon" target="_blank" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ piece.fichier.url }}" class="btn btn-sm btn-icon" download title="Télécharger">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'entretien:exporter_entretien_pdf' entretien.id %}" class="btn btn-danger" target="_blank">
+                            <i class="fas fa-file-pdf me-2"></i>Exporter en PDF
+                        </a>
+                        <a href="{% url 'entretien:exporter_entretien_excel' entretien.id %}" class="btn btn-success">
+                            <i class="fas fa-file-excel me-2"></i>Exporter en Excel
+                        </a>
+                        <a href="{% url 'entretien:modifier_entretien' entretien.id %}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i>Modifier l'entretien
+                        </a>
+                        <a href="{% url 'entretien:supprimer_entretien' entretien.id %}" class="btn btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet entretien ?')">
+                            <i class="fas fa-trash me-2"></i>Supprimer l'entretien
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

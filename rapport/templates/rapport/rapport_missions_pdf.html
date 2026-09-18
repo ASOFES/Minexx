@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport des Missions - MINEXX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 150px;
+            max-height: 80px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tête -->
+    <div class="header">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Logo MINEXX" class="logo">
+        {% endif %}
+        <div class="title">Rapport des Missions</div>
+        <div class="subtitle">MINEXX - Gestion de Parc Automobile</div>
+        <div class="subtitle">Généré le {{ date_generation }}</div>
+    </div>
+
+    <!-- Statistiques Globales -->
+    <div class="section">
+        <div class="section-title">Statistiques Globales</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ courses|length }}</div>
+                <div class="stat-label">Total Missions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.distance_moyenne|default:0|floatformat:1 }}</div>
+                <div class="stat-label">Distance Moyenne (km)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.cout_moyen|default:0|floatformat:2 }}</div>
+                <div class="stat-label">Coût Moyen ($)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.duree_moyenne|default:0|floatformat:1 }}</div>
+                <div class="stat-label">Durée Moyenne (h)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missions -->
+    <div class="section">
+        <div class="section-title">Liste des Missions</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Chauffeur</th>
+                    <th>Véhicule</th>
+                    <th>Destination</th>
+                    <th>Date Départ</th>
+                    <th>Statut</th>
+                    <th>Distance (km)</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr>
+                    <td>{{ course.id }}</td>
+                    <td>{{ course.chauffeur.get_full_name|default:"-" }}</td>
+                    <td>{{ course.vehicule.immatriculation|default:"-" }}</td>
+                    <td>{{ course.destination|default:"-" }}</td>
+                    <td>{{ course.date_depart|date:"d/m/Y H:i"|default:"-" }}</td>
+                    <td>{{ course.get_statut_display|default:"-" }}</td>
+                    <td>{{ course.distance_parcourue|default:0|floatformat:1 }}</td>
+                    <td>{{ course.score_total|default:0|floatformat:1 }}/100</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Statistiques par Statut -->
+    {% if stats_par_statut %}
+    <div class="section">
+        <div class="section-title">Répartition par Statut</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Statut</th>
+                    <th>Nombre</th>
+                    <th>Pourcentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for statut in stats_par_statut %}
+                <tr>
+                    <td>{{ statut.statut_display }}</td>
+                    <td>{{ statut.count }}</td>
+                    <td>{{ statut.percentage|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Top Destinations -->
+    {% if top_destinations %}
+    <div class="section">
+        <div class="section-title">Top 5 Destinations</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Destination</th>
+                    <th>Nombre Missions</th>
+                    <th>Distance Totale (km)</th>
+                    <th>Coût Total ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dest in top_destinations %}
+                <tr>
+                    <td>{{ dest.destination }}</td>
+                    <td>{{ dest.count }}</td>
+                    <td>{{ dest.total_distance|floatformat:1 }}</td>
+                    <td>{{ dest.total_cout|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Statistiques par Véhicule -->
+    {% if stats_vehicules %}
+    <div class="section">
+        <div class="section-title">Performance par Véhicule</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Véhicule</th>
+                    <th>Missions</th>
+                    <th>Distance Totale (km)</th>
+                    <th>Score Moyen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in stats_vehicules %}
+                <tr>
+                    <td>{{ v.vehicule__immatriculation }}</td>
+                    <td>{{ v.count }}</td>
+                    <td>{{ v.total_distance|floatformat:1 }}</td>
+                    <td>{{ v.score_moyen|floatformat:1 }}/100</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Statistiques par Chauffeur -->
+    {% if stats_chauffeurs %}
+    <div class="section">
+        <div class="section-title">Performance par Chauffeur</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Chauffeur</th>
+                    <th>Missions</th>
+                    <th>Distance Totale (km)</th>
+                    <th>Coût Total ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in stats_chauffeurs %}
+                <tr>
+                    <td>{{ c.chauffeur__first_name }} {{ c.chauffeur__last_name }}</td>
+                    <td>{{ c.count }}</td>
+                    <td>{{ c.total_distance|floatformat:1 }}</td>
+                    <td>{{ c.total_cout|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Pied de page -->
+    <div class="footer">
+        <p>MINEXX - MINEXX</p>
+        <p>Rapport généré automatiquement le {{ date_generation }}</p>
+        <p>© {% now "Y" %} Tous droits réservés</p>
+    </div>
+</body>
+</html>

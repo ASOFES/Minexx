@@ -1,0 +1,84 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Flutter
+*.dart_tool/
+*.packages
+*.pub/
+build/
+*.lock
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# Mobile apps
+mobile_apps/
+ipsco_test_web/
+ipsco-mobile-app/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Scripts temporaires
+*.bat
+*.ps1
+# Garder start.sh pour le Dockerfile (ne pas exclure *.sh)
+!start.sh
+
+# Documentation
+*.md
+README*
+
+# Tests
+test/
+tests/ 

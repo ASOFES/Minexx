@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport des Entretiens</title>
+    <style>
+        @page {
+            size: a4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #4472C4;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            color: #4472C4;
+            margin: 0;
+            font-size: 18px;
+        }
+        .header .subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        .info {
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 8px;
+        }
+        th {
+            background-color: #4472C4;
+            color: white;
+            text-align: left;
+            padding: 5px;
+            border: 1px solid #ddd;
+        }
+        td {
+            padding: 5px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 9px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 5px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #e6f2ff !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+            {% if logo_base64 %}
+                            <img src="data:image/png;base64,{{ logo_base64 }}" alt="Logo MINEXX" style="max-height: 50px; margin-right: 15px;">
+            {% endif %}
+            <div>
+                <h1>Rapport des Entretiens</h1>
+                <div class="subtitle">Gestion du Parc Automobile</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info">
+        <div>Période : du {{ date_debut|default:"Début" }} au {{ date_fin|default:"Aujourd'hui" }}</div>
+        <div>Généré le : {{ date_generation }}</div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Véhicule</th>
+                <th>Département</th>
+                <th>Type</th>
+                <th>Garage</th>
+                <th class="text-right">Coût ($)</th>
+                <th>Kilométrage</th>
+                <th>Statut</th>
+                <th>Commentaires</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entretien in entretiens %}
+            <tr>
+                <td>{{ entretien.id }}</td>
+                <td>{{ entretien.date }}</td>
+                <td>{{ entretien.vehicule }}</td>
+                <td>{{ entretien.departement }}</td>
+                <td>{{ entretien.type }}</td>
+                <td>{{ entretien.garage }}</td>
+                <td class="text-right">{{ entretien.cout }}</td>
+                <td>{{ entretien.kilometrage }}</td>
+                <td>{{ entretien.statut }}</td>
+                <td>{{ entretien.commentaires|truncatechars:30 }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="6" class="text-right"><strong>Total</strong></td>
+                <td class="text-right">{{ total_cout }} $</td>
+                <td colspan="3">{{ total_entretiens }} entretien{{ total_entretiens|pluralize:"s" }}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        Document généré automatiquement - Gestion du Parc Automobile
+    </div>
+</body>
+</html>

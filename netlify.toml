@@ -1,0 +1,17 @@
+[build]
+  publish = "staticfiles"
+  command = "python manage.py collectstatic --noinput"
+
+[build.environment]
+  PYTHON_VERSION = "3.9"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  DJANGO_SETTINGS_MODULE = "gestion_vehicules.settings"
+
+[context.deploy-preview.environment]
+  DJANGO_SETTINGS_MODULE = "gestion_vehicules.settings" 

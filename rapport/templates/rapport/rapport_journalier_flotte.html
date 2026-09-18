@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport journalier de flotte - {{ date }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .header { display: flex; align-items: center; justify-content: space-between; }
+        .header img { height: 50px; }
+        h2 { color: #2c3e50; margin-bottom: 0; }
+        .stats { margin-top: 20px; margin-bottom: 20px; }
+        .stats span { display: inline-block; margin-right: 30px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f5f5f5; }
+        .graph { margin-top: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+                    <img src="https://mamo-uccb.onrender.com/static/images/logo_minexx.png" alt="Logo MINEXX" />
+        <h2>Rapport journalier de flotte<br><small>{{ date|date:'d/m/Y' }}</small></h2>
+        <div></div>
+    </div>
+    <div class="stats">
+        <span>Total distance : {{ total_distance }} km</span>
+        <span>Total missions : {{ total_missions }}</span>
+        <span>Total carburant : {{ total_litres }} L</span>
+        <span>Total dépenses carburant : {{ total_depense }} FC</span>
+        <span>Total maintenance : {{ total_maintenance }} FC</span>
+    </div>
+    <div class="graph">
+        <img src="data:image/png;base64,{{ graph_base64 }}" alt="Graphique distance par véhicule" style="max-width: 100%; height: auto;" />
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Véhicule</th>
+                <th>Immatriculation</th>
+                <th>Chauffeur</th>
+                <th>Distance (km)</th>
+                <th>Missions</th>
+                <th>Ravitaillement (L)</th>
+                <th>Dépenses carburant</th>
+                <th>Maintenance</th>
+                <th>Observations</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for v in data %}
+            <tr>
+                <td>{{ v.vehicule.marque }} {{ v.vehicule.modele }}</td>
+                <td>{{ v.vehicule.immatriculation }}</td>
+                <td>{% if v.chauffeur %}{{ v.chauffeur.get_full_name|default:v.chauffeur.username }}{% else %}-{% endif %}</td>
+                <td>{{ v.distance }}</td>
+                <td>{{ v.missions }}</td>
+                <td>{{ v.litres }}</td>
+                <td>{{ v.depense_carburant }}</td>
+                <td>{{ v.maintenance }}</td>
+                <td>{{ v.obs }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html> 

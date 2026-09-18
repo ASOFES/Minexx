@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Correction du kilométrage véhicule{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Correction du kilométrage d'un véhicule</h2>
+    <form method="post" id="correction-form">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <select name="vehicule" id="vehicule" class="form-select">
+                <option value="">Sélectionnez un véhicule</option>
+                {% for v in vehicules %}
+                    <option value="{{ v.id }}" {% if selected_vehicule and v.id == selected_vehicule.id %}selected{% endif %}>{{ v.immatriculation }} - {{ v.marque }} {{ v.modele }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div id="km-fields" style="display: none;">
+            <div class="mb-3">
+                <label class="form-label">Kilométrage actuel</label>
+                <input type="text" class="form-control" id="kilometrage_actuel" value="-" readonly>
+            </div>
+            <div class="mb-3">
+                <label for="nouveau_kilometrage" class="form-label">Nouveau kilométrage</label>
+                <input type="number" name="nouveau_kilometrage" id="nouveau_kilometrage" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="motif" class="form-label">Motif de la correction <span class="text-danger">*</span></label>
+                <textarea name="motif" id="motif" class="form-control" rows="2" required placeholder="Exemple : erreur de saisie, oubli, etc."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Valider la correction</button>
+        </div>
+    </form>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const vehiculeSelect = document.getElementById('vehicule');
+        const kmFields = document.getElementById('km-fields');
+        const kmActuelInput = document.getElementById('kilometrage_actuel');
+        const nouveauKmInput = document.getElementById('nouveau_kilometrage');
+
+        function resetKmFields() {
+            kmFields.style.display = 'none';
+            kmActuelInput.value = '-';
+            nouveauKmInput.value = '';
+        }
+
+        vehiculeSelect.addEventListener('change', function() {
+            const vehiculeId = this.value;
+            if (!vehiculeId) {
+                resetKmFields();
+                return;
+            }
+            fetch(`{% url 'securite:get_kilometrage_vehicule' %}?vehicule_id=${vehiculeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        kmActuelInput.value = data.kilometrage_actuel !== null ? data.kilometrage_actuel : '-';
+                        kmFields.style.display = '';
+                    } else {
+                        resetKmFields();
+                        alert(data.error || 'Erreur lors de la récupération du kilométrage.');
+                    }
+                })
+                .catch(() => {
+                    resetKmFields();
+                    alert('Erreur lors de la récupération du kilométrage.');
+                });
+        });
+
+        // Si un véhicule est déjà sélectionné au chargement (cas d'un retour après validation)
+        if (vehiculeSelect.value) {
+            const event = new Event('change');
+            vehiculeSelect.dispatchEvent(event);
+        } else {
+            resetKmFields();
+        }
+    });
+</script>
+{% endblock %} 

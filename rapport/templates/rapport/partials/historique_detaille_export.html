@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Historique Détaillé</title>
+    <style>
+        @page {
+            size: {% if orientation == 'landscape' %}A4 landscape{% else %}A4 portrait{% endif %};
+            margin: 1cm;
+            @bottom-center {
+                content: "Page " counter(page) " sur " counter(pages);
+                font-size: 10px;
+                color: #666;
+            }
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            line-height: 1.3;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1B4965 0%, #2E86AB 100%);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            margin: 3px 0 0 0;
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        
+        .metadata {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 15px;
+            font-size: 9px;
+        }
+        
+        .metadata span {
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 9px;
+        }
+        
+        th {
+            background: #2E86AB;
+            color: white;
+            padding: 6px 4px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #1B4965;
+            font-size: 9px;
+        }
+        
+        td {
+            padding: 4px 6px;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+            font-size: 9px;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .type-entretien { 
+            background: #A8DADC !important; 
+            font-weight: bold;
+            text-align: center;
+        }
+        .type-ravitaillement { 
+            background: #F4A261 !important; 
+            font-weight: bold;
+            text-align: center;
+        }
+        .type-correction_km { 
+            background: #E9C46A !important; 
+            font-weight: bold;
+            text-align: center;
+        }
+        .type-incident { 
+            background: #E76F51 !important; 
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+            font-size: 8px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>HISTORIQUE DÉTAILLÉ DU VÉHICULE</h1>
+        <div class="subtitle">
+            {% if selected_vehicule %}
+                {{ selected_vehicule.immatriculation }} - {{ selected_vehicule.marque }} {{ selected_vehicule.modele }}
+            {% else %}
+                Véhicule non sélectionné
+            {% endif %}
+        </div>
+        <div class="subtitle">
+            Généré le {{ date_export }} par {{ user_export }}
+        </div>
+    </div>
+
+    <div class="metadata">
+        <span>📊 Total d'événements : {{ total_items }}</span>
+        {% if export_all %}
+            <span>📋 Export complet</span>
+        {% else %}
+            <span>📄 Export de la page courante</span>
+        {% endif %}
+        <span>📅 Période : {{ date_debut|default:"Toutes" }} - {{ date_fin|default:"Toutes" }}</span>
+    </div>
+
+    {% if historique_detaille %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Libellé</th>
+                <th>Kilométrage</th>
+                <th>Coût</th>
+                <th>Auteur</th>
+                <th>Observations</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in historique_detaille %}
+            <tr>
+                <td>{{ h.date|date:"d/m/Y"|default:"-" }}</td>
+                <td class="type-{{ h.type }}">{{ h.type|upper }}</td>
+                <td>{{ h.libelle|default:"-" }}</td>
+                <td>{{ h.km|default:"-" }}</td>
+                <td>{{ h.cout|default:"-" }}</td>
+                <td>{{ h.auteur|default:"-" }}</td>
+                <td>{{ h.obs|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-data">
+        <p>Aucun événement historique trouvé pour cette période.</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Historique généré automatiquement par le système de gestion de flotte</p>
+        <p>© {{ date_export|slice:":4" }} - Tous droits réservés</p>
+    </div>
+</body>
+</html> 

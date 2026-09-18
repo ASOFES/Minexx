@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-local-docker-only}
+      - DEBUG=${DEBUG:-True}
+      - DJANGO_SETTINGS_MODULE=gestion_vehicules.settings
+      - DATABASE_URL=postgres://postgres:password@db:5432/minexx
+      - PORT=8000
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-}
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    depends_on:
+      - db
+    command: ./start.sh
+  
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=minexx
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+  media_data:
+ 

@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Rapport des Véhicules - Vue avancée{% endblock %}
+
+{% block extra_css %}
+<style>
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 30px;
+}
+
+.score-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.score-card h3 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+.score-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.classification-badge {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.performance-indicator {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-left: 4px solid #007bff;
+}
+
+.performance-indicator h6 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.performance-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.recommendation-card {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.recommendation-card .text-warning {
+    color: #856404 !important;
+}
+
+.chart-tabs {
+    margin-bottom: 20px;
+}
+
+.chart-tab {
+    background: #e9ecef;
+    border: none;
+    padding: 10px 20px;
+    margin-right: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.chart-tab.active {
+    background: #007bff;
+    color: white;
+}
+
+.chart-tab:hover {
+    background: #007bff;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-chart-line me-2"></i>Rapport des Véhicules - Vue avancée
+            </h1>
+            
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="immatriculation" class="form-label">Immatriculation</label>
+                            <select name="immatriculation" id="immatriculation" class="form-select">
+                                <option value="">Toutes</option>
+                                {% for v in vehicules.paginator.object_list %}
+                                <option value="{{ v.immatriculation }}" {% if request.GET.immatriculation == v.immatriculation %}selected{% endif %}>{{ v.immatriculation }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="marque" class="form-label">Marque</label>
+                            <input type="text" name="marque" id="marque" class="form-control" value="{{ marque }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_debut" class="form-label">Date début</label>
+                            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_fin" class="form-label">Date fin</label>
+                            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i>Filtrer
+                            </button>
+                            <a href="{% url 'rapport:vehicules_advanced' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-1"></i>Réinitialiser
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- KPIs principaux -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="score-card text-center">
+                        <h3>Score moyen</h3>
+                        <div class="score-value">{{ score_moyen }}/100</div>
+                        <small>Performance globale</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Véhicules évalués</h5>
+                            <h2 class="text-info">{{ vehicules.paginator.count }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Distance totale</h5>
+                            <h2 class="text-success">{{ total_distance|floatformat:0 }} km</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Budget total</h5>
+                            <h2 class="text-warning">{{ total_budget|floatformat:2 }} $</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphiques -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Analyses graphiques</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Onglets pour les graphiques -->
+                            <div class="chart-tabs">
+                                <button class="chart-tab active" onclick="showChart('scores')">Scores par véhicule</button>
+                                <button class="chart-tab" onclick="showChart('classification')">Répartition des classifications</button>
+                                <button class="chart-tab" onclick="showChart('criteres')">Performance par critère</button>
+                            </div>
+
+                            <!-- Graphique des scores -->
+                            <div id="chart-scores" class="chart-container">
+                                <canvas id="scoresChart"></canvas>
+                            </div>
+
+                            <!-- Graphique des classifications -->
+                            <div id="chart-classification" class="chart-container" style="display: none;">
+                                <canvas id="classificationChart"></canvas>
+                            </div>
+
+                            <!-- Graphique des critères -->
+                            <div id="chart-criteres" class="chart-container" style="display: none;">
+                                <canvas id="criteresChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Top Performeurs</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for stat in stats_vehicules|slice:":5" %}
+                            <div class="performance-indicator">
+                                <h6>{{ stat.vehicule.immatriculation }}</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="performance-value">{{ stat.score_total }}/100</span>
+                                    <span class="classification-badge badge {{ stat.badge_class }}">
+                                        {{ stat.classification }}
+                                    </span>
+                                </div>
+                                <small class="text-muted">
+                                    {{ stat.nb_courses }} courses • {{ stat.distance_totale|floatformat:0 }} km
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Recommandations globales -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recommandations globales</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if charts_data.moyennes_criteres.fiabilite < 60 %}
+                            <div class="recommendation-card">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                <strong>Fiabilité faible</strong><br>
+                                <small>Vérifier la cohérence des données et programmer les entretiens</small>
+                            </div>
+                            {% endif %}
+                            
+                            {% if charts_data.moyennes_criteres.efficacite < 60 %}
+                            <div class="recommendation-card">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                <strong>Consommation élevée</strong><br>
+                                <small>Vérifier l'état des moteurs et optimiser la conduite</small>
+                            </div>
+                            {% endif %}
+                            
+                            {% if charts_data.moyennes_criteres.rentabilite < 60 %}
+                            <div class="recommendation-card">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                <strong>Coûts élevés</strong><br>
+                                <small>Optimiser les coûts d'exploitation et d'entretien</small>
+                            </div>
+                            {% endif %}
+                            
+                            {% if charts_data.moyennes_criteres.utilisation < 30 %}
+                            <div class="recommendation-card">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                <strong>Utilisation faible</strong><br>
+                                <small>Augmenter l'utilisation des véhicules</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau détaillé -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Détail des évaluations</h5>
+                    <div>
+                        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}export=pdf" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-file-pdf me-1"></i>PDF
+                        </a>
+                        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}export=excel" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-file-excel me-1"></i>Excel
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Véhicule</th>
+                                    <th>Score</th>
+                                    <th>Classification</th>
+                                    <th>Kilométrage</th>
+                                    <th>Âge</th>
+                                    <th>Courses</th>
+                                    <th>Consommation (L/100km)</th>
+                                    <th>Coût/km ($/km)</th>
+                                    <th>Recommandations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in stats_vehicules %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ stat.vehicule.immatriculation }}</strong>
+                                        <br><small class="text-muted">{{ stat.vehicule.marque }} {{ stat.vehicule.modele }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="text-center">
+                                            <h5 class="mb-1">{{ stat.score_total }}/100</h5>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar {% if stat.score_total >= 85 %}bg-success{% elif stat.score_total >= 70 %}bg-primary{% elif stat.score_total >= 55 %}bg-warning{% elif stat.score_total >= 40 %}bg-danger{% else %}bg-dark{% endif %}" 
+                                                     style="width: {{ stat.score_total }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ stat.badge_class }} fs-6">{{ stat.classification }}</span>
+                                    </td>
+                                    <td>{{ stat.distance_totale|floatformat:0 }} km</td>
+                                    <td>{{ stat.age_vehicule }} ans</td>
+                                    <td>{{ stat.nb_courses }}</td>
+                                    <td>{{ stat.conso_moyenne|floatformat:2 }}</td>
+                                    <td>{{ stat.cout_km|floatformat:2 }}</td>
+                                    <td>
+                                        {% if stat.recommandations %}
+                                        <ul class="list-unstyled mb-0">
+                                            {% for rec in stat.recommandations %}
+                                            <li><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>{{ rec }}</small></li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <small class="text-success"><i class="fas fa-check-circle me-1"></i>Aucune recommandation</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="9" class="text-center">Aucun véhicule trouvé.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Données des graphiques
+const chartsData = {{ charts_data|safe }};
+
+// Graphique des scores
+const scoresCtx = document.getElementById('scoresChart').getContext('2d');
+const scoresChart = new Chart(scoresCtx, {
+    type: 'bar',
+    data: {
+        labels: chartsData.scores_data.labels,
+        datasets: [{
+            label: 'Score total',
+            data: chartsData.scores_data.scores,
+            backgroundColor: chartsData.scores_data.scores.map(score => {
+                if (score >= 85) return '#28a745';
+                if (score >= 70) return '#007bff';
+                if (score >= 55) return '#ffc107';
+                if (score >= 40) return '#dc3545';
+                return '#6c757d';
+            }),
+            borderColor: 'rgba(0,0,0,0.1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Scores par véhicule'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// Graphique des classifications
+const classificationCtx = document.getElementById('classificationChart').getContext('2d');
+const classificationChart = new Chart(classificationCtx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(chartsData.classification_counts),
+        datasets: [{
+            data: Object.values(chartsData.classification_counts),
+            backgroundColor: ['#28a745', '#007bff', '#ffc107', '#dc3545', '#6c757d'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Répartition des classifications'
+            }
+        }
+    }
+});
+
+// Graphique des critères
+const criteresCtx = document.getElementById('criteresChart').getContext('2d');
+const criteresChart = new Chart(criteresCtx, {
+    type: 'radar',
+    data: {
+        labels: ['Fiabilité', 'Efficacité', 'Rentabilité', 'Utilisation'],
+        datasets: [{
+            label: 'Moyenne par critère',
+            data: [
+                chartsData.moyennes_criteres.fiabilite,
+                chartsData.moyennes_criteres.efficacite,
+                chartsData.moyennes_criteres.rentabilite,
+                chartsData.moyennes_criteres.utilisation
+            ],
+            backgroundColor: 'rgba(0, 123, 255, 0.2)',
+            borderColor: 'rgba(0, 123, 255, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(0, 123, 255, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(0, 123, 255, 1)'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Performance par critère'
+            }
+        },
+        scales: {
+            r: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// Fonction pour changer de graphique
+function showChart(chartType) {
+    // Masquer tous les graphiques
+    document.getElementById('chart-scores').style.display = 'none';
+    document.getElementById('chart-classification').style.display = 'none';
+    document.getElementById('chart-criteres').style.display = 'none';
+    
+    // Afficher le graphique sélectionné
+    document.getElementById('chart-' + chartType).style.display = 'block';
+    
+    // Mettre à jour les onglets
+    document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+}
+</script>
+{% endblock %} 

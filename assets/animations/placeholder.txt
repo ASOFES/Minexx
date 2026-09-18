@@ -1,0 +1,2 @@
+# Placeholder pour les animations
+# Ajoutez vos animations Lottie ici

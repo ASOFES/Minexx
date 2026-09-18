@@ -1,0 +1,380 @@
+<<<<<<< HEAD
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Style pour l'immatriculation */
+    .immatriculation-badge {
+        background-color: #e3f2fd !important;
+        color: #0d6efd !important;
+        font-weight: 600 !important;
+        padding: 0.35em 0.65em !important;
+        font-size: 0.9em !important;
+        display: inline-block;
+        margin-bottom: 0.25rem;
+    }
+    .immatriculation-badge i {
+        margin-right: 0.3em;
+    }
+    .vehicule-info {
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Liste des Entretiens{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de page -->
+    <div class="page-header d-print-none">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title">
+                    <i class="fas fa-tools me-2"></i>Gestion des Entretiens
+                </h2>
+                <div class="text-muted mt-1">
+                    <i class="fas fa-info-circle me-1"></i>Consultez et gérez tous les entretiens de votre flotte
+                </div>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                    <a href="{% url 'entretien:creer_entretien' %}" class="btn btn-primary d-none d-sm-inline-block">
+                        <i class="fas fa-plus me-2"></i>Nouvel Entretien
+                    </a>
+                    <a href="{% url 'entretien:creer_entretien' %}" class="btn btn-primary d-sm-none btn-icon">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                    <div class="btn-group ms-2">
+                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-file-export me-2"></i>Exporter
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="{% url 'entretien:exporter_entretiens_pdf' %}{% if request.GET %}?{% for key, value in request.GET.items %}{% if not forloop.first %}&{% endif %}{{ key }}={{ value }}{% endfor %}{% endif %}" target="_blank">
+                                <i class="fas fa-file-pdf me-2 text-danger"></i>PDF
+                            </a>
+                            <a class="dropdown-item" href="{% url 'entretien:exporter_entretiens_excel' %}{% if request.GET %}?{% for key, value in request.GET.items %}{% if not forloop.first %}&{% endif %}{{ key }}={{ value }}{% endfor %}{% endif %}">
+                                <i class="fas fa-file-excel me-2 text-success"></i>Excel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Liste des Entretiens</h3>
+                    <div class="card-actions">
+                        <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-sync-alt me-1"></i>Rafraîchir
+                        </a>
+                    </div>
+                </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filtres -->
+                    <div class="card-body border-bottom">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-3">
+                                <label for="vehicule" class="form-label">Véhicule</label>
+                                <select name="vehicule" id="vehicule" class="form-select">
+                                    <option value="">Tous les véhicules</option>
+                                    {% for vehicule in vehicules %}
+                                        <option value="{{ vehicule.id }}" {% if request.GET.vehicule == vehicule.id|stringformat:"i" %}selected{% endif %}>
+                                            {{ vehicule.immatriculation }} - {{ vehicule.marque }} {{ vehicule.modele }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="statut" class="form-label">Statut</label>
+                                <select name="statut" id="statut" class="form-select">
+                                    <option value="">Tous les statuts</option>
+                                    <option value="planifie" {% if request.GET.statut == 'planifie' %}selected{% endif %}>Planifié</option>
+                                    <option value="en_cours" {% if request.GET.statut == 'en_cours' %}selected{% endif %}>En cours</option>
+                                    <option value="termine" {% if request.GET.statut == 'termine' %}selected{% endif %}>Terminé</option>
+                                    <option value="annule" {% if request.GET.statut == 'annule' %}selected{% endif %}>Annulé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="date_debut" class="form-label">Date début</label>
+                                <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="date_fin" class="form-label">Date fin</label>
+                                <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="recherche" class="form-label">Recherche</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" name="recherche" id="recherche" class="form-control" placeholder="Rechercher par motif, garage, immatriculation..." value="{{ request.GET.recherche }}">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-filter me-1"></i>Filtrer
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tri" class="form-label">Trier par</label>
+                                <div class="input-group">
+                                    <select name="tri" id="tri" class="form-select" onchange="this.form.submit()">
+                                        <option value="-date_entretien" {% if tri_actuel == '-date_entretien' %}selected{% endif %}>Date (plus récent)</option>
+                                        <option value="date_entretien" {% if tri_actuel == 'date_entretien' %}selected{% endif %}>Date (plus ancien)</option>
+                                        <option value="vehicule__immatriculation" {% if tri_actuel == 'vehicule__immatriculation' %}selected{% endif %}>Véhicule (A-Z)</option>
+                                        <option value="-cout" {% if tri_actuel == '-cout' %}selected{% endif %}>Coût (décroissant)</option>
+                                        <option value="cout" {% if tri_actuel == 'cout' %}selected{% endif %}>Coût (croissant)</option>
+                                        <option value="garage" {% if tri_actuel == 'garage' %}selected{% endif %}>Garage (A-Z)</option>
+                                    </select>
+                                    <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-secondary" title="Réinitialiser les filtres">
+                                        <i class="fas fa-undo"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Liste des entretiens -->
+                    {% if entretiens %}
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter text-nowrap datatable">
+                            <thead>
+                                <tr>
+                                    <th class="w-1">
+                                        <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="Sélectionner tout">
+                                    </th>
+                                    <th>Véhicule</th>
+                                    <th>Département</th>
+                                    <th>Garage</th>
+                                    <th>Date</th>
+                                    <th>Motif</th>
+                                    <th>Coût</th>
+                                    <th>Statut</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entretien in entretiens %}
+                                <tr>
+                                    <td><input class="form-check-input m-0 align-middle" type="checkbox" aria-label="Sélectionner cet entretien"></td>
+                                    <td>
+                                        <div class="d-flex py-1 align-items-center">
+                                            <div class="flex-shrink-0">
+                                                <i class="fas fa-car text-blue" style="font-size: 1.5rem;"></i>
+                                            </div>
+                                            <div class="flex-fill ms-3">
+                                                <div class="vehicule-info">
+                                                    <span class="immatriculation-badge">
+                                                        <i class="fas fa-car"></i>
+                                                        {% if entretien.vehicule and entretien.vehicule.immatriculation %}
+                                                            {{ entretien.vehicule.immatriculation }}
+                                                        {% else %}
+                                                            Non définie
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                                <div class="text-muted">{{ entretien.vehicule.marque }} {{ entretien.vehicule.modele }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if entretien.vehicule.etablissement %}
+                                            <span class="badge bg-blue-lt">
+                                                <i class="fas fa-building me-1"></i>{{ entretien.vehicule.etablissement.nom }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">Non défini</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="text-muted">
+                                            <i class="fas fa-warehouse me-1"></i>{{ entretien.garage|truncatechars:20 }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-muted">
+                                            <i class="far fa-calendar-alt me-1"></i>{{ entretien.date_entretien|date:"d/m/Y" }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ entretien.motif }}">
+                                            {{ entretien.motif|truncatechars:50 }}
+                                        </div>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <span class="text-primary fw-bold">{{ entretien.cout|default:"0.00" }} $</span>
+                                    </td>
+                                    <td>
+                                        {% if entretien.statut == 'planifie' %}
+                                            <span class="badge bg-info">{{ entretien.get_statut_display }}</span>
+                                        {% elif entretien.statut == 'en_cours' %}
+                                            <span class="badge bg-warning">{{ entretien.get_statut_display }}</span>
+                                        {% elif entretien.statut == 'termine' %}
+                                            <span class="badge bg-success">{{ entretien.get_statut_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ entretien.get_statut_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-list justify-content-end">
+                                            <!-- Bouton d'actions avec menu déroulant -->
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="actionsDropdown{{ entretien.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown{{ entretien.id }}">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'entretien:detail_entretien' entretien.id %}">
+                                                            <i class="fas fa-eye me-2 text-primary"></i>Voir les détails
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'entretien:modifier_entretien' entretien.id %}">
+                                                            <i class="fas fa-edit me-2 text-warning"></i>Modifier
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'entretien:exporter_entretien_pdf' entretien.id %}" target="_blank">
+                                                            <i class="fas fa-file-pdf me-2 text-danger"></i>Exporter en PDF
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'entretien:exporter_entretien_excel' entretien.id %}">
+                                                            <i class="fas fa-file-excel me-2 text-success"></i>Exporter en Excel
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="{% url 'entretien:supprimer_entretien' entretien.id %}" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet entretien ?')">
+                                                            <i class="fas fa-trash me-2"></i>Supprimer
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <!-- Bouton d'action principale (Détails) -->
+                                            <a href="{% url 'entretien:detail_entretien' entretien.id %}" class="btn btn-sm btn-primary" title="Détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if entretiens.paginator.num_pages > 0 %}
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="Pagination des entretiens">
+                            <ul class="pagination">
+                                {% if entretiens.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.recherche %}&recherche={{ request.GET.recherche }}{% endif %}{% if request.GET.tri %}&tri={{ request.GET.tri }}{% endif %}" aria-label="Première">
+                                            <span aria-hidden="true">&laquo;&laquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ entretiens.previous_page_number }}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.recherche %}&recherche={{ request.GET.recherche }}{% endif %}{% if request.GET.tri %}&tri={{ request.GET.tri }}{% endif %}" aria-label="Précédente">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" aria-label="Première">
+                                            <span aria-hidden="true">&laquo;&laquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" aria-label="Précédente">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for i in entretiens.paginator.page_range %}
+                                    {% if entretiens.number == i %}
+                                        <li class="page-item active" aria-current="page">
+                                            <span class="page-link">{{ i }}</span>
+                                        </li>
+                                    {% elif i > entretiens.number|add:'-3' and i < entretiens.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ i }}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.recherche %}&recherche={{ request.GET.recherche }}{% endif %}{% if request.GET.tri %}&tri={{ request.GET.tri }}{% endif %}">{{ i }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if entretiens.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ entretiens.next_page_number }}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.recherche %}&recherche={{ request.GET.recherche }}{% endif %}{% if request.GET.tri %}&tri={{ request.GET.tri }}{% endif %}" aria-label="Suivante">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ entretiens.paginator.num_pages }}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.recherche %}&recherche={{ request.GET.recherche }}{% endif %}{% if request.GET.tri %}&tri={{ request.GET.tri }}{% endif %}" aria-label="Dernière">
+                                            <span aria-hidden="true">&raquo;&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" aria-label="Suivante">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" aria-label="Dernière">
+                                            <span aria-hidden="true">&raquo;&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    
+                    <div class="text-center mt-2">
+                        <small class="text-muted">
+                            Page {{ entretiens.number }} sur {{ entretiens.paginator.num_pages }} 
+                            ({{ entretiens.paginator.count }} entretiens au total)
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Aucun entretien trouvé.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les sélecteurs avec Select2 pour une meilleure expérience utilisateur
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('#vehicule, #statut, #tri').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+    });
+</script>
+{% endblock %}
+=======
+<a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-light btn-sm me-2"> 
+>>>>>>> 496eaf8f14d9fbb7edebf35064c2d4c0cb320de4

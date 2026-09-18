@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des demandes de missions</title>
+    <style>
+        @page { 
+            size: A4 landscape; 
+            margin: 1.5cm 1cm 1.5cm 1cm; 
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            font-size: 12px;
+            background-color: #fff;
+        }
+        .header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2c3e50;
+            text-align: center;
+        }
+        .header .logo {
+            margin-bottom: 10px;
+        }
+        .header .logo-img {
+            max-height: 50px;
+        }
+        .header-content {
+            margin-bottom: 15px;
+        }
+        .header .title {
+            margin: 5px 0;
+            font-size: 18pt;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .header .subtitle {
+            font-size: 10pt;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .header .company-info {
+            font-size: 10px;
+            color: #a0aec0;
+            letter-spacing: 1px;
+        }
+        .table-container { 
+            width: 100%; 
+            overflow: auto;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0 20px 0;
+            font-size: 8pt;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-weight: normal;
+            border: 1px solid #1a252f;
+        }
+        td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            vertical-align: middle;
+            word-break: break-word;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 8pt;
+            color: #95a5a6;
+            text-align: right;
+        }
+        .priority-important { 
+            background-color: #cce5ff; 
+            color: #004085; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 8pt;
+            display: inline-block;
+        }
+        .priority-urgence { 
+            background-color: #ffcccc; 
+            color: #a94442; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 8pt;
+            display: inline-block;
+        }
+        .priority-haute_urgence { 
+            background-color: #ffe5b4; 
+            color: #b36b00; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 8pt;
+            display: inline-block;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 8pt;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .status-en_attente { background-color: #95a5a6; color: white; }
+        .status-en_cours { background-color: #3498db; color: white; }
+        .status-validee { background-color: #f39c12; color: white; }
+        .status-terminee { background-color: #2ecc71; color: white; }
+        .status-annulee { background-color: #e74c3c; color: white; }
+        .status-refusee { background-color: #c0392b; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            {% if logo_data_uri %}
+                <img src="{{ logo_data_uri }}" alt="Logo MINEXX" class="logo-img">
+            {% endif %}
+        </div>
+        <div class="header-content">
+            <h1 class="title">LISTE DES DEMANDES DE MISSIONS</h1>
+            <div class="subtitle">
+                Document généré le {{ now|date:"d/m/Y à H:i" }} par {{ user.get_full_name|default:user.username }}
+            </div>
+            <div class="company-info">
+                MINEXX - Gestion de Parc Automobile
+            </div>
+            {% if demandes.0.etablissement %}
+            <div style="margin-top: 5px; font-size: 9pt; color: #555;">
+                Département : {{ demandes.0.etablissement.nom }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Demandeur</th>
+                <th>Département du demandeur</th>
+                <th>Département</th>
+                <th>Destination</th>
+                <th>Point d'embarquement</th>
+                <th>Motif</th>
+                <th>Passagers</th>
+                <th>Statut</th>
+                <th>Chauffeur</th>
+                <th>Véhicule</th>
+                <th>Priorité</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for demande in demandes %}
+            <tr>
+                <td>{{ demande.id }}</td>
+                <td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td>
+                <td>{{ demande.demandeur.get_full_name }}</td>
+                <td>{{ demande.demandeur.etablissement.nom|default:"-" }}</td>
+                <td>{% if demande.vehicule and demande.vehicule.etablissement %}{{ demande.vehicule.etablissement.nom }}{% elif demande.demandeur.etablissement %}{{ demande.demandeur.etablissement.nom }}{% else %}-{% endif %}</td>
+                <td>{{ demande.destination }}</td>
+                <td>{{ demande.point_embarquement }}</td>
+                <td>{{ demande.motif|truncatechars:30 }}</td>
+                <td>{{ demande.nombre_passagers }}</td>
+                <td>{{ demande.get_statut_display }}</td>
+                <td>{{ demande.chauffeur.get_full_name|default:"Non assigné" }}</td>
+                <td>{% if demande.vehicule %}{{ demande.vehicule.immatriculation }}{% else %}Non assigné{% endif %}</td>
+                <td>
+                    {% if demande.priorite == 'urgence' %}
+                    <span class="badge-urgence">Urgence</span>
+                    {% elif demande.priorite == 'haute_urgence' %}
+                    <span class="badge-haute-urgence">Haute urgence</span>
+                    {% else %}
+                    <span class="badge-important">Important</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <div class="footer">
+        Export PDF généré le {{ now|date:"d/m/Y H:i" }} par {{ user.get_full_name }}
+    </div>
+</body>
+</html> 

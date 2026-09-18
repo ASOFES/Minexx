@@ -1,0 +1,282 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load dispatch_filters %}
+
+{% block extra_head %}
+<style>
+    nav.navbar.navbar-expand-lg:not(.custom-dispatch-navbar) {
+        display: none !important;
+    }
+    .navbar.bg-primary, .navbar.navbar-dark.bg-primary {
+        background-color: #232b36 !important;
+    }
+    .navbar .nav-link, .navbar .navbar-brand {
+        color: #fff !important;
+    }
+    .navbar .nav-link.active, .navbar .nav-link:focus, .navbar .nav-link:hover {
+        color: #ffc107 !important;
+    }
+    .navbar .nav-link[aria-current="page"] {
+        color: #ffc107 !important;
+    }
+    .navbar .fw-bold.text-warning {
+        display: none !important;
+    }
+    footer.bg-light.text-center.text-lg-start {
+        display: none !important;
+    }
+    .custom-footer {
+        background: #2c3a48;
+        color: #fff;
+        padding: 2.5rem 0 1.2rem 0;
+        font-size: 1.05rem;
+    }
+    .custom-footer h5, .custom-footer h4 {
+        color: #fff;
+        font-weight: 600;
+    }
+    .custom-footer a {
+        color: #b8c7d1;
+        text-decoration: underline;
+    }
+    .custom-footer a:hover {
+        color: #ffc107;
+    }
+    .custom-footer .footer-icon {
+        width: 1.3em;
+        text-align: center;
+        margin-right: 0.5em;
+        color: #b8c7d1;
+    }
+    .custom-footer .footer-contact {
+        color: #b8c7d1;
+    }
+    .custom-footer .footer-contact i {
+        color: #b8c7d1;
+        margin-right: 0.5em;
+    }
+    .custom-footer .footer-sep {
+        border-top: 1px solid #4a5a6a;
+        margin: 1.5rem 0 0.5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Tableau de bord - Dispatch{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-dark custom-dispatch-navbar" style="background-color: #232b36; margin-bottom: 2rem;">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+                            <img src="{% static 'images/logo_minexx.png' %}" alt="MINEXX" height="48" class="d-inline-block align-text-top me-2" style="object-fit:contain;">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#customNavbar" aria-controls="customNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="customNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" href="{% url 'entretien:dashboard' %}"><i class="fas fa-tools me-1"></i>Maintenance</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'ravitaillement:dashboard' %}"><i class="fas fa-gas-pump me-1"></i>Ravitaillement</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'demandeur:dashboard' %}"><i class="fas fa-user-edit me-1"></i>Demandeur</a></li>
+                <li class="nav-item"><a class="nav-link active" href="{% url 'dispatch:dashboard' %}"><i class="fas fa-shipping-fast me-1"></i>Dispatch</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'chauffeur:dashboard' %}"><i class="fas fa-user-tie me-1"></i>Chauffeur</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'securite:dashboard' %}"><i class="fas fa-shield-alt me-1"></i>Sécurité</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-1"></i>Déconnexion</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="text-dark">
+                    <i class="fas fa-shipping-fast me-2 text-dark"></i>Tableau de bord - Dispatch
+                    <small class="text-muted d-block" style="font-size:1rem;">Gérez et suivez toutes les demandes de mission en temps réel</small>
+                </h1>
+            </div>
+            <hr>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-lg-2 mb-3 mb-lg-0">
+            <div class="card h-100 shadow-sm" style="padding:0.5rem 0.5rem;">
+                <div class="card-header bg-light" style="padding:0.5rem 1rem;">
+                    <h5 class="mb-0" style="font-size:1.1rem;"><i class="fas fa-filter me-2"></i>Filtres</h5>
+                </div>
+                <div class="card-body" style="padding:0.7rem 0.7rem;">
+                    <form method="get">
+                        <div class="mb-2">
+                            <label for="date_debut" class="form-label">Date début</label>
+                            <input type="date" class="form-control form-control-sm" id="date_debut" name="date_debut" value="{{ request.GET.date_debut }}">
+                        </div>
+                        <div class="mb-2">
+                            <label for="date_fin" class="form-label">Date fin</label>
+                            <input type="date" class="form-control form-control-sm" id="date_fin" name="date_fin" value="{{ request.GET.date_fin }}">
+                        </div>
+                        <div class="mb-2">
+                            <label for="statut" class="form-label">Statut</label>
+                            <select class="form-select form-select-sm" id="statut" name="statut">
+                                <option value="">Tous</option>
+                                <option value="en_attente" {% if request.GET.statut == 'en_attente' %}selected{% endif %}>En attente</option>
+                                <option value="validee" {% if request.GET.statut == 'validee' %}selected{% endif %}>Validée</option>
+                                <option value="refusee" {% if request.GET.statut == 'refusee' %}selected{% endif %}>Refusée</option>
+                                <option value="terminee" {% if request.GET.statut == 'terminee' %}selected{% endif %}>Terminée</option>
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter me-1"></i>Filtrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-10">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des demandes</h5>
+                    <div>
+                        <a href="{% url 'dispatch:courses_list_pdf' %}?statut={{ request.GET.statut }}&date_debut={{ request.GET.date_debut }}&date_fin={{ request.GET.date_fin }}" class="btn btn-outline-danger btn-sm me-2" title="Exporter en PDF">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                        <a href="{% url 'dispatch:courses_list_excel' %}?statut={{ request.GET.statut }}&date_debut={{ request.GET.date_debut }}&date_fin={{ request.GET.date_fin }}" class="btn btn-outline-success btn-sm" title="Exporter en Excel">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date demande</th>
+                                    <th>Demandeur</th>
+                                    <th>Point d'embarquement</th>
+                                    <th>Destination</th>
+                                    <th>Date souhaitée</th>
+                                    <th>Statut</th>
+                                    <th>Priorité</th>
+                                    <th>Chauffeur</th>
+                                    <th>Véhicule</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% if demandes %}
+                                {% for demande in demandes %}
+                                <tr>
+                                    <td>{{ demande.id }}</td>
+                                    <td>{{ demande.date_demande|date:'d/m/Y H:i' }}</td>
+                                    <td>{{ demande.demandeur }}</td>
+                                    <td>{{ demande.point_embarquement }}</td>
+                                    <td>{{ demande.destination }}</td>
+                                    <td>{{ demande.date_souhaitee|date:'d/m/Y H:i' }}</td>
+                                    <td>
+                                        {% if demande.statut == 'en_attente' %}
+                                            <span class="badge bg-warning text-dark">En attente</span>
+                                        {% elif demande.statut == 'validee' %}
+                                            <span class="badge bg-success">Validée</span>
+                                        {% elif demande.statut == 'refusee' %}
+                                            <span class="badge bg-danger">Refusée</span>
+                                        {% elif demande.statut == 'terminee' %}
+                                            <span class="badge bg-info text-dark">Terminée</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ demande.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if demande.priorite == 'urgence' %}
+                                            <span class="badge bg-danger">Urgence</span>
+                                        {% elif demande.priorite == 'haute_urgence' %}
+                                            <span class="badge bg-warning text-dark">Haute urgence</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">Normal</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{% if demande.chauffeur %}{{ demande.chauffeur.get_full_name|default:demande.chauffeur.username }}{% else %}Non assigné{% endif %}</td>
+                                    <td>{{ demande.vehicule.immatriculation|default:"Non assigné" }}</td>
+                                    <td>
+                                        <a href="{% url 'dispatch:detail_demande' demande.id %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></a>
+                                        {% if demande.statut == 'en_attente' %}
+                                            <a href="{% url 'dispatch:traiter_demande' demande.id %}" class="btn btn-outline-success btn-sm"><i class="fas fa-check"></i></a>
+                                            <a href="{% url 'dispatch:traiter_demande' demande.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-times"></i></a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-lg me-2"></i>Aucune demande trouvée.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="custom-footer mt-5">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-4 mb-3 mb-md-0">
+                                    <h4 class="mb-2">MINEXX</h4>
+                <div class="footer-contact">Plateforme de gestion et de suivi douanier</div>
+            </div>
+            <div class="col-md-4 mb-3 mb-md-0">
+                <h5 class="mb-2">Liens rapides</h5>
+                <div><a href="/">Accueil</a></div>
+                <div><a href="/profile/">Mon profil</a></div>
+            </div>
+            <div class="col-md-4">
+                <h5 class="mb-2">Contact</h5>
+                <div class="footer-contact mb-1"><i class="fas fa-map-marker-alt footer-icon"></i> Lubumbashi/Kibati, RDC</div>
+                <div class="footer-contact mb-1"><i class="fas fa-phone-alt footer-icon"></i> +243 995 178 105</div>
+                <div class="footer-contact"><i class="fas fa-envelope footer-icon"></i> totoasofes22@gmail.com</div>
+            </div>
+        </div>
+        <div class="footer-sep"></div>
+    </div>
+</footer>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les sélecteurs avec Select2 pour une meilleure expérience utilisateur
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('#statut, #tri').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+        
+        // Mettre en évidence les résultats de recherche
+        const searchTerm = '{{ request.GET.recherche }}';
+        if (searchTerm) {
+            // Fonction pour mettre en évidence le texte
+            function highlightText(element) {
+                const text = element.textContent;
+                if (text && text.toLowerCase().includes(searchTerm.toLowerCase())) {
+                    const regex = new RegExp(searchTerm, 'gi');
+                    element.innerHTML = text.replace(regex, match => `<mark class="bg-warning">${match}</mark>`);
+                }
+            }
+            
+            // Appliquer la mise en évidence aux cellules du tableau
+            const tableCells = document.querySelectorAll('table tbody td');
+            tableCells.forEach(cell => {
+                if (!cell.querySelector('a, button, .badge')) { // Ne pas modifier les cellules avec des éléments interactifs
+                    highlightText(cell);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

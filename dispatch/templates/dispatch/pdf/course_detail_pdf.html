@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Détails de la Course #{{ course.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.3;
+            color: #333;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .logo {
+            max-width: 100px;
+            max-height: 100px;
+        }
+        .section-title {
+            background-color: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow: hidden;
+            white-space: normal;
+        }
+        table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        table tr td {
+            width: 70%;
+        }
+        th {
+            width: 30%;
+            text-align: left;
+            padding: 8px 10px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        h1 {
+            margin-top: 20px;
+            color: #2c3e50;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .status-en-attente {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .status-validee {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .status-refusee {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .status-en-cours {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .status-terminee {
+            color: #8e44ad;
+            font-weight: bold;
+        }
+        .footer table {
+            border: none;
+        }
+        .footer table tr {
+            background-color: transparent;
+        }
+        .footer table td {
+            border: none;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td width="30%">
+                    <img src="{{ logo_data_uri }}" class="logo">
+                </td>
+                <td width="70%" style="text-align: right;">
+                    <h2 style="margin: 0; font-size: 16px; color: #2c3e50;">ASOFES - Gestion de Véhicules</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Rapport officiel - Document interne</p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Date d'impression: {{ date_impression }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <h1>Détails de la Course #{{ course.id }}</h1>
+
+    <div class="section-title">Informations générales</div>
+    <table>
+        <tr>
+            <th>Statut</th>
+            <td>
+                <div style="width: 100%; display: block; overflow: hidden;"><span class="status-{{ course.statut }}">{{ course.get_statut_display }}</span></div>
+            </td>
+        </tr>
+        <tr>
+            <th>Priorité</th>
+            <td>
+                {% if course.priorite == 'urgence' %}
+                <span style="background-color:#ffcccc;color:#a94442;padding:2px 8px;border-radius:4px;">Urgence</span>
+                {% elif course.priorite == 'haute_urgence' %}
+                <span style="background-color:#ffe5b4;color:#b36b00;padding:2px 8px;border-radius:4px;">Haute urgence</span>
+                {% else %}
+                <span style="background-color:#cce5ff;color:#004085;padding:2px 8px;border-radius:4px;">Important</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Demandeur</th>
+            <td>
+                <div style="width: 100%; display: block; overflow: hidden;">
+                {% if course.demandeur %}
+                    {% if course.demandeur.get_full_name %}
+                        {{ course.demandeur.get_full_name }}
+                    {% else %}
+                        {{ course.demandeur.first_name }} {{ course.demandeur.last_name }}
+                    {% endif %}
+                    <br>({{ course.demandeur.email }})
+                {% else %}
+                    Non spécifié
+                {% endif %}
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th>Date de demande</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.date_demande|date:"d/m/Y H:i" }}</div></td>
+        </tr>
+        <tr>
+            <th>Date souhaitée</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.date_souhaitee|date:"d/m/Y H:i" }}</div></td>
+        </tr>
+    </table>
+
+    <div class="section-title">Détails du trajet</div>
+    <table>
+        <tr>
+            <th>Point d'embarquement</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.point_embarquement }}</div></td>
+        </tr>
+        <tr>
+            <th>Destination</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.destination }}</div></td>
+        </tr>
+        <tr>
+            <th>Motif</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.motif }}</div></td>
+        </tr>
+        <tr>
+            <th>Nombre de passagers</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.nombre_passagers }}</div></td>
+        </tr>
+    </table>
+
+    {% if course.chauffeur or course.vehicule or course.dispatcher %}
+    <div class="section-title">Informations d'assignation</div>
+    <table>
+        {% if course.chauffeur %}
+        <tr>
+            <th>Chauffeur</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.chauffeur.get_full_name }}</div></td>
+        </tr>
+        {% endif %}
+        {% if course.vehicule %}
+        <tr>
+            <th>Véhicule</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.immatriculation }} - {{ course.vehicule.marque }} {{ course.vehicule.modele }}</div></td>
+        </tr>
+        <tr>
+            <th>Châssis</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.numero_chassis|default:"—" }}</div></td>
+        </tr>
+        <tr>
+            <th>Moteur</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.numero_moteur|default:"—" }}</div></td>
+        </tr>
+        <tr>
+            <th>Carte rose</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.numero_carte_rose|default:"—" }}</div></td>
+        </tr>
+        <tr>
+            <th>Km début</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.kilometrage_debut|default:"—" }}</div></td>
+        </tr>
+        <tr>
+            <th>Pneus</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.pneus_resume|default:"—" }}</div></td>
+        </tr>
+        <tr>
+            <th>Département</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.vehicule.etablissement.nom|default:'AUCUN' }}</div></td>
+        </tr>
+        {% endif %}
+        {% if course.dispatcher %}
+        <tr>
+            <th>Dispatcher</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.dispatcher.get_full_name }}</div></td>
+        </tr>
+        {% endif %}
+        {% if course.date_validation %}
+        <tr>
+            <th>Date de validation</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.date_validation|date:"d/m/Y H:i" }}</div></td>
+        </tr>
+        {% endif %}
+    </table>
+    {% endif %}
+
+    {% if course.date_debut or course.date_fin or course.commentaires %}
+    <div class="section-title">Suivi de mission</div>
+    <table>
+        {% if course.date_debut %}
+        <tr>
+            <th>Date de début</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.date_debut|date:"d/m/Y H:i" }}</div></td>
+        </tr>
+        {% endif %}
+        {% if course.date_fin %}
+        <tr>
+            <th>Date de fin</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.date_fin|date:"d/m/Y H:i" }}</div></td>
+        </tr>
+        {% endif %}
+        {% if course.commentaires %}
+        <tr>
+            <th>Commentaires</th>
+            <td><div style="width: 100%; display: block; overflow: hidden;">{{ course.commentaires }}</div></td>
+        </tr>
+        {% endif %}
+    </table>
+    {% endif %}
+
+    <div class="footer">
+        <table width="100%">
+            <tr>
+                <td width="33%" style="text-align: left;">ASOFES - Gestion de Véhicules</td>
+                <td width="34%" style="text-align: center;">Document confidentiel</td>
+                <td width="33%" style="text-align: right;">© {{ year }} ASOFES - Tous droits réservés</td>
+            </tr>
+        </table>
+        <p style="margin-top: 5px; text-align: center;">Document généré automatiquement le {{ date_impression }}</p>
+    </div>
+</body>
+</html>

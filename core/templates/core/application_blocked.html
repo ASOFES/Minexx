@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Application bloquée{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger text-center">
+        <h2>Accès bloqué</h2>
+        <p>Vous êtes déconnecté.<br>
+        Veuillez contacter votre administrateur pour vous réabonner.<br>
+        <strong>Email :</strong> totoasofes22@gmail<br>
+        <strong>Téléphone :</strong> +243995178105
+        </p>
+        <form action="{% url 'application_control_password' %}" method="get" style="display:inline;">
+            <button type="submit" class="btn btn-primary mt-3">Réactiver</button>
+        </form>
+    </div>
+</div>
+{% endblock %} 

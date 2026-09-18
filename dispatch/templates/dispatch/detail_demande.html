@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}Détail de la demande #{{ demande.id }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-clipboard-list me-2"></i>Demande #{{ demande.id }}</h1>
+            <div>
+                <a href="{% url 'dispatch:dashboard' %}" class="btn btn-secondary me-2">
+                    <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+                </a>
+                {% if demande.statut == 'en_attente' %}
+                <a href="{% url 'dispatch:traiter_demande' demande.id %}" class="btn btn-primary me-2">
+                    <i class="fas fa-tasks me-2"></i>Traiter la demande
+                </a>
+                {% endif %}
+                
+                <!-- Boutons d'exportation -->
+                <div class="btn-group">
+                    <a href="{% url 'dispatch:course_detail_pdf' demande.id %}" class="btn btn-danger">
+                        <i class="fas fa-file-pdf me-1"></i>Exporter PDF
+                    </a>
+                    <a href="{% url 'dispatch:course_detail_excel' demande.id %}" class="btn btn-success">
+                        <i class="fas fa-file-excel me-1"></i>Exporter Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations de la demande</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Statut:</div>
+                    <div class="col-md-8">
+                        {% if demande.statut == 'en_attente' %}
+                        <span class="badge bg-warning">En attente</span>
+                        {% elif demande.statut == 'validee' %}
+                        <span class="badge bg-success">Validée</span>
+                        {% elif demande.statut == 'refusee' %}
+                        <span class="badge bg-danger">Refusée</span>
+                        {% elif demande.statut == 'en_cours' %}
+                        <span class="badge bg-primary">En cours</span>
+                        {% elif demande.statut == 'terminee' %}
+                        <span class="badge bg-secondary">Terminée</span>
+                        {% else %}
+                        <span class="badge bg-dark">{{ demande.get_statut_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Priorité&nbsp;:</div>
+                    <div class="col-md-8">
+                        {% if demande.priorite == 'urgence' %}
+                        <span class="badge" style="background-color:#ffcccc;color:#a94442;">Urgence</span>
+                        {% elif demande.priorite == 'haute_urgence' %}
+                        <span class="badge" style="background-color:#ffe5b4;color:#b36b00;">Haute urgence</span>
+                        {% else %}
+                        <span class="badge" style="background-color:#cce5ff;color:#004085;">Important</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Demandeur:</div>
+                    <div class="col-md-8">
+                        {% if demande.demandeur %}
+                            {% if demande.demandeur.get_full_name %}
+                                {{ demande.demandeur.get_full_name }}
+                            {% else %}
+                                {{ demande.demandeur.username }}
+                            {% endif %}
+                            {% if demande.demandeur.email %}
+                                ({{ demande.demandeur.email }})
+                            {% endif %}
+                        {% else %}
+                            Non spécifié
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de demande:</div>
+                    <div class="col-md-8">{{ demande.date_demande|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date souhaitée:</div>
+                    <div class="col-md-8">{{ demande.date_souhaitee|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Point d'embarquement:</div>
+                    <div class="col-md-8">{{ demande.point_embarquement }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Destination:</div>
+                    <div class="col-md-8">{{ demande.destination }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Motif:</div>
+                    <div class="col-md-8">{{ demande.motif|linebreaks }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Nombre de passagers:</div>
+                    <div class="col-md-8">{{ demande.nombre_passagers }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Commentaires:</div>
+                    <div class="col-md-8">{{ demande.commentaires|default:"Aucun commentaire"|linebreaks }}</div>
+                </div>
+            </div>
+        </div>
+        
+        {% if demande.statut != 'en_attente' and demande.statut != 'refusee' %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-car me-2"></i>Informations de transport</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Chauffeur:</div>
+                    <div class="col-md-8">{{ demande.chauffeur.get_full_name|default:"Non assigné" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Véhicule:</div>
+                    <div class="col-md-8">
+                        {% if demande.vehicule %}
+                        {{ demande.vehicule.immatriculation }} - {{ demande.vehicule.marque }} {{ demande.vehicule.modele }}
+                        {% else %}
+                        Non assigné
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de validation:</div>
+                    <div class="col-md-8">{{ demande.date_validation|date:"d/m/Y H:i"|default:"Non validée" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Dispatcher:</div>
+                    <div class="col-md-8">{{ demande.dispatcher.get_full_name|default:"Non assigné" }}</div>
+                </div>
+                {% if demande.statut == 'en_cours' or demande.statut == 'terminee' %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Kilométrage départ:</div>
+                    <div class="col-md-8">{{ demande.kilometrage_depart|default:"Non renseigné" }} km</div>
+                </div>
+                {% endif %}
+                {% if demande.statut == 'terminee' %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Kilométrage arrivée:</div>
+                    <div class="col-md-8">{{ demande.kilometrage_fin|default:"Non renseigné" }} km</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Distance parcourue:</div>
+                    <div class="col-md-8">{{ demande.distance_parcourue|default:"Non calculée" }} km</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de départ:</div>
+                    <div class="col-md-8">{{ demande.date_depart|date:"d/m/Y H:i"|default:"Non renseignée" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date d'arrivée:</div>
+                    <div class="col-md-8">{{ demande.date_fin|date:"d/m/Y H:i"|default:"Non renseignée" }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Statut de la demande -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Suivi de la demande</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-clipboard-list me-2 text-success"></i>
+                            <strong>Demande créée</strong>
+                            <div class="text-muted small">{{ demande.date_demande|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-tasks me-2 {% if demande.statut != 'en_attente' %}text-success{% else %}text-warning{% endif %}"></i>
+                            <strong>Traitement par le dispatcher</strong>
+                            {% if demande.date_validation %}
+                            <div class="text-muted small">{{ demande.date_validation|date:"d/m/Y H:i" }}</div>
+                            {% endif %}
+                        </div>
+                        {% if demande.statut == 'en_attente' %}
+                        <span class="badge bg-warning rounded-pill"><i class="fas fa-clock"></i></span>
+                        {% elif demande.statut == 'refusee' %}
+                        <span class="badge bg-danger rounded-pill"><i class="fas fa-times"></i></span>
+                        {% else %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-car-side me-2 {% if demande.statut == 'en_cours' or demande.statut == 'terminee' %}text-success{% else %}text-secondary{% endif %}"></i>
+                            <strong>Mission en cours</strong>
+                            {% if demande.date_depart %}
+                            <div class="text-muted small">{{ demande.date_depart|date:"d/m/Y H:i" }}</div>
+                            {% endif %}
+                        </div>
+                        {% if demande.statut == 'en_cours' %}
+                        <span class="badge bg-primary rounded-pill"><i class="fas fa-play"></i></span>
+                        {% elif demande.statut == 'terminee' %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-flag-checkered me-2 {% if demande.statut == 'terminee' %}text-success{% else %}text-secondary{% endif %}"></i>
+                            <strong>Mission terminée</strong>
+                            {% if demande.date_fin %}
+                            <div class="text-muted small">{{ demande.date_fin|date:"d/m/Y H:i" }}</div>
+                            {% endif %}
+                        </div>
+                        {% if demande.statut == 'terminee' %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Historique -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historique</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if historique %}
+                <ul class="list-group list-group-flush">
+                    {% for item in historique %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ item.action }}</strong>
+                                <div class="text-muted small">{{ item.date_action|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            <div class="text-muted small">{{ item.utilisateur.username }}</div>
+                        </div>
+                        {% if item.details %}
+                        <div class="small mt-1">{{ item.details }}</div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="p-3 text-center text-muted">
+                    Aucun historique disponible.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

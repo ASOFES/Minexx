@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord - Sécurité{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-shield-alt me-2"></i>Tableau de bord - Sécurité</h1>
+            <a href="{% url 'securite:nouvelle_checklist' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nouvelle checklist
+            </a>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header module-securite text-white">
+                <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Total checklists</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.total }}</h3>
+                <p>Checklists de sécurité</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Conformes</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.conformes }}</h3>
+                <p>Véhicules conformes</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Anomalies mineures</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.anomalies_mineures }}</h3>
+                <p>Véhicules avec anomalies mineures</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-ban me-2"></i>Non conformes</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.non_conformes }}</h3>
+                <p>Véhicules non conformes</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres de recherche -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="statut" class="form-label">Statut</label>
+                        <select name="statut" id="statut" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            <option value="conforme" {% if request.GET.statut == 'conforme' %}selected{% endif %}>Conforme</option>
+                            <option value="anomalie_mineure" {% if request.GET.statut == 'anomalie_mineure' %}selected{% endif %}>Anomalie mineure</option>
+                            <option value="non_conforme" {% if request.GET.statut == 'non_conforme' %}selected{% endif %}>Non conforme</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="vehicule" class="form-label">Véhicule</label>
+                        <select name="vehicule" id="vehicule" class="form-select">
+                            <option value="">Tous les véhicules</option>
+                            {% for vehicule in vehicules %}
+                            <option value="{{ vehicule.id }}" {% if request.GET.vehicule|add:"0" == vehicule.id %}selected{% endif %}>{{ vehicule.immatriculation }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_debut" class="form-label">Date début</label>
+                        <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-2"></i>Filtrer
+                        </button>
+                        <a href="{% url 'securite:dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-2"></i>Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des checklists -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Checklists de sécurité</h5>
+            </div>
+            <div class="card-body">
+                {% if checklists %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Véhicule</th>
+                                <th>Contrôleur</th>
+                                <th>Statut</th>
+                                <th>Kilométrage</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for checklist in checklists %}
+                            <tr>
+                                <td>{{ checklist.id }}</td>
+                                <td>{{ checklist.date_controle|date:"d/m/Y H:i" }}</td>
+                                <td>{{ checklist.vehicule.immatriculation }}</td>
+                                <td>{{ checklist.controleur.get_full_name }}</td>
+                                <td>
+                                    {% if checklist.statut == 'conforme' %}
+                                    <span class="badge bg-success">Conforme</span>
+                                    {% elif checklist.statut == 'anomalie_mineure' %}
+                                    <span class="badge bg-warning">Anomalie mineure</span>
+                                    {% elif checklist.statut == 'non_conforme' %}
+                                    <span class="badge bg-danger">Non conforme</span>
+                                    {% else %}
+                                    <span class="badge bg-dark">{{ checklist.get_statut_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ checklist.kilometrage }} km</td>
+                                <td>
+                                    <a href="{% url 'securite:detail_checklist' checklist.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'securite:pdf_checklist' checklist.id %}" class="btn btn-sm btn-secondary" target="_blank">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if checklists.has_other_pages %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if checklists.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ checklists.previous_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                        {% endif %}
+                        
+                        {% for i in checklists.paginator.page_range %}
+                            {% if checklists.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}">{{ i }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if checklists.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ checklists.next_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.vehicule %}&vehicule={{ request.GET.vehicule }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>Aucune checklist de sécurité à afficher.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.is_superuser or user.role|lower|cut:'é' == 'securite' or user.role|lower|cut:'é' == 'admin' %}
+<div class="mb-3">
+    <a href="{% url 'securite:corriger_kilometrage' %}" class="btn btn-warning">
+        <i class="fas fa-edit me-2"></i>Corriger un kilométrage véhicule
+    </a>
+</div>
+{% endif %}
+{% endblock %}

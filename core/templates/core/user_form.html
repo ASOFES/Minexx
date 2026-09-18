@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        {% if user_to_edit %}
+                            <i class="fas fa-user-edit me-2"></i>{{ title }}: {{ user_to_edit.username }}
+                        {% else %}
+                            <i class="fas fa-user-plus me-2"></i>{{ title }}
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.username.id_for_label }}" class="form-label">Nom d'utilisateur*</label>
+                                    {{ form.username }}
+                                    {% if form.username.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.username.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">Email*</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.email.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.role.id_for_label }}" class="form-label">Rôle*</label>
+                                    {{ form.role }}
+                                    {% if form.role.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.role.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if form.password1 %}
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.password1.id_for_label }}" class="form-label">Mot de passe*</label>
+                                    {{ form.password1 }}
+                                    {% if form.password1.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.password1.errors }}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.password1.help_text %}
+                                        <small class="form-text text-muted">{{ form.password1.help_text }}</small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.password2.id_for_label }}" class="form-label">Confirmation du mot de passe*</label>
+                                    {{ form.password2 }}
+                                    {% if form.password2.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.password2.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">Prénom</label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.first_name.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Nom</label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.last_name.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.telephone.id_for_label }}" class="form-label">Téléphone</label>
+                                    {{ form.telephone }}
+                                    {% if form.telephone.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.telephone.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.etablissement.id_for_label }}" class="form-label">Département</label>
+                                    {{ form.etablissement }}
+                                    {% if form.etablissement.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.etablissement.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.adresse.id_for_label }}" class="form-label">Adresse</label>
+                                    {{ form.adresse }}
+                                    {% if form.adresse.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.adresse.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.photo.id_for_label }}" class="form-label">Photo de profil</label>
+                                    {{ form.photo }}
+                                    {% if form.photo.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.photo.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if mode == 'edit' %}
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Compte actif
+                                    </label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div id="permis-section" class="border rounded p-3 mb-4 bg-light" style="display:none;">
+                            <h6 class="text-primary mb-3"><i class="fas fa-id-card me-2"></i>Permis de conduire</h6>
+                            <div class="form-check form-switch mb-3">
+                                {{ form.possede_permis }}
+                                <label class="form-check-label" for="{{ form.possede_permis.id_for_label }}">
+                                    {{ form.possede_permis.label }}
+                                </label>
+                                {% if form.possede_permis.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.possede_permis.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div id="permis-details">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.numero_permis.id_for_label }}" class="form-label">{{ form.numero_permis.label }}*</label>
+                                            {{ form.numero_permis }}
+                                            {% if form.numero_permis.errors %}
+                                                <div class="invalid-feedback d-block">{{ form.numero_permis.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.date_expiration_permis.id_for_label }}" class="form-label">{{ form.date_expiration_permis.label }}*</label>
+                                            {{ form.date_expiration_permis }}
+                                            {% if form.date_expiration_permis.errors %}
+                                                <div class="invalid-feedback d-block">{{ form.date_expiration_permis.errors }}</div>
+                                            {% endif %}
+                                            <small class="text-muted">Une alerte sera envoyée 1 mois avant l'expiration.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.photo_permis.id_for_label }}" class="form-label">{{ form.photo_permis.label }}*</label>
+                                            {{ form.photo_permis }}
+                                            {% if form.photo_permis.errors %}
+                                                <div class="invalid-feedback d-block">{{ form.photo_permis.errors }}</div>
+                                            {% endif %}
+                                            {% if user_to_edit and user_to_edit.photo_permis %}
+                                                <div class="mt-2">
+                                                    <a href="{{ user_to_edit.photo_permis.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-eye me-1"></i>Voir le permis actuel
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'user_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var roleSelect = document.getElementById('{{ form.role.id_for_label }}');
+    var permisSection = document.getElementById('permis-section');
+    var possedeCheck = document.getElementById('{{ form.possede_permis.id_for_label }}');
+    var permisDetails = document.getElementById('permis-details');
+
+    function syncPermisUI() {
+        var isChauffeur = roleSelect && roleSelect.value === 'chauffeur';
+        if (permisSection) {
+            permisSection.style.display = isChauffeur ? 'block' : 'none';
+        }
+        if (permisDetails) {
+            permisDetails.style.display = (isChauffeur && possedeCheck && possedeCheck.checked) ? 'block' : 'none';
+        }
+    }
+
+    if (roleSelect) roleSelect.addEventListener('change', syncPermisUI);
+    if (possedeCheck) possedeCheck.addEventListener('change', syncPermisUI);
+    syncPermisUI();
+})();
+</script>
+{% endblock %}

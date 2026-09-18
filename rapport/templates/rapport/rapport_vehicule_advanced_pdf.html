@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Véhicule Avancé</title>
+    <style>
+        @page {
+            size: {% if orientation == 'landscape' %}A4 landscape{% else %}A4 portrait{% endif %};
+            margin: 1cm;
+            @bottom-center {
+                content: "Page " counter(page) " sur " counter(pages);
+                font-size: 10px;
+                color: #666;
+            }
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+        .header {
+            background: #4F81BD;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .header .subtitle {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            background: #D9E1F2;
+            color: #1B4965;
+            padding: 8px 12px;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4F81BD;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .alert {
+            background: #f9f6e7;
+            border: 1px solid #e2dfc6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            color: #856404;
+        }
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+        th {
+            background: #4F81BD;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #1B4965;
+        }
+        td {
+            padding: 6px 8px;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        @media print {
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align:center; margin-bottom: 20px;">
+        <img src="{{ STATIC_ROOT }}/img/logo.png" alt="Logo" style="height:60px; max-width:200px;"/>
+    </div>
+    <div class="header">
+        <h1>RAPPORT VÉHICULE AVANCÉ</h1>
+        <div class="subtitle">
+            {% if selected_vehicule %}
+                {{ selected_vehicule.immatriculation }} - {{ selected_vehicule.marque }} {{ selected_vehicule.modele }}
+            {% else %}
+                Véhicule non sélectionné
+            {% endif %}
+        </div>
+        <div class="subtitle">
+            Généré le {{ date_export }} par {{ user_export }}
+        </div>
+    </div>
+    {% if selected_vehicule %}
+    <div class="section">
+        <div class="section-title">IDENTIFICATION</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Châssis</th>
+                    <th>Moteur</th>
+                    <th>Carte rose</th>
+                    <th>Km début</th>
+                    <th>Km actuel</th>
+                    <th>Pneus</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ selected_vehicule.numero_chassis|default:"—" }}</td>
+                    <td>{{ selected_vehicule.numero_moteur|default:"—" }}</td>
+                    <td>{{ selected_vehicule.numero_carte_rose|default:"—" }}</td>
+                    <td>{{ selected_vehicule.kilometrage_debut|default:"—" }}</td>
+                    <td>{{ selected_vehicule.kilometrage_actuel|default:"—" }}</td>
+                    <td>{{ selected_vehicule.pneus_resume|default:"—" }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    <div class="section">
+        <div class="section-title">📊 SYNTHÈSE DU VÉHICULE</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ km_actuel|default:0|floatformat:0 }}</div>
+                <div class="stat-label">Kilométrage actuel</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ missions_count|default:0 }}</div>
+                <div class="stat-label">Missions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ distance_totale|default:0|floatformat:0 }}</div>
+                <div class="stat-label">Km parcourus</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">
+                    {% if conso_moyenne %}
+                        {{ conso_moyenne|floatformat:1 }} L/100km
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div class="stat-label">Consommation moyenne</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ cout_total_carburant|default:0|floatformat:2 }} $</div>
+                <div class="stat-label">Coût carburant</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ incidents|default:0 }}</div>
+                <div class="stat-label">Incidents</div>
+            </div>
+        </div>
+        {% if alertes %}
+        <div class="alert">
+            <div class="alert-title">⚠️ ALERTES</div>
+            {% for alerte in alertes %}
+                <div>• {{ alerte }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% if entretiens_list %}
+    <div class="section">
+        <div class="section-title">🔧 HISTORIQUE DES ENTRETIENS (10 derniers)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Kilométrage</th>
+                    <th>Coût</th>
+                    <th>Observations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entretien in entretiens_list %}
+                <tr>
+                    <td>{{ entretien.date_entretien|date:"d/m/Y" }}</td>
+                    <td>{{ entretien.get_type_entretien_display }}</td>
+                    <td>{{ entretien.kilometrage|default:"-" }}</td>
+                    <td>{{ entretien.cout|default:"-" }} $</td>
+                    <td>{{ entretien.commentaires|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% if ravs_list %}
+    <div class="section">
+        <div class="section-title">⛽ HISTORIQUE DES RAVITAILLEMENTS (10 derniers)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Kilométrage</th>
+                    <th>Litres</th>
+                    <th>Coût</th>
+                    <th>Station</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ravitaillement in ravs_list %}
+                <tr>
+                    <td>{{ ravitaillement.date_ravitaillement|date:"d/m/Y" }}</td>
+                    <td>{{ ravitaillement.kilometrage_apres|default:"-" }}</td>
+                    <td>{{ ravitaillement.litres|default:"-" }}</td>
+                    <td>{{ ravitaillement.cout_total|default:"-" }} $</td>
+                    <td>{{ ravitaillement.station|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% if historique_detaille %}
+    <div class="section page-break">
+        <div class="section-title">📋 HISTORIQUE DÉTAILLÉ ({{ historique_detaille|length }} événements)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Libellé</th>
+                    <th>Kilométrage</th>
+                    <th>Coût</th>
+                    <th>Auteur</th>
+                    <th>Observations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in historique_detaille %}
+                <tr>
+                    <td>{{ h.date|date:"d/m/Y"|default:"-" }}</td>
+                    <td>{{ h.type|upper }}</td>
+                    <td>{{ h.libelle|default:"-" }}</td>
+                    <td>{{ h.km|default:"-" }}</td>
+                    <td>{{ h.cout|default:"-" }}</td>
+                    <td>{{ h.auteur|default:"-" }}</td>
+                    <td>{{ h.obs|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    <div class="footer">
+        <p>Rapport généré automatiquement par le système de gestion de flotte</p>
+        <p>© {{ date_export|slice:":4" }} - Tous droits réservés</p>
+    </div>
+</body>
+</html> 

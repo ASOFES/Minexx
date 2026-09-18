@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans "Configuration" %} - {% trans "Gestion de Véhicules" %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex align-items-center bg-primary text-white">
+                    <img src="{% static 'images/logo_minexx.png' %}" alt="MINEXX" height="48" class="me-3" style="object-fit:contain;">
+                    <h2 class="mb-0"><i class="fas fa-cog me-2"></i>{% trans "Configuration" %}</h2>
+                </div>
+                <div class="card-body">
+                    <form id="config-form">
+                        <!-- Thème -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-moon me-2"></i>{% trans "Thème" %}</h5>
+                            <div class="btn-group" role="group" aria-label="Choix du thème">
+                                <input type="radio" class="btn-check" name="theme" id="theme-auto" value="auto" autocomplete="off">
+                                <label class="btn btn-outline-primary" for="theme-auto"><i class="fas fa-adjust me-1"></i>{% trans "Auto" %}</label>
+                                <input type="radio" class="btn-check" name="theme" id="theme-light" value="light" autocomplete="off">
+                                <label class="btn btn-outline-primary" for="theme-light"><i class="fas fa-sun me-1"></i>{% trans "Clair" %}</label>
+                                <input type="radio" class="btn-check" name="theme" id="theme-dark" value="dark" autocomplete="off">
+                                <label class="btn btn-outline-primary" for="theme-dark"><i class="fas fa-moon me-1"></i>{% trans "Sombre" %}</label>
+                            </div>
+                        </div>
+                        <!-- Langue -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-language me-2"></i>{% trans "Langue" %}</h5>
+                            <form method="post" action="{% url 'set_language' %}" id="lang-form">
+                                {% csrf_token %}
+                                <select name="language" class="form-select w-auto d-inline" id="lang-select">
+                                    <option value="fr">{% trans "Français" %}</option>
+                                    <option value="en">{% trans "English" %}</option>
+                                </select>
+                                <button type="submit" class="btn btn-outline-primary ms-2" id="lang-submit">{% trans "Changer la langue" %}</button>
+                            </form>
+                        </div>
+                        <!-- Police -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-text-height me-2"></i>{% trans "Taille de police" %}</h5>
+                            <select class="form-select w-auto d-inline" id="font-size-select">
+                                <option value="normal">{% trans "Normale" %}</option>
+                                <option value="large">{% trans "Grande" %}</option>
+                                <option value="xlarge">{% trans "Très grande" %}</option>
+                            </select>
+                        </div>
+                        <!-- Densité -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-compress-arrows-alt me-2"></i>{% trans "Densité d’affichage" %}</h5>
+                            <select class="form-select w-auto d-inline" id="density-select">
+                                <option value="normal">{% trans "Normale" %}</option>
+                                <option value="compact">{% trans "Compacte" %}</option>
+                                <option value="spacious">{% trans "Aérée" %}</option>
+                            </select>
+                        </div>
+                        <!-- Notifications -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-bell me-2"></i>{% trans "Notifications" %}</h5>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="notif-switch">
+                                <label class="form-check-label" for="notif-switch">{% trans "Activer les notifications" %}</label>
+                            </div>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="ringtone-switch" checked>
+                                <label class="form-check-label" for="ringtone-switch">{% trans "Sonnerie d'alerte (courses, chat, notifications)" %}</label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="test-ringtone-btn">
+                                <i class="fas fa-phone-volume me-1"></i>{% trans "Tester la sonnerie" %}
+                            </button>
+                        </div>
+                        <!-- Format d’export -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-file-export me-2"></i>{% trans "Format d’export par défaut" %}</h5>
+                            <select class="form-select w-auto d-inline" id="export-format-select">
+                                <option value="pdf">PDF</option>
+                                <option value="excel">Excel</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
+                        <!-- Fuseau horaire -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-clock me-2"></i>{% trans "Fuseau horaire" %}</h5>
+                            <select class="form-select w-auto d-inline" id="timezone-select">
+                                <option value="Africa/Lubumbashi">{% trans "Lubumbashi (UTC+2)" %}</option>
+                                <option value="Africa/Kinshasa">{% trans "Kinshasa (UTC+1)" %}</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+                        <!-- Accessibilité -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-universal-access me-2"></i>{% trans "Accessibilité" %}</h5>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="accessibility-high-contrast">
+                                <label class="form-check-label" for="accessibility-high-contrast">{% trans "Contraste élevé" %}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="accessibility-large-cursor">
+                                <label class="form-check-label" for="accessibility-large-cursor">{% trans "Curseur large" %}</label>
+                            </div>
+                        </div>
+                        <!-- Placeholder pour préférences utilisateur -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-user-cog me-2"></i>{% trans "Préférences utilisateur" %}</h5>
+                            <p class="text-muted">({% trans "À venir : personnalisation avancée, sauvegarde côté serveur, etc." %})</p>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-primary" id="save-config-btn"><i class="fas fa-save me-2"></i>{% trans "Sauvegarder" %}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+  body.font-large { font-size: 1.2em; }
+  body.font-xlarge { font-size: 1.4em; }
+  body.density-compact .card, body.density-compact .form-control { padding: 0.3em 0.6em !important; }
+  body.density-spacious .card, body.density-spacious .form-control { padding: 2em 2em !important; }
+  body.high-contrast { filter: contrast(1.5) brightness(1.1); background: #000 !important; color: #fff !important; }
+  body.large-cursor, body.large-cursor * { cursor: url('https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/svgs/solid/mouse-pointer.svg'), auto !important; }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/alertRingtone.js' %}"></script>
+<script>
+function applyFontSize(size) {
+    document.body.classList.remove('font-large', 'font-xlarge');
+    if (size === 'large') document.body.classList.add('font-large');
+    if (size === 'xlarge') document.body.classList.add('font-xlarge');
+}
+function applyDensity(density) {
+    document.body.classList.remove('density-compact', 'density-spacious');
+    if (density === 'compact') document.body.classList.add('density-compact');
+    if (density === 'spacious') document.body.classList.add('density-spacious');
+}
+function applyAccessibility() {
+    document.body.classList.toggle('high-contrast', document.getElementById('accessibility-high-contrast').checked);
+    document.body.classList.toggle('large-cursor', document.getElementById('accessibility-large-cursor').checked);
+}
+function applyLang(lang) {
+    document.getElementById('save-config-btn').innerText = lang === 'en' ? 'Save' : 'Sauvegarder';
+}
+function testNotification() {
+    if (!('Notification' in window)) return alert('Notifications non supportées');
+    if (Notification.permission === 'granted') {
+        new Notification('Test notification', { body: 'Ceci est un test.', icon: '{% static "images/logo_minexx.png" %}' });
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(function(permission) {
+            if (permission === 'granted') new Notification('Test notification', { body: 'Ceci est un test.', icon: '{% static "images/logo_minexx.png" %}' });
+        });
+    }
+}
+function applyConfig() {
+    applyFontSize(localStorage.getItem('fontSize') || 'normal');
+    applyDensity(localStorage.getItem('density') || 'normal');
+    applyAccessibility();
+    applyLang(localStorage.getItem('lang') || 'fr');
+}
+function loadConfig() {
+    const theme = localStorage.getItem('theme') || 'auto';
+    document.getElementById('theme-' + theme).checked = true;
+    document.getElementById('lang-select').value = localStorage.getItem('lang') || 'fr';
+    document.getElementById('font-size-select').value = localStorage.getItem('fontSize') || 'normal';
+    document.getElementById('density-select').value = localStorage.getItem('density') || 'normal';
+    document.getElementById('notif-switch').checked = localStorage.getItem('notif') === 'true';
+    document.getElementById('export-format-select').value = localStorage.getItem('exportFormat') || 'pdf';
+    document.getElementById('timezone-select').value = localStorage.getItem('timezone') || 'Africa/Lubumbashi';
+    document.getElementById('accessibility-high-contrast').checked = localStorage.getItem('accessibilityHighContrast') === 'true';
+    document.getElementById('accessibility-large-cursor').checked = localStorage.getItem('accessibilityLargeCursor') === 'true';
+    var ringOn = true;
+    if (window.MinexxAlertRingtone) {
+        ringOn = window.MinexxAlertRingtone.isEnabled();
+    } else {
+        ringOn = localStorage.getItem('minexx_call_alert') !== '0';
+    }
+    document.getElementById('ringtone-switch').checked = ringOn;
+    applyConfig();
+}
+function saveConfig() {
+    const theme = document.querySelector('input[name="theme"]:checked').value;
+    localStorage.setItem('theme', theme);
+    localStorage.setItem('lang', document.getElementById('lang-select').value);
+    localStorage.setItem('fontSize', document.getElementById('font-size-select').value);
+    localStorage.setItem('density', document.getElementById('density-select').value);
+    localStorage.setItem('notif', document.getElementById('notif-switch').checked);
+    localStorage.setItem('exportFormat', document.getElementById('export-format-select').value);
+    localStorage.setItem('timezone', document.getElementById('timezone-select').value);
+    localStorage.setItem('accessibilityHighContrast', document.getElementById('accessibility-high-contrast').checked);
+    localStorage.setItem('accessibilityLargeCursor', document.getElementById('accessibility-large-cursor').checked);
+    if (window.MinexxAlertRingtone) {
+        window.MinexxAlertRingtone.setEnabled(document.getElementById('ringtone-switch').checked);
+    } else {
+        localStorage.setItem('minexx_call_alert', document.getElementById('ringtone-switch').checked ? '1' : '0');
+    }
+    if (typeof setTheme === 'function') setTheme(theme);
+    else document.documentElement.dataset.theme = theme;
+    applyConfig();
+    if (window.bootstrap) {
+        var toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-bg-success border-0 show position-fixed top-0 end-0 m-3';
+        toast.role = 'alert';
+        toast.innerHTML = '<div class="d-flex"><div class="toast-body">Préférences sauvegardées !</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 2500);
+    } else {
+        alert('Préférences sauvegardées !');
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfig();
+    document.getElementById('save-config-btn').addEventListener('click', saveConfig);
+    document.getElementById('lang-select').addEventListener('change', function() {
+        applyLang(this.value);
+    });
+    document.getElementById('font-size-select').addEventListener('change', function() {
+        applyFontSize(this.value);
+    });
+    document.getElementById('density-select').addEventListener('change', function() {
+        applyDensity(this.value);
+    });
+    document.getElementById('accessibility-high-contrast').addEventListener('change', applyAccessibility);
+    document.getElementById('accessibility-large-cursor').addEventListener('change', applyAccessibility);
+    document.getElementById('notif-switch').addEventListener('change', function() {
+        if (this.checked) testNotification();
+    });
+    document.getElementById('ringtone-switch').addEventListener('change', function() {
+        if (window.MinexxAlertRingtone) window.MinexxAlertRingtone.setEnabled(this.checked);
+        else localStorage.setItem('minexx_call_alert', this.checked ? '1' : '0');
+    });
+    document.getElementById('test-ringtone-btn').addEventListener('click', function() {
+        if (!window.MinexxAlertRingtone) return alert('Module sonnerie indisponible');
+        window.MinexxAlertRingtone.ringUrgent();
+        setTimeout(function() { window.MinexxAlertRingtone.stopRingtone(); }, 4500);
+    });
+    document.querySelectorAll('input[name="theme"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (typeof setTheme === 'function') setTheme(this.value);
+            else document.documentElement.dataset.theme = this.value;
+        });
+    });
+});
+</script>
+{% endblock %} 

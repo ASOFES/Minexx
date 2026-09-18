@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if demande %}Modifier la demande #{{ demande.id }}{% else %}Nouvelle demande de mission{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>
+                {% if demande %}
+                <i class="fas fa-edit me-2"></i>Modifier la demande #{{ demande.id }}
+                {% else %}
+                <i class="fas fa-plus-circle me-2"></i>Nouvelle demande de mission
+                {% endif %}
+            </h1>
+            <a href="{% url 'demandeur:dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+            </a>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header module-demandeur text-white">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Formulaire de demande</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <p><strong>Veuillez corriger les erreurs suivantes :</strong></p>
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                <li>{{ field.label }} : {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_point_embarquement" class="form-label">Point d'embarquement</label>
+                        <input type="text" name="point_embarquement" id="id_point_embarquement" class="form-control {% if form.point_embarquement.errors %}is-invalid{% endif %}" value="{{ form.point_embarquement.value|default:'' }}" required>
+                        {% if form.point_embarquement.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.point_embarquement.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Indiquez l'adresse précise du point de départ.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_destination" class="form-label">Destination</label>
+                        <input type="text" name="destination" id="id_destination" class="form-control {% if form.destination.errors %}is-invalid{% endif %}" value="{{ form.destination.value|default:'' }}" required>
+                        {% if form.destination.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.destination.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Indiquez l'adresse précise de la destination.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_motif" class="form-label">Motif de la demande</label>
+                        <textarea name="motif" id="id_motif" rows="4" class="form-control {% if form.motif.errors %}is-invalid{% endif %}" required>{{ form.motif.value|default:'' }}</textarea>
+                        {% if form.motif.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.motif.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Décrivez brièvement le motif de votre demande de mission.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_date_souhaitee" class="form-label">Date souhaitée</label>
+                        <input type="datetime-local" name="date_souhaitee" id="id_date_souhaitee" class="form-control {% if form.date_souhaitee.errors %}is-invalid{% endif %}" value="{{ form.date_souhaitee.value|default:'' }}" required>
+                        {% if form.date_souhaitee.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.date_souhaitee.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Indiquez la date et l'heure souhaitées pour le départ.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_nombre_passagers" class="form-label">Nombre de passagers</label>
+                        <input type="number" name="nombre_passagers" id="id_nombre_passagers" min="1" max="20" class="form-control {% if form.nombre_passagers.errors %}is-invalid{% endif %}" value="{{ form.nombre_passagers.value|default:'1' }}" required>
+                        {% if form.nombre_passagers.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.nombre_passagers.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Indiquez le nombre total de passagers (y compris vous-même).</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_priorite" class="form-label">Niveau de priorité</label>
+                        <select name="priorite" id="id_priorite" class="form-control {% if form.priorite.errors %}is-invalid{% endif %}" style="background-color: {% if form.priorite.value == 'urgence' %}#ffcccc{% elif form.priorite.value == 'haute_urgence' %}#ffe5b4{% else %}#cce5ff{% endif %};">
+                            {% for value, label in form.fields.priorite.choices %}
+                                <option value="{{ value }}" {% if form.priorite.value == value %}selected{% endif %}
+                                    style="background-color: {% if value == 'urgence' %}#ffcccc{% elif value == 'haute_urgence' %}#ffe5b4{% else %}#cce5ff{% endif %};">
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.priorite.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.priorite.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Choisissez le niveau de priorité de la demande.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_commentaires" class="form-label">Commentaires additionnels</label>
+                        <textarea name="commentaires" id="id_commentaires" rows="3" class="form-control {% if form.commentaires.errors %}is-invalid{% endif %}">{{ form.commentaires.value|default:'' }}</textarea>
+                        {% if form.commentaires.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.commentaires.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Informations supplémentaires pour le dispatcher ou le chauffeur (facultatif).</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Soumettre la demande
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

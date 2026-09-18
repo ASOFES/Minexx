@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détail de la mission #{{ mission.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2c3e50;
+        }
+        .header h1 {
+            margin: 5px 0;
+            font-size: 18pt;
+            color: #2c3e50;
+        }
+        .header .subtitle {
+            font-size: 10pt;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0 20px 0;
+            font-size: 9pt;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-weight: normal;
+        }
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .section-title {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+            text-transform: uppercase;
+            font-size: 10pt;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 8pt;
+            color: #95a5a6;
+            text-align: center;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-en_cours { background-color: #3498db; color: white; }
+        .status-terminee { background-color: #2ecc71; color: white; }
+        .status-validee { background-color: #f39c12; color: white; }
+        .status-en_attente { background-color: #95a5a6; color: white; }
+        .status-annulee { background-color: #e74c3c; color: white; }
+        .status-refusee { background-color: #c0392b; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td style="width: 20%; text-align: left;">
+                    <img src="/static/images/logo_minexx.png" alt="Logo MINEXX" style="max-height: 60px; object-fit:contain;">
+                </td>
+                <td style="text-align: center;">
+                    <h1>Détail de la mission #{{ mission.id }}</h1>
+                    <div class="subtitle">Gestion de flotte automobile - Fiche technique</div>
+                    {% if mission.vehicule and mission.vehicule.etablissement %}
+                    <div style="margin-top: 5px; font-size: 10pt; color: #555;">
+                        Département : {{ mission.vehicule.etablissement.nom }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td style="width: 20%; text-align: right; vertical-align: top; padding-top: 5px;">
+                    <div style="font-size: 9pt; color: #666; margin-bottom: 5px;">
+                        Généré le {{ now|date:"d/m/Y H:i" }}
+                    </div>
+                    <div style="font-size: 9pt; color: #666;">
+                        Par {{ request.user.get_full_name|default:request.user.username }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <table>
+        <tr><th class="section-title" colspan="2">Informations principales</th></tr>
+        <tr><th>ID</th><td>{{ mission.id }}</td></tr>
+        <tr><th>Date de validation</th><td>{{ mission.date_validation|date:"d/m/Y H:i" }}</td></tr>
+        <tr><th>Demandeur</th><td>{{ mission.demandeur.get_full_name }}</td></tr>
+        <tr><th>Destination</th><td>{{ mission.destination }}</td></tr>
+        <tr><th>Point d'embarquement</th><td>{{ mission.point_embarquement }}</td></tr>
+        <tr><th>Motif</th><td>{{ mission.motif }}</td></tr>
+        <tr><th>Nombre de passagers</th><td>{{ mission.nombre_passagers }}</td></tr>
+        <tr><th>Statut</th><td>{{ mission.get_statut_display }}</td></tr>
+        <tr><th>Commentaires</th><td>{{ mission.commentaires|default:"Aucun" }}</td></tr>
+        <tr><th>Priorité</th><td>{% if mission.priorite == 'urgence' %}<span style="background-color:#ffcccc;color:#a94442;padding:2px 8px;border-radius:4px;">Urgence</span>{% elif mission.priorite == 'haute_urgence' %}<span style="background-color:#ffe5b4;color:#b36b00;padding:2px 8px;border-radius:4px;">Haute urgence</span>{% else %}<span style="background-color:#cce5ff;color:#004085;padding:2px 8px;border-radius:4px;">Important</span>{% endif %}</td></tr>
+        <tr><th class="section-title" colspan="2">Transport & Validation</th></tr>
+        <tr><th>Chauffeur</th><td>{{ mission.chauffeur.get_full_name|default:"Non assigné" }}</td></tr>
+        <tr><th>Véhicule</th><td>{% if mission.vehicule %}{{ mission.vehicule.immatriculation }} - {{ mission.vehicule.marque }} {{ mission.vehicule.modele }}{% else %}Non assigné{% endif %}</td></tr>
+        {% if mission.vehicule %}
+        <tr><th>Châssis</th><td>{{ mission.vehicule.numero_chassis|default:"—" }}</td></tr>
+        <tr><th>Moteur</th><td>{{ mission.vehicule.numero_moteur|default:"—" }}</td></tr>
+        <tr><th>Carte rose</th><td>{{ mission.vehicule.numero_carte_rose|default:"—" }}</td></tr>
+        <tr><th>Km début véhicule</th><td>{{ mission.vehicule.kilometrage_debut|default:"—" }}</td></tr>
+        <tr><th>Pneus</th><td>{{ mission.vehicule.pneus_resume|default:"—" }}</td></tr>
+        {% endif %}
+        <tr><th>Dispatcher</th><td>{{ mission.dispatcher.get_full_name|default:"Non assigné" }}</td></tr>
+        <tr><th>Date départ</th><td>{{ mission.date_depart|date:"d/m/Y H:i"|default:"Non renseignée" }}</td></tr>
+        <tr><th>Date arrivée</th><td>{{ mission.date_fin|date:"d/m/Y H:i"|default:"Non renseignée" }}</td></tr>
+        <tr><th>Kilométrage départ</th><td>{{ mission.kilometrage_depart|default:"Non renseigné" }} km</td></tr>
+        <tr><th>Kilométrage arrivée</th><td>{{ mission.kilometrage_fin|default:"Non renseigné" }} km</td></tr>
+        <tr><th>Distance parcourue</th><td>{{ mission.distance_parcourue|default:"Non calculée" }} km</td></tr>
+        <tr><th>Département</th><td>{{ mission.vehicule.etablissement.nom|default:'AUCUN' }}</td></tr>
+    </table>
+    <div class="comment-box">
+        <strong>Remarques / Observations :</strong><br>
+        {{ mission.commentaires|default:"Aucune remarque supplémentaire." }}
+    </div>
+    <div class="signatures">
+        <div class="sign-block">
+            <span class="sign-label">Signature du chauffeur</span>
+            <div style="border-bottom:1px solid #888; height:40px;"></div>
+        </div>
+        <div class="sign-block">
+            <span class="sign-label">Signature du demandeur</span>
+            <div style="border-bottom:1px solid #888; height:40px;"></div>
+        </div>
+        <div class="sign-block">
+            <span class="sign-label">Signature du dispatcher</span>
+            <div style="border-bottom:1px solid #888; height:40px;"></div>
+        </div>
+    </div>
+    <div class="footer">
+        Application Gestion de Flotte &mdash; Généré le {{ now|date:"d/m/Y H:i" }}
+    </div>
+</body>
+</html> 

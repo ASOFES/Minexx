@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINEXX API Test Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .api-section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .api-section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title .icon {
+            width: 40px;
+            height: 40px;
+            background: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .endpoint-group {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .endpoint-title {
+            font-size: 1.3em;
+            color: #34495e;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .endpoint-url {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .response-area {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 13px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .status-error {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 MINEXX API Test Interface</h1>
+            <p>Test complet de tous les endpoints de l'API REST</p>
+        </div>
+
+        <!-- Section Authentification -->
+        <div class="api-section">
+            <div class="section-title">
+                <div class="icon">🔐</div>
+                Authentification
+            </div>
+            
+            <div class="endpoint-group">
+                <div class="endpoint-title">Connexion Utilisateur</div>
+                <code class="endpoint-url">POST /api/login/</code>
+                
+                <div class="form-group">
+                    <label>Nom d'utilisateur:</label>
+                    <input type="text" id="login-username" value="admin" placeholder="Nom d'utilisateur">
+                </div>
+                
+                <div class="form-group">
+                    <label>Mot de passe:</label>
+                    <input type="password" id="login-password" value="admin" placeholder="Mot de passe">
+                </div>
+                
+                <button class="btn btn-success" onclick="testLogin()">🔑 Tester la Connexion</button>
+                <div id="login-response" class="response-area" style="display: none;"></div>
+            </div>
+
+            <div class="endpoint-group">
+                <div class="endpoint-title">Vérification de Token</div>
+                <code class="endpoint-url">POST /api/verify-token/</code>
+                
+                <div class="form-group">
+                    <label>Token JWT:</label>
+                    <textarea id="verify-token" rows="3" placeholder="Collez votre token JWT ici"></textarea>
+                </div>
+                
+                <button class="btn btn-warning" onclick="testVerifyToken()">✅ Vérifier le Token</button>
+                <div id="verify-response" class="response-area" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Section Chauffeur -->
+        <div class="api-section">
+            <div class="section-title">
+                <div class="icon">🚗</div>
+                Chauffeur - Gestion des Missions
+            </div>
+            
+            <div class="endpoint-group">
+                <div class="endpoint-title">Liste des Missions</div>
+                <code class="endpoint-url">GET /api/chauffeur/missions/</code>
+                
+                <div class="form-group">
+                    <label>ID du Chauffeur:</label>
+                    <input type="number" id="chauffeur-id" value="1" placeholder="ID du chauffeur">
+                </div>
+                
+                <button class="btn btn-success" onclick="testChauffeurMissions()">📋 Récupérer les Missions</button>
+                <div id="missions-response" class="response-area" style="display: none;"></div>
+            </div>
+
+            <div class="endpoint-group">
+                <div class="endpoint-title">Démarrer une Mission</div>
+                <code class="endpoint-url">POST /api/chauffeur/missions/{id}/demarrer/</code>
+                
+                <div class="form-group">
+                    <label>ID de la Mission:</label>
+                    <input type="number" id="demarrer-mission-id" value="1" placeholder="ID de la mission">
+                </div>
+                
+                <div class="form-group">
+                    <label>ID du Chauffeur:</label>
+                    <input type="number" id="demarrer-chauffeur-id" value="1" placeholder="ID du chauffeur">
+                </div>
+                
+                <button class="btn btn-warning" onclick="testDemarrerMission()">▶️ Démarrer la Mission</button>
+                <div id="demarrer-response" class="response-area" style="display: none;"></div>
+            </div>
+
+            <div class="endpoint-group">
+                <div class="endpoint-title">Terminer une Mission</div>
+                <code class="endpoint-url">POST /api/chauffeur/missions/{id}/terminer/</code>
+                
+                <div class="form-group">
+                    <label>ID de la Mission:</label>
+                    <input type="number" id="terminer-mission-id" value="1" placeholder="ID de la mission">
+                </div>
+                
+                <div class="form-group">
+                    <label>ID du Chauffeur:</label>
+                    <input type="number" id="terminer-chauffeur-id" value="1" placeholder="ID du chauffeur">
+                </div>
+                
+                <button class="btn btn-danger" onclick="testTerminerMission()">🏁 Terminer la Mission</button>
+                <div id="terminer-response" class="response-area" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Section Demandeur -->
+        <div class="api-section">
+            <div class="section-title">
+                <div class="icon">📝</div>
+                Demandeur - Gestion des Demandes
+            </div>
+            
+            <div class="endpoint-group">
+                <div class="endpoint-title">Liste des Demandes</div>
+                <code class="endpoint-url">GET /api/demandeur/demandes/</code>
+                
+                <div class="form-group">
+                    <label>ID du Demandeur:</label>
+                    <input type="number" id="demandeur-id" value="1" placeholder="ID du demandeur">
+                </div>
+                
+                <button class="btn btn-success" onclick="testDemandeurDemandes()">📋 Récupérer les Demandes</button>
+                <div id="demandes-response" class="response-area" style="display: none;"></div>
+            </div>
+
+            <div class="endpoint-group">
+                <div class="endpoint-title">Créer une Nouvelle Demande</div>
+                <code class="endpoint-url">POST /api/demandeur/demandes/create/</code>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>Informations de Base</h3>
+                        <div class="form-group">
+                            <label>Titre:</label>
+                            <input type="text" id="create-titre" value="Transport de marchandises" placeholder="Titre de la demande">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Description:</label>
+                            <textarea id="create-description" rows="3" placeholder="Description détaillée">Transport de colis fragile de Kinshasa à Lubumbashi</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Type de Transport:</label>
+                            <select id="create-type-transport">
+                                <option value="marchandises">Marchandises</option>
+                                <option value="passagers">Passagers</option>
+                                <option value="mixte">Mixte</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Lieux</h3>
+                        <div class="form-group">
+                            <label>Lieu de Départ:</label>
+                            <input type="text" id="create-lieu-depart" value="Kinshasa, RDC" placeholder="Lieu de départ">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Lieu d'Arrivée:</label>
+                            <input type="text" id="create-lieu-arrivee" value="Lubumbashi, RDC" placeholder="Lieu d'arrivée">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Date Souhaitée:</label>
+                            <input type="date" id="create-date-souhaitee">
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Détails Techniques</h3>
+                        <div class="form-group">
+                            <label>Poids (kg):</label>
+                            <input type="number" id="create-poids" value="500" placeholder="Poids en kg">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Volume (m³):</label>
+                            <input type="number" id="create-volume" value="2.5" step="0.1" placeholder="Volume en m³">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Nombre de Passagers:</label>
+                            <input type="number" id="create-nombre-passagers" value="0" placeholder="Nombre de passagers">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Prix Proposé (FCFA):</label>
+                            <input type="number" id="create-prix" value="200000" placeholder="Prix en FCFA">
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="testCreateDemande()">➕ Créer la Demande</button>
+                <div id="create-response" class="response-area" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Section Dispatcher -->
+        <div class="api-section">
+            <div class="section-title">
+                <div class="icon">🎯</div>
+                Dispatcher - Gestion des Demandes
+            </div>
+            
+            <div class="endpoint-group">
+                <div class="endpoint-title">Liste de Toutes les Demandes</div>
+                <code class="endpoint-url">GET /api/dispatch/demandes/</code>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>Filtres</h3>
+                        <div class="form-group">
+                            <label>Statut:</label>
+                            <select id="filter-statut">
+                                <option value="">Tous les statuts</option>
+                                <option value="en_attente">En attente</option>
+                                <option value="en_cours">En cours</option>
+                                <option value="terminee">Terminée</option>
+                                <option value="assignee">Assignée</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Type de Transport:</label>
+                            <select id="filter-type-transport">
+                                <option value="">Tous les types</option>
+                                <option value="marchandises">Marchandises</option>
+                                <option value="passagers">Passagers</option>
+                                <option value="mixte">Mixte</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="testDispatchDemandes()">📋 Récupérer les Demandes</button>
+                <div id="dispatch-response" class="response-area" style="display: none;"></div>
+            </div>
+
+            <div class="endpoint-group">
+                <div class="endpoint-title">Assigner une Demande</div>
+                <code class="endpoint-url">POST /api/dispatch/demandes/{id}/assigner/</code>
+                
+                <div class="form-group">
+                    <label>ID de la Demande:</label>
+                    <input type="number" id="assigner-demande-id" value="1" placeholder="ID de la demande">
+                </div>
+                
+                <div class="form-group">
+                    <label>ID du Chauffeur:</label>
+                    <input type="number" id="assigner-chauffeur-id" value="1" placeholder="ID du chauffeur">
+                </div>
+                
+                <div class="form-group">
+                    <label>ID du Véhicule:</label>
+                    <input type="number" id="assigner-vehicule-id" value="1" placeholder="ID du véhicule">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes:</label>
+                    <textarea id="assigner-notes" rows="3" placeholder="Notes d'assignation"></textarea>
+                </div>
+                
+                <button class="btn btn-warning" onclick="testAssignerDemande()">🎯 Assigner la Demande</button>
+                <div id="assigner-response" class="response-area" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Section Test Complet -->
+        <div class="api-section">
+            <div class="section-title">
+                <div class="icon">🧪</div>
+                Test Complet de l'API
+            </div>
+            
+            <button class="btn btn-success" onclick="runAllTests()">🚀 Lancer Tous les Tests</button>
+            <button class="btn btn-warning" onclick="clearAllResponses()">🗑️ Effacer Toutes les Réponses</button>
+            
+            <div id="all-tests-response" class="response-area" style="display: none;"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Test en cours...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://minexx.onrender.com';
+        let currentToken = '';
+
+        // Fonctions utilitaires
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showResponse(elementId, response, status) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            let statusBadge = '';
+            if (status >= 200 && status < 300) {
+                statusBadge = '<span class="status-badge status-success">✅ ' + status + '</span>';
+            } else if (status >= 400 && status < 500) {
+                statusBadge = '<span class="status-badge status-warning">⚠️ ' + status + '</span>';
+            } else if (status >= 500) {
+                statusBadge = '<span class="status-badge status-error">❌ ' + status + '</span>';
+            }
+            
+            element.innerHTML = statusBadge + '\n' + JSON.stringify(response, null, 2);
+        }
+
+        function showError(elementId, error) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.innerHTML = '<span class="status-badge status-error">❌ Erreur</span>\n' + error;
+        }
+
+        // Test de connexion
+        async function testLogin() {
+            showLoading();
+            try {
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                
+                const response = await fetch(`${API_BASE}/api/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.data.access_token;
+                    showResponse('login-response', data, response.status);
+                } else {
+                    showResponse('login-response', data, response.status);
+                }
+            } catch (error) {
+                showError('login-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test de vérification de token
+        async function testVerifyToken() {
+            showLoading();
+            try {
+                const token = document.getElementById('verify-token').value || currentToken;
+                
+                const response = await fetch(`${API_BASE}/api/verify-token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token })
+                });
+                
+                const data = await response.json();
+                showResponse('verify-response', data, response.status);
+            } catch (error) {
+                showError('verify-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test des missions chauffeur
+        async function testChauffeurMissions() {
+            showLoading();
+            try {
+                const chauffeurId = document.getElementById('chauffeur-id').value;
+                
+                const response = await fetch(`${API_BASE}/api/chauffeur/missions/?chauffeur_id=${chauffeurId}`);
+                const data = await response.json();
+                showResponse('missions-response', data, response.status);
+            } catch (error) {
+                showError('missions-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test de démarrage de mission
+        async function testDemarrerMission() {
+            showLoading();
+            try {
+                const missionId = document.getElementById('demarrer-mission-id').value;
+                const chauffeurId = document.getElementById('demarrer-chauffeur-id').value;
+                
+                const response = await fetch(`${API_BASE}/api/chauffeur/missions/${missionId}/demarrer/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ chauffeur_id: chauffeurId })
+                });
+                
+                const data = await response.json();
+                showResponse('demarrer-response', data, response.status);
+            } catch (error) {
+                showError('demarrer-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test de finalisation de mission
+        async function testTerminerMission() {
+            showLoading();
+            try {
+                const missionId = document.getElementById('terminer-mission-id').value;
+                const chauffeurId = document.getElementById('terminer-chauffeur-id').value;
+                
+                const response = await fetch(`${API_BASE}/api/chauffeur/missions/${missionId}/terminer/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ chauffeur_id: chauffeurId })
+                });
+                
+                const data = await response.json();
+                showResponse('terminer-response', data, response.status);
+            } catch (error) {
+                showError('terminer-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test des demandes demandeur
+        async function testDemandeurDemandes() {
+            showLoading();
+            try {
+                const demandeurId = document.getElementById('demandeur-id').value;
+                
+                const response = await fetch(`${API_BASE}/api/demandeur/demandes/?demandeur_id=${demandeurId}`);
+                const data = await response.json();
+                showResponse('demandes-response', data, response.status);
+            } catch (error) {
+                showError('demandes-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test de création de demande
+        async function testCreateDemande() {
+            showLoading();
+            try {
+                const demandeData = {
+                    titre: document.getElementById('create-titre').value,
+                    description: document.getElementById('create-description').value,
+                    lieu_depart: document.getElementById('create-lieu-depart').value,
+                    lieu_arrivee: document.getElementById('create-lieu-arrivee').value,
+                    type_transport: document.getElementById('create-type-transport').value,
+                    poids: parseInt(document.getElementById('create-poids').value) || null,
+                    volume: parseFloat(document.getElementById('create-volume').value) || null,
+                    nombre_passagers: parseInt(document.getElementById('create-nombre-passagers').value) || null,
+                    prix_propose: parseInt(document.getElementById('create-prix').value) || null
+                };
+                
+                // Ajouter la date si elle est définie
+                const dateSouhaitee = document.getElementById('create-date-souhaitee').value;
+                if (dateSouhaitee) {
+                    demandeData.date_souhaitee = dateSouhaitee;
+                }
+                
+                const response = await fetch(`${API_BASE}/api/demandeur/demandes/create/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(demandeData)
+                });
+                
+                const data = await response.json();
+                showResponse('create-response', data, response.status);
+            } catch (error) {
+                showError('create-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test des demandes dispatcher
+        async function testDispatchDemandes() {
+            showLoading();
+            try {
+                const statut = document.getElementById('filter-statut').value;
+                const typeTransport = document.getElementById('filter-type-transport').value;
+                
+                let url = `${API_BASE}/api/dispatch/demandes/`;
+                const params = new URLSearchParams();
+                
+                if (statut) params.append('statut', statut);
+                if (typeTransport) params.append('type_transport', typeTransport);
+                
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                showResponse('dispatch-response', data, response.status);
+            } catch (error) {
+                showError('dispatch-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test d'assignation de demande
+        async function testAssignerDemande() {
+            showLoading();
+            try {
+                const demandeId = document.getElementById('assigner-demande-id').value;
+                const chauffeurId = document.getElementById('assigner-chauffeur-id').value;
+                const vehiculeId = document.getElementById('assigner-vehicule-id').value;
+                const notes = document.getElementById('assigner-notes').value;
+                
+                const assignationData = {
+                    chauffeur_id: chauffeurId,
+                    vehicule_id: vehiculeId,
+                    notes: notes
+                };
+                
+                const response = await fetch(`${API_BASE}/api/dispatch/demandes/${demandeId}/assigner/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(assignationData)
+                });
+                
+                const data = await response.json();
+                showResponse('assigner-response', data, response.status);
+            } catch (error) {
+                showError('assigner-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Test complet de tous les endpoints
+        async function runAllTests() {
+            showLoading();
+            const results = [];
+            
+            try {
+                // Test 1: Site principal
+                try {
+                    const response = await fetch(API_BASE);
+                    results.push(`✅ Site principal: ${response.status}`);
+                } catch (error) {
+                    results.push(`❌ Site principal: ${error.message}`);
+                }
+                
+                // Test 2: Login
+                try {
+                    const response = await fetch(`${API_BASE}/api/login/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'test', password: 'test' })
+                    });
+                    results.push(`✅ Login: ${response.status}`);
+                } catch (error) {
+                    results.push(`❌ Login: ${error.message}`);
+                }
+                
+                // Test 3: Missions chauffeur
+                try {
+                    const response = await fetch(`${API_BASE}/api/chauffeur/missions/?chauffeur_id=1`);
+                    results.push(`✅ Missions chauffeur: ${response.status}`);
+                } catch (error) {
+                    results.push(`❌ Missions chauffeur: ${error.message}`);
+                }
+                
+                // Test 4: Demandes demandeur
+                try {
+                    const response = await fetch(`${API_BASE}/api/demandeur/demandes/?demandeur_id=1`);
+                    results.push(`✅ Demandes demandeur: ${response.status}`);
+                } catch (error) {
+                    results.push(`❌ Demandes demandeur: ${error.message}`);
+                }
+                
+                // Test 5: Dispatch demandes
+                try {
+                    const response = await fetch(`${API_BASE}/api/dispatch/demandes/`);
+                    results.push(`✅ Dispatch demandes: ${response.status}`);
+                } catch (error) {
+                    results.push(`❌ Dispatch demandes: ${error.message}`);
+                }
+                
+                const summary = results.join('\n');
+                showResponse('all-tests-response', { summary, results }, 200);
+                
+            } catch (error) {
+                showError('all-tests-response', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Effacer toutes les réponses
+        function clearAllResponses() {
+            const responses = document.querySelectorAll('.response-area');
+            responses.forEach(response => {
+                response.style.display = 'none';
+                response.innerHTML = '';
+            });
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Définir la date d'aujourd'hui + 3 jours par défaut
+            const today = new Date();
+            today.setDate(today.getDate() + 3);
+            document.getElementById('create-date-souhaitee').value = today.toISOString().split('T')[0];
+            
+            console.log('🚀 Interface de test de l\'API MINEXX chargée !');
+        });
+    </script>
+</body>
+</html>

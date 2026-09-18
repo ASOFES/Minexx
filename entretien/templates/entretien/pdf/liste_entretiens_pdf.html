@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            font-size: 10px;
+            background-color: #fff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+        .title {
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 15px 0 8px 0;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .info-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .info-grid th {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 8px 5px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-grid td {
+            padding: 6px 5px;
+            border: 1px solid #e0e6ed;
+            font-size: 9px;
+            vertical-align: middle;
+        }
+        .info-grid tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-bold {
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e6ed;
+            font-size: 9px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .badge-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        .badge-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .badge-info {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Liste des entretiens</div>
+        <div class="subtitle">Généré le {{ date_export|date:"d/m/Y à H:i" }}</div>
+        {% if etablissement %}
+        <div class="subtitle">Établissement: {{ etablissement }}</div>
+        {% endif %}
+        {% if total_budget_consomme is not None %}
+        <div class="subtitle">Budget total consommé: {{ total_budget_consomme|floatformat:2 }} $</div>
+        {% endif %}
+    </div>
+
+    <table class="info-grid">
+        <thead>
+            <tr>
+                <th>Véhicule</th>
+                <th>Département</th>
+                <th>Date</th>
+                <th>Km Début</th>
+                <th>Km Fin</th>
+                <th>Garage</th>
+                <th>Motif</th>
+                <th>Coût</th>
+                <th>Statut</th>
+                <th>Date Préc.</th>
+                <th>Km Préc.</th>
+                <th>Km Prévu</th>
+                <th>Écart (km)</th>
+                <th>Proch. Ent.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td style="white-space: nowrap;">{{ item.Véhicule|default:"-" }}</td>
+                <td style="white-space: nowrap;">{{ item.Département|default:"-" }}</td>
+                <td class="text-center" style="white-space: nowrap;">{{ item.Date_Entretien_Actuel|default:"-" }}</td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    {% if item.Km_Entretien_Début is not None %}
+                        <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Km_Entretien_Début|floatformat:0|default:"-" }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    {% if item.Km_Entretien_Fin is not None %}
+                        <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Km_Entretien_Fin|floatformat:0|default:"-" }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ item.Garage|default:"-"|truncatechars:20 }}</td>
+                <td>{{ item.Motif|default:"-"|truncatechars:30 }}</td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    {% if item.Coût_ is not None %}
+                        <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Coût_|floatformat:2|default:"-" }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <span class="badge 
+                        {% if item.Statut == 'Terminé' %}badge-success
+                        {% elif item.Statut == 'En cours' %}badge-warning
+                        {% elif item.Statut == 'Planifié' %}badge-info
+                        {% else %}badge-danger{% endif %}">
+                        {{ item.Statut }}
+                    </span>
+                </td>
+                <td style="white-space: nowrap;">{{ item.Date_Ancien_Entretien|default:"-" }}</td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    {% if item.Km_Ancien_Entretien is not None %}
+                        <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Km_Ancien_Entretien|floatformat:0|default:"-" }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    {% if item.Km_Prévu_Actuel is not None %}
+                        <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Km_Prévu_Actuel|floatformat:0|default:"-" }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Écart_Prévu_vs_Réalisé_Km|default:"-" }}</span>
+                </td>
+                <td class="text-right" style="font-family: 'Courier New', monospace;">
+                    {% if item.Projection_Prochain_Entretien_Km is not None %}
+                        <span style="display: inline-block; width: 80px; text-align: right;">{{ item.Projection_Prochain_Entretien_Km|floatformat:0|default:"-" }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Document généré par MINEXX - Gestion de Parc Automobile
+    </div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Rapport Missions par Demandeur{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-users me-2"></i>Rapport Missions par Demandeur</h2>
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+        </div>
+        <div class="col-md-3">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+            <a href="?" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Demandeur</th>
+                    <th>Nom d'utilisateur</th>
+                    <th>Nombre de missions</th>
+                    <th>Kilomètres totaux</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in stats_demandeurs %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ d.demandeur__first_name }} {{ d.demandeur__last_name }}</td>
+                    <td>{{ d.demandeur__username }}</td>
+                    <td><span class="fw-bold">{{ d.nb_missions }}</span></td>
+                    <td>{{ d.km_total|default:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center">Aucune donnée disponible.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

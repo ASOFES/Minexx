@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confirmer la suppression{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 col-md-6 mx-auto">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirmer la suppression</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="lead mb-4">Êtes-vous sûr de vouloir supprimer ce véhicule ?</p>
+                    
+                    <div class="alert alert-warning">
+                        <p class="mb-1"><strong>Immatriculation :</strong> {{ vehicule.immatriculation }}</p>
+                        <p class="mb-1"><strong>Marque / Modèle :</strong> {{ vehicule.marque }} {{ vehicule.modele }}</p>
+                        <p class="mb-0"><strong>Numéro de châssis :</strong> {{ vehicule.numero_chassis }}</p>
+                    </div>
+                    
+                    {% if vehicule.image %}
+                    <div class="my-3">
+                        <img src="{{ vehicule.image.url }}" alt="{{ vehicule.immatriculation }}" class="img-thumbnail" style="max-width: 200px;">
+                    </div>
+                    {% endif %}
+                    
+                    <p class="text-danger mb-4">Cette action est irréversible ! Toutes les données associées à ce véhicule (entretiens, ravitaillements, missions) seront également supprimées.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{% url 'vehicule_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Supprimer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

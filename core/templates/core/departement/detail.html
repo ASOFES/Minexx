@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ departement.nom }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ departement.get_type_display }} - {{ departement.nom }}</h2>
+            {% if departement.parent %}
+            <p class="text-muted">
+                <small>Département parent : {{ departement.parent.nom }}</small>
+            </p>
+            {% endif %}
+        </div>
+        {% if can_edit %}
+        <div class="col text-end">
+            <a href="{% url 'departement_edit' departement.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Informations générales -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Informations générales</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Code</dt>
+                        <dd class="col-sm-8">{{ departement.code }}</dd>
+
+                        <dt class="col-sm-4">Type</dt>
+                        <dd class="col-sm-8">{{ departement.get_type_display }}</dd>
+
+                        <dt class="col-sm-4">Statut</dt>
+                        <dd class="col-sm-8">
+                            {% if departement.actif %}
+                            <span class="badge bg-success">Actif</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactif</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-4">Responsable</dt>
+                        <dd class="col-sm-8">
+                            {% if departement.responsable %}
+                            {{ departement.responsable.get_full_name }}
+                            {% else %}
+                            <span class="text-muted">Non assigné</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-4">Téléphone</dt>
+                        <dd class="col-sm-8">{{ departement.telephone|default:"Non renseigné" }}</dd>
+
+                        <dt class="col-sm-4">Email</dt>
+                        <dd class="col-sm-8">{{ departement.email|default:"Non renseigné" }}</dd>
+
+                        <dt class="col-sm-4">Adresse</dt>
+                        <dd class="col-sm-8">{{ departement.adresse|default:"Non renseignée"|linebreaks }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Utilisateurs -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Utilisateurs</h5>
+                </div>
+                <div class="card-body">
+                    {% if utilisateurs %}
+                    <div class="list-group">
+                        {% for utilisateur in utilisateurs %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ utilisateur.get_full_name }}</h6>
+                                <small>{{ utilisateur.get_role_display }}</small>
+                            </div>
+                            <small class="text-muted">{{ utilisateur.email }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Aucun utilisateur dans ce département</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Véhicules -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Véhicules</h5>
+                </div>
+                <div class="card-body">
+                    {% if vehicules %}
+                    <div class="list-group">
+                        {% for vehicule in vehicules %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ vehicule.immatriculation }}</h6>
+                                <small>{{ vehicule.marque }} {{ vehicule.modele }}</small>
+                            </div>
+                            <small class="text-muted">
+                                {% if vehicule.est_disponible %}
+                                <span class="badge bg-success">Disponible</span>
+                                {% else %}
+                                <span class="badge bg-warning">En cours d'utilisation</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Aucun véhicule dans ce département</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Courses récentes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Courses récentes</h5>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Demandeur</th>
+                                    <th>Chauffeur</th>
+                                    <th>Véhicule</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses|slice:":5" %}
+                                <tr>
+                                    <td>{{ course.date_demande|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ course.demandeur.get_full_name }}</td>
+                                    <td>
+                                        {% if course.chauffeur %}
+                                        {{ course.chauffeur.get_full_name }}
+                                        {% else %}
+                                        <span class="text-muted">Non assigné</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if course.vehicule %}
+                                        {{ course.vehicule.immatriculation }}
+                                        {% else %}
+                                        <span class="text-muted">Non assigné</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ course.statut|lower }}">
+                                            {{ course.get_statut_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Aucune course dans ce département</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

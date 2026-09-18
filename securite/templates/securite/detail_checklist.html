@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}Détail de la checklist #{{ checklist.id }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-clipboard-check me-2"></i>Checklist #{{ checklist.id }}</h1>
+            <div>
+                <a href="{% url 'securite:dashboard' %}" class="btn btn-secondary me-2">
+                    <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+                </a>
+                <a href="{% url 'securite:pdf_checklist' checklist.id %}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-file-pdf me-2"></i>Exporter en PDF
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header module-securite text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations générales</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Véhicule:</div>
+                    <div class="col-md-7">{{ checklist.vehicule.immatriculation }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Marque/Modèle:</div>
+                    <div class="col-md-7">{{ checklist.vehicule.marque }} {{ checklist.vehicule.modele }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Kilométrage:</div>
+                    <div class="col-md-7">{{ checklist.kilometrage }} km</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Date du contrôle:</div>
+                    <div class="col-md-7">{{ checklist.date_controle|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Lieu du contrôle:</div>
+                    <div class="col-md-7">{{ checklist.lieu_controle }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Contrôleur:</div>
+                    <div class="col-md-7">{{ checklist.controleur.get_full_name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-5 fw-bold">Statut:</div>
+                    <div class="col-md-7">
+                        {% if checklist.statut == 'conforme' %}
+                        <span class="badge bg-success">Conforme</span>
+                        {% elif checklist.statut == 'anomalie_mineure' %}
+                        <span class="badge bg-warning">Anomalie mineure</span>
+                        {% elif checklist.statut == 'non_conforme' %}
+                        <span class="badge bg-danger">Non conforme</span>
+                        {% else %}
+                        <span class="badge bg-dark">{{ checklist.get_statut_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historique</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if historique %}
+                <ul class="list-group list-group-flush">
+                    {% for item in historique %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ item.action }}</strong>
+                                <div class="text-muted small">{{ item.date_action|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            <div class="text-muted small">{{ item.utilisateur.username }}</div>
+                        </div>
+                        {% if item.details %}
+                        <div class="small mt-1">{{ item.details }}</div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="p-3 text-center text-muted">
+                    Aucun historique disponible.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-car me-2"></i>Résultats du contrôle</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Éléments extérieurs</h6>
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Phares avant</th>
+                                    <td>
+                                        {% if checklist.phares_avant == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Défectueux</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Phares arrière</th>
+                                    <td>
+                                        {% if checklist.phares_arriere == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Défectueux</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Clignotants</th>
+                                    <td>
+                                        {% if checklist.clignotants == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Défectueux</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>État des pneus</th>
+                                    <td>
+                                        {% if checklist.etat_pneus == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% elif checklist.etat_pneus == 'usure' %}
+                                        <span class="badge bg-warning">Usure</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Critique</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Carrosserie</th>
+                                    <td>
+                                        {% if checklist.carrosserie == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% elif checklist.carrosserie == 'rayures' %}
+                                        <span class="badge bg-warning">Rayures mineures</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Dommages importants</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Éléments intérieurs</h6>
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Tableau de bord</th>
+                                    <td>
+                                        {% if checklist.tableau_bord == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Voyants allumés</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Freins</th>
+                                    <td>
+                                        {% if checklist.freins == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% elif checklist.freins == 'usure' %}
+                                        <span class="badge bg-warning">Usure</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Défectueux</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Ceintures de sécurité</th>
+                                    <td>
+                                        {% if checklist.ceintures == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Défectueuses</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Propreté intérieure</th>
+                                    <td>
+                                        {% if checklist.proprete == 'ok' %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Sale</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3 mt-4">Documents et équipements obligatoires</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Carte grise</th>
+                                    <td>
+                                        {% if checklist.carte_grise == 'present' %}
+                                        <span class="badge bg-success">Présente</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Absente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Assurance</th>
+                                    <td>
+                                        {% if checklist.assurance == 'present' %}
+                                        <span class="badge bg-success">Présente</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Absente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Triangle de signalisation</th>
+                                    <td>
+                                        {% if checklist.triangle == 'present' %}
+                                        <span class="badge bg-success">Présent</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Absent</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Gilet de sécurité</th>
+                                    <td>
+                                        {% if checklist.gilet == 'present' %}
+                                        <span class="badge bg-success">Présent</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Absent</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Observations</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if checklist.commentaires %}
+                        <p>{{ checklist.commentaires|linebreaks }}</p>
+                        {% else %}
+                        <p class="text-muted">Aucune observation.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport d'Évaluation des Chauffeurs - MINEXX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 150px;
+            max-height: 80px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 9px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .score-excellent { background-color: #d4edda; }
+        .score-bon { background-color: #d1ecf1; }
+        .score-moyen { background-color: #fff3cd; }
+        .score-ameliorer { background-color: #f8d7da; }
+        .score-critique { background-color: #e2e3e5; }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tête -->
+    <div class="header">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Logo MINEXX" class="logo">
+        {% endif %}
+        <div class="title">Rapport d'Évaluation des Chauffeurs</div>
+        <div class="subtitle">MINEXX - Gestion de Parc Automobile</div>
+        <div class="subtitle">Généré le {{ date_generation }}</div>
+    </div>
+
+    <!-- Statistiques Globales -->
+    <div class="section">
+        <div class="section-title">Statistiques Globales</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.total_chauffeurs|default:0 }}</div>
+                <div class="stat-label">Total Chauffeurs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.total_distance|default:0|floatformat:1 }}</div>
+                <div class="stat-label">Distance Totale (km)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.moyenne_jours_prestes|default:0|floatformat:1 }}</div>
+                <div class="stat-label">Jours Moyens</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ moyennes.score_moyen|default:0|floatformat:1 }}/100</div>
+                <div class="stat-label">Score Moyen</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des Évaluations -->
+    {% if evaluations %}
+    <div class="section">
+        <div class="section-title">Détail des Évaluations</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Chauffeur</th>
+                    <th>Score</th>
+                    <th>Classification</th>
+                    <th>Missions</th>
+                    <th>Distance (km)</th>
+                    <th>Jours Prestés</th>
+                    <th>Consommation</th>
+                    <th>Coût/km</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eval in evaluations %}
+                <tr class="score-{{ eval.classification|lower|cut:" " }}">
+                    <td>{{ eval.chauffeur.first_name }} {{ eval.chauffeur.last_name }}</td>
+                    <td>{{ eval.score_total|default:0|floatformat:1 }}/100</td>
+                    <td>{{ eval.classification|default:"-" }}</td>
+                    <td>{{ eval.nb_courses|default:0 }}</td>
+                    <td>{{ eval.distance_totale|default:0|floatformat:1 }}</td>
+                    <td>{{ eval.nb_jours_prestes|default:0 }}</td>
+                    <td>{{ eval.conso_moyenne|default:"-" }}</td>
+                    <td>{{ eval.cout_km|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Système de Scoring -->
+    <div class="section">
+        <div class="section-title">Système de Scoring</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Critère</th>
+                    <th>Pondération</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Productivité</td>
+                    <td>40%</td>
+                    <td>Basé sur le nombre de missions par jour (objectif : 2 missions/jour = 100%)</td>
+                </tr>
+                <tr>
+                    <td>Efficacité énergétique</td>
+                    <td>25%</td>
+                    <td>Basé sur la consommation moyenne (objectif : ≤6L/100km = 100%)</td>
+                </tr>
+                <tr>
+                    <td>Rentabilité</td>
+                    <td>20%</td>
+                    <td>Basé sur le coût par km (objectif : ≤0.5 $/km = 100%)</td>
+                </tr>
+                <tr>
+                    <td>Régularité</td>
+                    <td>15%</td>
+                    <td>Basé sur l'assiduité (objectif : 30 jours/mois = 100%)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Classification des Scores -->
+    <div class="section">
+        <div class="section-title">Classification des Scores</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Score</th>
+                    <th>Classification</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="score-excellent">
+                    <td>85-100</td>
+                    <td>Excellent</td>
+                    <td>Performance exceptionnelle, à maintenir</td>
+                </tr>
+                <tr class="score-bon">
+                    <td>70-84</td>
+                    <td>Bon</td>
+                    <td>Bonne performance, quelques améliorations possibles</td>
+                </tr>
+                <tr class="score-moyen">
+                    <td>55-69</td>
+                    <td>Moyen</td>
+                    <td>Performance acceptable, améliorations nécessaires</td>
+                </tr>
+                <tr class="score-ameliorer">
+                    <td>40-54</td>
+                    <td>À améliorer</td>
+                    <td>Performance insuffisante, action corrective requise</td>
+                </tr>
+                <tr class="score-critique">
+                    <td>0-39</td>
+                    <td>Critique</td>
+                    <td>Performance critique, intervention immédiate nécessaire</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="footer">
+        <p>MINEXX - MINEXX</p>
+        <p>Rapport généré automatiquement le {{ date_generation }}</p>
+        <p>© {% now "Y" %} Tous droits réservés</p>
+    </div>
+</body>
+</html>

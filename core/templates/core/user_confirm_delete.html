@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h4>Suppression d'utilisateur</h4>
+        <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{{ user_to_delete.username|default:user_to_delete }}</strong> ?</p>
+        <form method="post">
+            {% csrf_token %}
+            <a href="{% url 'user_list' %}" class="btn btn-secondary">Annuler</a>
+            <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+        </form>
+    </div>
+</div>
+{% endblock %} 

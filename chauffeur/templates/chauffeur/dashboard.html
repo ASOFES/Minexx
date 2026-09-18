@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord - Chauffeur{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-car me-2"></i>Tableau de bord - Chauffeur</h1>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header module-chauffeur text-white">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Total missions</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.total }}</h3>
+                <p>Missions assignées</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>À effectuer</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.a_effectuer }}</h3>
+                <p>Missions à effectuer</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-car-side me-2"></i>En cours</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.en_cours }}</h3>
+                <p>Missions en cours</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-flag-checkered me-2"></i>Terminées</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.terminees }}</h3>
+                <p>Missions terminées</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres de recherche -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="statut" class="form-label">Statut</label>
+                        <select name="statut" id="statut" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            <option value="validee" {% if request.GET.statut == 'validee' %}selected{% endif %}>À effectuer</option>
+                            <option value="en_cours" {% if request.GET.statut == 'en_cours' %}selected{% endif %}>En cours</option>
+                            <option value="terminee" {% if request.GET.statut == 'terminee' %}selected{% endif %}>Terminée</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_debut" class="form-label">Date début</label>
+                        <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_fin" class="form-label">Date fin</label>
+                        <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-2"></i>Filtrer
+                        </button>
+                        <a href="{% url 'chauffeur:dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-2"></i>Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des missions -->
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-end mb-3">
+            <div class="btn-group">
+                <a href="{% url 'chauffeur:missions_pdf' %}?{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}{% endif %}" class="btn btn-danger">
+                    <i class="fas fa-file-pdf me-1"></i>Exporter PDF
+                </a>
+                <a href="{% url 'chauffeur:missions_excel' %}?{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}{% endif %}" class="btn btn-success">
+                    <i class="fas fa-file-excel me-1"></i>Exporter Excel
+                </a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Mes missions</h5>
+            </div>
+            <div class="card-body">
+                {% if missions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date mission</th>
+                                <th>Date validation</th>
+                                <th>Demandeur</th>
+                                <th>Point d'embarquement</th>
+                                <th>Destination</th>
+                                <th>Véhicule</th>
+                                <th>Dernier kilométrage</th>
+                                <th>Priorité</th>
+                                <th>Statut</th>
+                                <th>Chauffeur</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mission in missions %}
+                            <tr>
+                                <td>{{ mission.id }}</td>
+                                <td>{{ mission.date_souhaitee|date:"d/m/Y H:i" }}</td>
+                                <td>{{ mission.date_validation|date:"d/m/Y H:i"|default:"Non validée" }}</td>
+                                <td>
+                                    {% if mission.demandeur %}
+                                        {% if mission.demandeur.get_full_name %}
+                                            {{ mission.demandeur.get_full_name }}
+                                        {% else %}
+                                            {{ mission.demandeur.username }}
+                                        {% endif %}
+                                        {% if mission.demandeur.email %}
+                                            <br><small class="text-muted">{{ mission.demandeur.email }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        Non spécifié
+                                    {% endif %}
+                                </td>
+                                <td>{{ mission.point_embarquement }}</td>
+                                <td>{{ mission.destination }}</td>
+                                <td>{{ mission.vehicule.immatriculation }}</td>
+                                <td>
+                                    {% if mission.statut == 'terminee' %}
+                                        {{ mission.kilometrage_fin|default:'-' }} km
+                                    {% else %}
+                                        {{ mission.kilometrage_depart|default:'-' }} km
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mission.priorite == 'urgence' %}
+                                    <span class="badge" style="background-color:#ffcccc;color:#a94442;">Urgence</span>
+                                    {% elif mission.priorite == 'haute_urgence' %}
+                                    <span class="badge" style="background-color:#ffe5b4;color:#b36b00;">Haute urgence</span>
+                                    {% else %}
+                                    <span class="badge" style="background-color:#cce5ff;color:#004085;">Important</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mission.statut == 'validee' %}
+                                    <span class="badge bg-success">À effectuer</span>
+                                    {% elif mission.statut == 'en_cours' %}
+                                    <span class="badge bg-primary">En cours</span>
+                                    {% elif mission.statut == 'terminee' %}
+                                    <span class="badge bg-secondary">Terminée</span>
+                                    {% else %}
+                                    <span class="badge bg-dark">{{ mission.get_statut_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{% if mission.chauffeur %}{{ mission.chauffeur.get_full_name|default:mission.chauffeur.username }}{% else %}Non assigné{% endif %}</td>
+                                <td>
+                                    <a href="{% url 'chauffeur:detail_mission' mission.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if mission.statut == 'validee' %}
+                                    <a href="{% url 'chauffeur:demarrer_mission' mission.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-play"></i>
+                                    </a>
+                                    {% elif mission.statut == 'en_cours' %}
+                                    <a href="{% url 'chauffeur:terminer_mission' mission.id %}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-flag-checkered"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if missions.has_other_pages %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if missions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ missions.previous_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                        {% endif %}
+                        
+                        {% for i in missions.paginator.page_range %}
+                            {% if missions.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}">{{ i }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if missions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ missions.next_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>Aucune mission à afficher.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

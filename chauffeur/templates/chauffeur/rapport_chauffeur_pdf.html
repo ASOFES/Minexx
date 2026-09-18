@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Rapport Chauffeur PDF{% endblock %}
+{% block content %}
+<div style="font-family: Arial, sans-serif;">
+    <h2 style="text-align:center;">Rapport Chauffeur</h2>
+    <div style="margin-bottom: 10px;">
+        <strong>Nom :</strong> {{ user.get_full_name }}<br>
+        <strong>Département :</strong> {{ departement }}<br>
+        <strong>Période :</strong> {{ date_debut|default:'...' }} au {{ date_fin|default:'...' }}<br>
+        <strong>Date d’édition :</strong> {{ now|date:'d/m/Y H:i' }}
+    </div>
+    <hr>
+    <h4>Statistiques globales</h4>
+    <ul>
+        <li><strong>Missions :</strong> {{ total_missions }}</li>
+        <li><strong>Kilomètres parcourus :</strong> {{ total_km }}</li>
+        <li><strong>Jours travaillés :</strong> {{ jours_travailles }}</li>
+        <li><strong>Consommation moyenne (L/100km) :</strong> {% if conso_moyenne %}{{ conso_moyenne }}{% else %}-{% endif %}</li>
+        <li><strong>Coût total :</strong> {{ cout_total }}</li>
+        <li><strong>Score :</strong> {{ score }}/10</li>
+    </ul>
+    <h4>Statistiques par mois</h4>
+    <table border="1" cellspacing="0" cellpadding="4" width="100%">
+        <thead>
+            <tr style="background:#eee;">
+                <th>Mois</th>
+                <th>Missions</th>
+                <th>Kilomètres</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in stats_mois %}
+            <tr>
+                <td>{{ stat.mois|date:'F Y' }}</td>
+                <td>{{ stat.missions }}</td>
+                <td>{{ stat.km }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" style="text-align:center;">Aucune donnée disponible.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <h4>Incidents</h4>
+    {% if incidents > 0 %}
+        <ul>
+        {% for mission in missions %}
+            {% if mission.commentaires and 'incident' in mission.commentaires|lower %}
+                <li>Mission #{{ mission.id }} ({{ mission.date_validation|date:'d/m/Y' }}) : {{ mission.commentaires }}</li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Aucun incident signalé.</p>
+    {% endif %}
+    <h4>Commentaires / Appréciations</h4>
+    {% for c in commentaires %}
+        <div style="border:1px solid #ccc; padding:6px; margin-bottom:6px;">
+            <div style="font-size:11px; color:#888;">Par {{ c.auteur.username if c.auteur else 'Anonyme' }} le {{ c.date_commentaire|date:'d/m/Y H:i' }}</div>
+            <div>{{ c.texte|linebreaks }}</div>
+        </div>
+    {% empty %}
+        <div style="color:#888;">Aucun commentaire pour cette période.</div>
+    {% endfor %}
+</div>
+{% endblock %} 

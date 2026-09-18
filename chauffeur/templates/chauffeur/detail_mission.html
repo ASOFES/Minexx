@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}Détail de la mission #{{ mission.id }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-car me-2"></i>Mission #{{ mission.id }}</h1>
+            <div>
+                <a href="{% url 'chauffeur:dashboard' %}" class="btn btn-secondary me-2">
+                    <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+                </a>
+                {% if mission.statut == 'validee' %}
+                <a href="{% url 'chauffeur:demarrer_mission' mission.id %}" class="btn btn-primary">
+                    <i class="fas fa-play me-2"></i>Démarrer la mission
+                </a>
+                {% elif mission.statut == 'en_cours' %}
+                <a href="{% url 'chauffeur:terminer_mission' mission.id %}" class="btn btn-success">
+                    <i class="fas fa-flag-checkered me-2"></i>Terminer la mission
+                </a>
+                {% endif %}
+                <div class="btn-group">
+                    <a href="{% url 'chauffeur:mission_pdf' mission.id %}" class="btn btn-danger">
+                        <i class="fas fa-file-pdf me-1"></i>Exporter PDF
+                    </a>
+                    <a href="{% url 'chauffeur:mission_excel' mission.id %}" class="btn btn-success">
+                        <i class="fas fa-file-excel me-1"></i>Exporter Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations de la mission</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Statut:</div>
+                    <div class="col-md-8">
+                        {% if mission.statut == 'validee' %}
+                        <span class="badge bg-success">À effectuer</span>
+                        {% elif mission.statut == 'en_cours' %}
+                        <span class="badge bg-primary">En cours</span>
+                        {% elif mission.statut == 'terminee' %}
+                        <span class="badge bg-secondary">Terminée</span>
+                        {% else %}
+                        <span class="badge bg-dark">{{ mission.get_statut_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Priorité&nbsp;:</div>
+                    <div class="col-md-8">
+                        {% if mission.priorite == 'urgence' %}
+                        <span class="badge" style="background-color:#ffcccc;color:#a94442;">Urgence</span>
+                        {% elif mission.priorite == 'haute_urgence' %}
+                        <span class="badge" style="background-color:#ffe5b4;color:#b36b00;">Haute urgence</span>
+                        {% else %}
+                        <span class="badge" style="background-color:#cce5ff;color:#004085;">Important</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Demandeur:</div>
+                    <div class="col-md-8">
+                        {% if mission.demandeur %}
+                            {% if mission.demandeur.get_full_name %}
+                                {{ mission.demandeur.get_full_name }}
+                            {% else %}
+                                {{ mission.demandeur.username }}
+                            {% endif %}
+                            {% if mission.demandeur.email %}
+                                <br><small class="text-muted">{{ mission.demandeur.email }}</small>
+                            {% endif %}
+                        {% else %}
+                            Non spécifié
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Chauffeur assigné :</div>
+                    <div class="col-md-8">
+                        {% if mission.chauffeur %}
+                            {{ mission.chauffeur.get_full_name|default:mission.chauffeur.username }}
+                        {% else %}
+                            Non assigné
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de demande:</div>
+                    <div class="col-md-8">{{ mission.date_demande|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date souhaitée:</div>
+                    <div class="col-md-8">{{ mission.date_souhaitee|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Point d'embarquement:</div>
+                    <div class="col-md-8">{{ mission.point_embarquement }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Destination:</div>
+                    <div class="col-md-8">{{ mission.destination }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Motif:</div>
+                    <div class="col-md-8">{{ mission.motif|linebreaks }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Nombre de passagers:</div>
+                    <div class="col-md-8">{{ mission.nombre_passagers }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Commentaires:</div>
+                    <div class="col-md-8">{{ mission.commentaires|default:"Aucun commentaire"|linebreaks }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-car me-2"></i>Informations de transport</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Véhicule:</div>
+                    <div class="col-md-8">
+                        {% if mission.vehicule %}
+                        {{ mission.vehicule.immatriculation }} - {{ mission.vehicule.marque }} {{ mission.vehicule.modele }}
+                        {% else %}
+                        Non assigné
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de validation:</div>
+                    <div class="col-md-8">{{ mission.date_validation|date:"d/m/Y H:i"|default:"Non validée" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Dispatcher:</div>
+                    <div class="col-md-8">{{ mission.dispatcher.get_full_name|default:"Non assigné" }}</div>
+                </div>
+                {% if mission.statut == 'en_cours' or mission.statut == 'terminee' %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Kilométrage départ:</div>
+                    <div class="col-md-8">{{ mission.kilometrage_depart|default:"Non renseigné" }} km</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date de départ:</div>
+                    <div class="col-md-8">{{ mission.date_depart|date:"d/m/Y H:i"|default:"Non renseignée" }}</div>
+                </div>
+                {% endif %}
+                {% if mission.statut == 'terminee' %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Kilométrage arrivée:</div>
+                    <div class="col-md-8">{{ mission.kilometrage_fin|default:"Non renseigné" }} km</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Distance parcourue:</div>
+                    <div class="col-md-8">{{ mission.distance_parcourue|default:"Non calculée" }} km</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Date d'arrivée:</div>
+                    <div class="col-md-8">{{ mission.date_fin|date:"d/m/Y H:i"|default:"Non renseignée" }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Statut de la mission -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Suivi de la mission</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-clipboard-list me-2 text-success"></i>
+                            <strong>Demande créée</strong>
+                            <div class="text-muted small">{{ mission.date_demande|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-tasks me-2 text-success"></i>
+                            <strong>Demande validée</strong>
+                            <div class="text-muted small">{{ mission.date_validation|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-car-side me-2 {% if mission.statut == 'en_cours' or mission.statut == 'terminee' %}text-success{% else %}text-secondary{% endif %}"></i>
+                            <strong>Mission en cours</strong>
+                            {% if mission.date_depart %}
+                            <div class="text-muted small">{{ mission.date_depart|date:"d/m/Y H:i" }}</div>
+                            {% endif %}
+                        </div>
+                        {% if mission.statut == 'en_cours' %}
+                        <span class="badge bg-primary rounded-pill"><i class="fas fa-play"></i></span>
+                        {% elif mission.statut == 'terminee' %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-flag-checkered me-2 {% if mission.statut == 'terminee' %}text-success{% else %}text-secondary{% endif %}"></i>
+                            <strong>Mission terminée</strong>
+                            {% if mission.date_fin %}
+                            <div class="text-muted small">{{ mission.date_fin|date:"d/m/Y H:i" }}</div>
+                            {% endif %}
+                        </div>
+                        {% if mission.statut == 'terminee' %}
+                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Historique -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historique</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if historique %}
+                <ul class="list-group list-group-flush">
+                    {% for item in historique %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ item.action }}</strong>
+                                <div class="text-muted small">{{ item.date_action|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            <div class="text-muted small">{{ item.utilisateur.username }}</div>
+                        </div>
+                        {% if item.details %}
+                        <div class="small mt-1">{{ item.details }}</div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="p-3 text-center text-muted">
+                    Aucun historique disponible.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

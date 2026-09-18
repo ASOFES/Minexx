@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rapport Demandeur</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: #333; margin-bottom: 5px; }
+        .info { margin-bottom: 20px; }
+        .stats { margin-bottom: 20px; }
+        .stats table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .stats th, .stats td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .stats th { background-color: #f5f5f5; }
+        .section { margin-bottom: 20px; }
+        .section h3 { color: #333; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        .comment { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        .comment-header { font-size: 10px; color: #666; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_base64 %}
+            <img src="data:image/png;base64,{{ logo_base64 }}" alt="Logo MINEXX" style="height:40px; margin-bottom:10px;"/>
+        {% endif %}
+        <h1>Rapport Demandeur</h1>
+        <p>Généré le {{ now|date:'d/m/Y à H:i' }}</p>
+    </div>
+    
+    <div class="info">
+        <p><strong>Demandeur :</strong> {{ user.get_full_name }}</p>
+        <p><strong>Département :</strong> {{ departement }}</p>
+        <p><strong>Période :</strong> {{ date_debut|default:"..." }} au {{ date_fin|default:"..." }}</p>
+    </div>
+    
+    <div class="section">
+        <h3>Statistiques globales</h3>
+        <div class="stats">
+            <table>
+                <tr>
+                    <th>Missions totales</th>
+                    <td>{{ total_missions }}</td>
+                </tr>
+                <tr>
+                    <th>Missions terminées</th>
+                    <td>{{ missions_terminees }}</td>
+                </tr>
+                <tr>
+                    <th>Missions en cours</th>
+                    <td>{{ missions_en_cours }}</td>
+                </tr>
+                <tr>
+                    <th>Missions validées</th>
+                    <td>{{ missions_validees }}</td>
+                </tr>
+                <tr>
+                    <th>Kilomètres parcourus</th>
+                    <td>{{ total_km }}</td>
+                </tr>
+                <tr>
+                    <th>Coût total estimé</th>
+                    <td>{{ cout_total_estime|floatformat:2 }} $</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>Destinations les plus fréquentes</h3>
+        <div class="stats">
+            <table>
+                <tr>
+                    <th>Destination</th>
+                    <th>Nombre de missions</th>
+                </tr>
+                {% for dest in destinations_frequentes %}
+                <tr>
+                    <td>{{ dest.destination }}</td>
+                    <td>{{ dest.count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2">Aucune donnée disponible.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>Chauffeurs les plus utilisés</h3>
+        <div class="stats">
+            <table>
+                <tr>
+                    <th>Chauffeur</th>
+                    <th>Nombre de missions</th>
+                </tr>
+                {% for chauffeur in chauffeurs_frequents %}
+                <tr>
+                    <td>{{ chauffeur.chauffeur__first_name }} {{ chauffeur.chauffeur__last_name }}</td>
+                    <td>{{ chauffeur.count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2">Aucune donnée disponible.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>Statistiques par mois</h3>
+        <div class="stats">
+            <table>
+                <tr>
+                    <th>Mois</th>
+                    <th>Missions</th>
+                    <th>Kilomètres</th>
+                </tr>
+                {% for stat in stats_mois %}
+                <tr>
+                    <td>{{ stat.mois|date:'F Y' }}</td>
+                    <td>{{ stat.missions }}</td>
+                    <td>{{ stat.km }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">Aucune donnée disponible.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>Commentaires / Appréciations</h3>
+        {% for c in commentaires %}
+        <div class="comment">
+            <div class="comment-header">Par {% if c.auteur %}{{ c.auteur.username }}{% else %}Anonyme{% endif %} le {{ c.date_commentaire|date:'d/m/Y H:i' }}</div>
+            <div>{{ c.texte|linebreaks }}</div>
+        </div>
+        {% empty %}
+        <p>Aucun commentaire pour cette période.</p>
+        {% endfor %}
+    </div>
+</body>
+</html> 

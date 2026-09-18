@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des Courses</title>
+    <style>
+        @page {
+            size: a4 landscape;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #333;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .logo {
+            max-width: 100px;
+            max-height: 80px;
+        }
+        h1 {
+            margin-top: 10px;
+            color: #2c3e50;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .section-title {
+            background-color: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        th {
+            text-align: left;
+            padding: 6px 8px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            font-size: 10px;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow: hidden;
+            white-space: normal;
+        }
+        table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            text-align: center;
+        }
+        .footer table {
+            border: none;
+        }
+        .footer table tr {
+            background-color: transparent;
+        }
+        .footer table td {
+            border: none;
+            padding: 2px;
+        }
+        .filters {
+            margin-bottom: 15px;
+            padding: 8px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        /* Status colors */
+        .status-en-attente {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .status-acceptee, .status-validee {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .status-refusee {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .status-en-cours {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .status-terminee {
+            color: #8e44ad;
+            font-weight: bold;
+        }
+        .status-annulee {
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td width="20%">
+                    <img src="{{ logo_data_uri }}" class="logo">
+                </td>
+                <td width="60%" style="text-align: center;">
+                    <h1>Liste des Courses</h1>
+                </td>
+                <td width="20%" style="text-align: right;">
+                    <p>Date d'impression: {{ date_impression }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {% if filters %}
+    <div class="section-title">Filtres appliqués</div>
+    <div class="filters">
+        <p>
+        {% if filters.statut %}<strong>Statut:</strong> {{ filters.statut_display }}{% endif %}
+        {% if filters.date_debut %} | <strong>Depuis:</strong> {{ filters.date_debut|date:"d/m/Y" }}{% endif %}
+        {% if filters.date_fin %} | <strong>Jusqu'au:</strong> {{ filters.date_fin|date:"d/m/Y" }}{% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="section-title">Liste des courses</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 15%;">Demandeur</th>
+                <th style="width: 10%;">Date demande</th>
+                <th style="width: 10%;">Date souhaitée</th>
+                <th style="width: 12%;">Point d'embarquement</th>
+                <th style="width: 12%;">Destination</th>
+                <th style="width: 8%;">Statut</th>
+                <th style="width: 10%;">Chauffeur</th>
+                <th style="width: 10%;">Véhicule</th>
+                <th style="width: 8%;">Validation</th>
+                <th style="width: 8%;">Priorité</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for course in courses %}
+            <tr>
+                <td>{{ course.id }}</td>
+                <td>
+                    {% if course.demandeur %}
+                        {% if course.demandeur.get_full_name %}
+                            {{ course.demandeur.get_full_name }}
+                        {% else %}
+                            {{ course.demandeur.username }}
+                        {% endif %}
+                        {% if course.demandeur.email %}
+                            <br><small>{{ course.demandeur.email }}</small>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ course.date_demande|date:"d/m/Y H:i" }}</td>
+                <td>{{ course.date_souhaitee|date:"d/m/Y H:i" }}</td>
+                <td>{{ course.point_embarquement }}</td>
+                <td>{{ course.destination }}</td>
+                <td class="status-{{ course.statut }}">{{ course.get_statut_display }}</td>
+                <td>{% if course.chauffeur %}{{ course.chauffeur.get_full_name|default:course.chauffeur.username }}{% else %}-{% endif %}</td>
+                <td>{% if course.vehicule %}{{ course.vehicule.immatriculation }}{% else %}-{% endif %}</td>
+                <td>{% if course.date_validation %}{{ course.date_validation|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+                <td>
+                    {% if course.priorite == 'urgence' %}
+                    <span style="background-color:#ffcccc;color:#a94442;padding:2px 8px;border-radius:4px;">Urgence</span>
+                    {% elif course.priorite == 'haute_urgence' %}
+                    <span style="background-color:#ffe5b4;color:#b36b00;padding:2px 8px;border-radius:4px;">Haute urgence</span>
+                    {% else %}
+                    <span style="background-color:#cce5ff;color:#004085;padding:2px 8px;border-radius:4px;">Important</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <table width="100%">
+            <tr>
+                <td width="33%" style="text-align: left;">ASOFES - Gestion de Véhicules</td>
+                <td width="34%" style="text-align: center;">Document confidentiel</td>
+                <td width="33%" style="text-align: right;">© {{ year }} ASOFES - Tous droits réservés</td>
+            </tr>
+        </table>
+        <p style="margin-top: 5px; text-align: center;">Document généré automatiquement le {{ date_impression }}</p>
+        <p style="font-size:13px; color:#444; margin:0;">Département : <strong>{{ courses.0.vehicule.etablissement.nom|default:'AUCUN' }}</strong></p>
+    </div>
+</body>
+</html>

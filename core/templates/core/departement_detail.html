@@ -1,0 +1,211 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-building me-2"></i>{{ etablissement.nom }}
+                    </h4>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'departement_edit' etablissement.pk %}" 
+                           class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i>Modifier
+                        </a>
+                        <a href="{% url 'departement_list' %}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Informations générales</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Code:</td>
+                                    <td><span class="badge bg-secondary">{{ etablissement.code }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Type:</td>
+                                    <td><span class="badge bg-info">{{ etablissement.get_type_display }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Statut:</td>
+                                    <td>
+                                        {% if etablissement.actif %}
+                                            <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Date de création:</td>
+                                    <td>{{ etablissement.date_creation|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Dernière modification:</td>
+                                    <td>{{ etablissement.date_modification|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Contact et localisation</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Responsable:</td>
+                                    <td>
+                                        {% if etablissement.responsable %}
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-user me-2 text-primary"></i>
+                                                {{ etablissement.responsable.get_full_name|default:etablissement.responsable.username }}
+                                                <span class="badge bg-primary ms-2">{{ etablissement.responsable.get_role_display }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Non assigné</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Téléphone:</td>
+                                    <td>
+                                        {% if etablissement.telephone %}
+                                            <i class="fas fa-phone me-2 text-success"></i>{{ etablissement.telephone }}
+                                        {% else %}
+                                            <span class="text-muted">Non renseigné</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Email:</td>
+                                    <td>
+                                        {% if etablissement.email %}
+                                            <i class="fas fa-envelope me-2 text-info"></i>{{ etablissement.email }}
+                                        {% else %}
+                                            <span class="text-muted">Non renseigné</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if etablissement.adresse %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-2">Adresse</h6>
+                            <div class="p-3 bg-light rounded">
+                                <i class="fas fa-map-marker-alt me-2 text-danger"></i>
+                                {{ etablissement.adresse }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Hiérarchie -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-3">Structure hiérarchique</h6>
+                            <div class="row">
+                                {% if etablissement.parent %}
+                                <div class="col-md-6">
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white">
+                                            <i class="fas fa-level-up-alt me-2"></i>Département parent
+                                        </div>
+                                        <div class="card-body">
+                                            <h6>{{ etablissement.parent.nom }}</h6>
+                                            <span class="badge bg-secondary">{{ etablissement.parent.code }}</span>
+                                            <a href="{% url 'departement_detail' etablissement.parent.pk %}" 
+                                               class="btn btn-sm btn-outline-primary ms-2">
+                                                Voir
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if etablissement.enfants.exists %}
+                                <div class="col-md-6">
+                                    <div class="card border-success">
+                                        <div class="card-header bg-success text-white">
+                                            <i class="fas fa-level-down-alt me-2"></i>Départements enfants
+                                        </div>
+                                        <div class="card-body">
+                                            {% for enfant in etablissement.enfants.all %}
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div>
+                                                    <strong>{{ enfant.nom }}</strong>
+                                                    <span class="badge bg-secondary ms-2">{{ enfant.code }}</span>
+                                                </div>
+                                                <a href="{% url 'departement_detail' enfant.pk %}" 
+                                                   class="btn btn-sm btn-outline-success">
+                                                    Voir
+                                                </a>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistiques -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Statistiques
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-primary mb-1">{{ etablissement.utilisateurs.count }}</h4>
+                                <small class="text-muted">Utilisateurs</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-success mb-1">{{ etablissement.vehicule_set.count }}</h4>
+                                <small class="text-muted">Véhicules</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if etablissement.utilisateurs.exists %}
+                    <h6 class="text-muted mb-2">Utilisateurs récents</h6>
+                    <div class="list-group list-group-flush">
+                        {% for user in etablissement.utilisateurs.all|slice:":5" %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ user.get_full_name|default:user.username }}</strong>
+                                <br><small class="text-muted">{{ user.get_role_display }}</small>
+                            </div>
+                            <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if user.is_active %}Actif{% else %}Inactif{% endif %}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

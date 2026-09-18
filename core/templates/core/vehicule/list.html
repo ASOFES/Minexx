@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Liste des véhicules{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Liste des véhicules</h2>
+    <div class="mb-2">
+        <strong>Département :</strong> {{ departement_nom }}
+    </div>
+    <div class="text-center mb-3">
+        <a href="{% url 'vehicule_list_pdf' %}" class="btn btn-danger btn-sm me-2" target="_blank">
+            <i class="fas fa-file-pdf me-1"></i>Exporter PDF
+        </a>
+        <a href="{% url 'vehicule_list_excel' %}" class="btn btn-success btn-sm" target="_blank">
+            <i class="fas fa-file-excel me-1"></i>Exporter Excel
+        </a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th><a href="?sort=immatriculation" class="text-decoration-none {% if sort == 'immatriculation' %}fw-bold text-primary{% endif %}">Immatriculation</a></th>
+                <th><a href="?sort=marque" class="text-decoration-none {% if sort == 'marque' %}fw-bold text-primary{% endif %}">Marque</a></th>
+                <th><a href="?sort=modele" class="text-decoration-none {% if sort == 'modele' %}fw-bold text-primary{% endif %}">Modèle</a></th>
+                <th><a href="?sort=couleur" class="text-decoration-none {% if sort == 'couleur' %}fw-bold text-primary{% endif %}">Couleur</a></th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicule in vehicules %}
+            <tr>
+                <td>{{ vehicule.immatriculation }}</td>
+                <td>{{ vehicule.marque }}</td>
+                <td>{{ vehicule.modele }}</td>
+                <td>{{ vehicule.couleur }}</td>
+                <td>
+                    <a href="{% url 'vehicule_detail' vehicule.pk %}" class="btn btn-info btn-sm">Détail</a>
+                    <a href="{% url 'vehicule_delete' vehicule.pk %}" class="btn btn-danger btn-sm ms-1" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?');">Supprimer</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">Aucun véhicule trouvé.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

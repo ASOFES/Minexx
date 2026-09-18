@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Profil" %} - {% trans "Gestion de Véhicules" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-user-circle me-2"></i>{% trans "Profil" %}</h3>
+            </div>
+            <div class="card-body text-center">
+                {% if user.photo %}
+                <img src="{{ user.photo.url }}" alt="{{ user.username }}" class="img-fluid rounded-circle mb-3" style="max-width: 150px;">
+                {% else %}
+                <div class="bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                    <span class="display-4">{{ user.username|first|upper }}</span>
+                </div>
+                {% endif %}
+                <h4>{{ user.first_name }} {{ user.last_name }}</h4>
+                <p class="text-muted">{{ user.get_role_display }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>{% trans "Informations personnelles" %}</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Nom d'utilisateur" %}:</div>
+                    <div class="col-md-8">{{ user.username }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Nom" %}:</div>
+                    <div class="col-md-8">{{ user.last_name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Prénom" %}:</div>
+                    <div class="col-md-8">{{ user.first_name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Email" %}:</div>
+                    <div class="col-md-8">{{ user.email }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Téléphone" %}:</div>
+                    <div class="col-md-8">{{ user.telephone|default:_("Non renseigné") }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Rôle" %}:</div>
+                    <div class="col-md-8">{{ user.get_role_display }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Date d'inscription" %}:</div>
+                    <div class="col-md-8">{{ user.date_joined|date:"d/m/Y" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Dernière connexion" %}:</div>
+                    <div class="col-md-8">{{ user.last_login|date:"d/m/Y H:i" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Adresse" %}:</div>
+                    <div class="col-md-8">{{ user.adresse|default:_("Non renseignée")|linebreaks }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Département" %}:</div>
+                    <div class="col-md-8">{{ user.etablissement.nom|default:_("Non assigné") }}</div>
+                </div>
+                {% if user.role == 'chauffeur' %}
+                <hr>
+                <h5 class="mb-3"><i class="fas fa-id-card me-2"></i>{% trans "Permis de conduire" %}</h5>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Possède un permis" %}:</div>
+                    <div class="col-md-8">{% if user.possede_permis %}{% trans "Oui" %}{% else %}{% trans "Non" %}{% endif %}</div>
+                </div>
+                {% if user.possede_permis %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Numéro de permis" %}:</div>
+                    <div class="col-md-8">{{ user.numero_permis|default:_("Non renseigné") }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Expiration" %}:</div>
+                    <div class="col-md-8">
+                        {% if user.date_expiration_permis %}
+                            {{ user.date_expiration_permis|date:"d/m/Y" }}
+                            {% with jours=user.jours_avant_expiration_permis %}
+                                {% if jours is not None %}
+                                    {% if jours <= 0 %}
+                                        <span class="badge bg-danger ms-2">{% trans "Expiré" %}</span>
+                                    {% elif jours <= 30 %}
+                                        <span class="badge bg-warning text-dark ms-2">{{ jours }} j</span>
+                                    {% else %}
+                                        <span class="badge bg-success ms-2">{{ jours }} j</span>
+                                    {% endif %}
+                                {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            {% trans "Non renseignée" %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% if user.photo_permis %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">{% trans "Document" %}:</div>
+                    <div class="col-md-8">
+                        <a href="{{ user.photo_permis.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>{% trans "Voir le permis" %}
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+                {% endif %}
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5 pb-4" style="position:relative; z-index:1;">
+                    <a href="{% url 'profile_edit' %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>{% trans "Modifier le profil" %}
+                    </a>
+                    <a href="{% url 'profile_password_change' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-key me-2"></i>{% trans "Changer le mot de passe" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {% if user.role == 'chauffeur' %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-car-side me-2"></i>{% trans "Statistiques chauffeur" %}</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{% trans "Courses effectuées" %}</h5>
+                        <h2 class="display-5">{{ user.courses_assignees.count }}</h2>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{% trans "Distance totale" %}</h5>
+                        <h2 class="display-5">{{ distance_totale|default:"0" }} km</h2>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{% trans "Courses aujourd'hui" %}</h5>
+                        <h2 class="display-5">{{ courses_aujourdhui|default:"0" }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if user.role == 'demandeur' %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>{% trans "Statistiques demandeur" %}</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{% trans "Demandes totales" %}</h5>
+                        <h2 class="display-5">{{ user.courses_demandees.count }}</h2>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{% trans "Demandes en attente" %}</h5>
+                        <h2 class="display-5">{{ demandes_en_attente|default:"0" }}</h2>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <h5>{% trans "Demandes validées" %}</h5>
+                        <h2 class="display-5">{{ demandes_validees|default:"0" }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

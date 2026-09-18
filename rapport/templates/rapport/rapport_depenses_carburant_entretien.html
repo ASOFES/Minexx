@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Rapport Dépenses Carburant & Entretien{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="fas fa-dollar-sign me-2"></i>Rapport Dépenses Carburant & Entretien</h1>
+    <form method="get" class="row g-3 mb-3">
+        <div class="col-md-3">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <select name="vehicule" id="vehicule" class="form-select">
+                <option value="">Tous</option>
+                {% for v in vehicules %}
+                <option value="{{ v.id }}" {% if request.GET.vehicule == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+        </div>
+        <div class="col-md-3">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>Filtrer</button>
+        </div>
+    </form>
+    <div class="mb-3 d-flex justify-content-end gap-2">
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}format=pdf" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i>Exporter PDF</a>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}format=excel" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i>Exporter Excel</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Immatriculation</th>
+                    <th>Marque/Modèle</th>
+                    <th>Dépenses carburant ($)</th>
+                    <th>Dépenses entretien ($)</th>
+                    <th>Coût total ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in depenses_par_vehicule %}
+                <tr>
+                    <td>{{ item.immatriculation }}</td>
+                    <td>{{ item.marque_modele }}</td>
+                    <td>{{ item.cout_carburant|floatformat:2 }}</td>
+                    <td>{{ item.cout_entretien|floatformat:2 }}</td>
+                    <td>{{ item.cout_total|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center">Aucune dépense trouvée.</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-secondary fw-bold">
+                    <td class="text-end">TOTAL</td>
+                    <td></td>
+                    <td>{{ total_carburant|floatformat:2 }}</td>
+                    <td>{{ total_entretien|floatformat:2 }}</td>
+                    <td>{{ total_general|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %} 

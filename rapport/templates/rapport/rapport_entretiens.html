@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Rapport des Entretiens{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="fas fa-tools me-2"></i>Rapport des Entretiens</h1>
+    <form method="get" class="row g-3 mb-4" id="filterForm">
+        <div class="col-md-2">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <select name="vehicule" id="vehicule" class="form-select">
+                <option value="">Tous</option>
+                {% for v in vehicules %}
+                <option value="{{ v.id }}" {% if request.GET.vehicule == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="type_entretien" class="form-label">Type</label>
+            <select name="type_entretien" id="type_entretien" class="form-select">
+                <option value="">Tous</option>
+                <option value="ordinaire" {% if request.GET.type_entretien == 'ordinaire' %}selected{% endif %}>Ordinaire</option>
+                <option value="mecanique" {% if request.GET.type_entretien == 'mecanique' %}selected{% endif %}>Mécanique</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+            <a href="{% url 'rapport:entretiens' %}" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+        </div>
+        <div class="col-md-2 d-flex align-items-end justify-content-end">
+            <a href="?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}&export=pdf" class="btn btn-danger me-2"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+            <a href="?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}&export=excel" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Excel</a>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Véhicule</th>
+                    <th>Type</th>
+                    <th>Garage</th>
+                    <th>Coût</th>
+                    <th>Kilométrage</th>
+                    <th>Statut</th>
+                    <th>Commentaires</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entretien in entretiens %}
+                <tr>
+                    <td>{{ entretien.id }}</td>
+                    <td>{{ entretien.date_creation|date:'d/m/Y' }}</td>
+                    <td>{{ entretien.vehicule.immatriculation }}</td>
+                    <td>{{ entretien.get_type_entretien_display }}</td>
+                    <td>{{ entretien.garage }}</td>
+                    <td>{{ entretien.cout }} $</td>
+                    <td>{{ entretien.kilometrage }}</td>
+                    <td>{{ entretien.get_statut_display }}</td>
+                    <td>{{ entretien.commentaires|truncatechars:30 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center">Aucun entretien trouvé.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if entretiens.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Première</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ entretiens.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Précédente</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">Page {{ entretiens.number }} / {{ entretiens.paginator.num_pages }}</span></li>
+            {% if entretiens.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ entretiens.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Suivante</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ entretiens.paginator.num_pages }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Dernière</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- JavaScript pour améliorer l'expérience utilisateur -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateDebut = document.getElementById('date_debut');
+    const dateFin = document.getElementById('date_fin');
+    const filterForm = document.getElementById('filterForm');
+    
+    // Validation des dates
+    function validateDates() {
+        if (dateDebut.value && dateFin.value) {
+            if (dateDebut.value > dateFin.value) {
+                alert('La date de début ne peut pas être postérieure à la date de fin');
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // Validation avant soumission
+    filterForm.addEventListener('submit', function(e) {
+        if (!validateDates()) {
+            e.preventDefault();
+        }
+    });
+    
+    // Auto-submit avec délai pour éviter trop de requêtes
+    const filterInputs = filterForm.querySelectorAll('select, input[type="date"]');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            setTimeout(() => {
+                if (validateDates()) {
+                    filterForm.submit();
+                }
+            }, 1000);
+        });
+    });
+    
+    // Réinitialiser la page à 1 quand on change les filtres
+    filterForm.addEventListener('submit', function() {
+        const pageInput = document.createElement('input');
+        pageInput.type = 'hidden';
+        pageInput.name = 'page';
+        pageInput.value = '1';
+        filterForm.appendChild(pageInput);
+    });
+});
+</script>
+{% endblock %} 

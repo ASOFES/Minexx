@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+{% block title %}Rapport des Véhicules{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-car me-2"></i>Rapport des Véhicules</h1>
+        <div>
+            <a href="{% url 'rapport:vehicule_advanced' %}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-1"></i>Vue avancée
+            </a>
+        </div>
+    </div>
+    
+    <form method="get" class="row g-3 mb-4" id="filterForm">
+        <div class="col-md-2">
+            <label for="immatriculation" class="form-label">Immatriculation</label>
+            <select name="immatriculation" id="immatriculation" class="form-select">
+                <option value="">Toutes</option>
+                {% for v in vehicules.paginator.object_list %}
+                <option value="{{ v.immatriculation }}" {% if request.GET.immatriculation == v.immatriculation %}selected{% endif %}>{{ v.immatriculation }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="marque" class="form-label">Marque</label>
+            <input type="text" name="marque" id="marque" class="form-control" value="{{ request.GET.marque }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+            <a href="{% url 'rapport:vehicules' %}" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+        </div>
+        <div class="col-md-2 d-flex align-items-end justify-content-end">
+            <a href="?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}&export=pdf" class="btn btn-danger me-2"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+            <a href="?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}&export=excel" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Excel</a>
+        </div>
+    </form>
+    
+    <!-- Statistiques résumées -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Score moyen</h5>
+                    <h3 class="text-primary">{{ score_moyen }}/100</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Véhicules</h5>
+                    <h3 class="text-info">{{ vehicules.paginator.count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Distance totale</h5>
+                    <h3 class="text-success">{{ total_distance|floatformat:0 }} km</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Budget total</h5>
+                    <h3 class="text-warning">{{ total_budget|floatformat:2 }} $</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Consommation</h5>
+                    <h3 class="text-danger">{{ total_consommation|floatformat:0 }} L</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Entretiens</h5>
+                    <h3 class="text-secondary">{{ total_entretiens }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Véhicule</th>
+                    <th>Score</th>
+                    <th>Classification</th>
+                    <th>Kilométrage</th>
+                    <th>Âge</th>
+                    <th>Courses</th>
+                    <th>Consommation (L/100km)</th>
+                    <th>Coût/km ($/km)</th>
+                    <th>Recommandations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in stats_vehicules %}
+                <tr>
+                    <td>
+                        <strong>{{ stat.vehicule.immatriculation }}</strong>
+                        <br><small class="text-muted">{{ stat.vehicule.marque }} {{ stat.vehicule.modele }}</small>
+                    </td>
+                    <td>
+                        <div class="text-center">
+                            <h5 class="mb-1">{{ stat.score_total }}/100</h5>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar {% if stat.score_total >= 85 %}bg-success{% elif stat.score_total >= 70 %}bg-primary{% elif stat.score_total >= 55 %}bg-warning{% elif stat.score_total >= 40 %}bg-danger{% else %}bg-dark{% endif %}" 
+                                     style="width: {{ stat.score_total }}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge {{ stat.badge_class }} fs-6">{{ stat.classification }}</span>
+                    </td>
+                    <td>{{ stat.distance_totale|floatformat:0 }} km</td>
+                    <td>{{ stat.age_vehicule }} ans</td>
+                    <td>{{ stat.nb_courses }}</td>
+                    <td>{{ stat.conso_moyenne|floatformat:2 }}</td>
+                    <td>{{ stat.cout_km|floatformat:2 }}</td>
+                    <td>
+                        {% if stat.recommandations %}
+                        <ul class="list-unstyled mb-0">
+                            {% for rec in stat.recommandations %}
+                            <li><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>{{ rec }}</small></li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <small class="text-success"><i class="fas fa-check-circle me-1"></i>Aucune recommandation</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center">Aucun véhicule trouvé.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if vehicules.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Première</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ vehicules.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Précédente</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">Page {{ vehicules.number }} / {{ vehicules.paginator.num_pages }}</span></li>
+            {% if vehicules.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ vehicules.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Suivante</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ vehicules.paginator.num_pages }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Dernière</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques avancées par véhicule{% if date_debut or date_fin %} ({{ date_debut }} - {{ date_fin }}){% endif %}</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Immatriculation</th>
+                            <th>Distance parcourue (courses)</th>
+                            <th>Distance estimée (km)</th>
+                            <th>Alerte</th>
+                            <th>Distance totale (km)</th>
+                            <th>Distance depuis dernier entretien (km)</th>
+                            <th>Entretiens</th>
+                            <th>Types d'entretien</th>
+                            <th>Budget total ($)</th>
+                            <th>Carburant (L)</th>
+                            <th>Carburant ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_vehicules %}
+                        <tr>
+                            <td>{% if stat.vehicule.immatriculation %}{{ stat.vehicule.immatriculation }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.distance_parcourue_courses is not None %}{{ stat.distance_parcourue_courses|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.distance_estimee_km is not None %}{{ stat.distance_estimee_km|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.alerte_incoherence %}<span style="color:red;font-weight:bold;">⚠️ Incohérence</span>{% else %}—{% endif %}</td>
+                            <td>{% if stat.distance_totale is not None %}{{ stat.distance_totale|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.distance_apres_entretien is not None %}{{ stat.distance_apres_entretien|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.nb_entretiens is not None %}{{ stat.nb_entretiens }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.types_entretiens %}{{ stat.types_entretiens }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.budget_total is not None %}{{ stat.budget_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.total_litres is not None %}{{ stat.total_litres|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if stat.total_cout_carburant is not None %}{{ stat.total_cout_carburant|floatformat:2 }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="11" class="text-center">Aucune statistique disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Détails du scoring -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Détails du système de scoring véhicules</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <h6 class="text-primary">Fiabilité (35%)</h6>
+                    <p class="small">Basé sur la cohérence des données et la fréquence des entretiens</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-success">Efficacité énergétique (25%)</h6>
+                    <p class="small">Basé sur la consommation moyenne. Objectif : ≤8L/100km = 100%</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-warning">Rentabilité (25%)</h6>
+                    <p class="small">Basé sur le coût par km. Objectif : ≤0.5$/km = 100%</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-info">Utilisation (15%)</h6>
+                    <p class="small">Basé sur l'utilisation du véhicule. Plus de km = meilleur score</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript pour améliorer l'expérience utilisateur -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateDebut = document.getElementById('date_debut');
+    const dateFin = document.getElementById('date_fin');
+    const filterForm = document.getElementById('filterForm');
+    
+    // Validation des dates
+    function validateDates() {
+        if (dateDebut.value && dateFin.value) {
+            if (dateDebut.value > dateFin.value) {
+                alert('La date de début ne peut pas être postérieure à la date de fin');
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // Validation avant soumission
+    filterForm.addEventListener('submit', function(e) {
+        if (!validateDates()) {
+            e.preventDefault();
+        }
+    });
+    
+    // Auto-submit avec délai pour éviter trop de requêtes
+    const filterInputs = filterForm.querySelectorAll('select, input[type="date"], input[type="text"]');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            setTimeout(() => {
+                if (validateDates()) {
+                    filterForm.submit();
+                }
+            }, 1000);
+        });
+    });
+    
+    // Réinitialiser la page à 1 quand on change les filtres
+    filterForm.addEventListener('submit', function() {
+        const pageInput = document.createElement('input');
+        pageInput.type = 'hidden';
+        pageInput.name = 'page';
+        pageInput.value = '1';
+        filterForm.appendChild(pageInput);
+    });
+});
+</script>
+{% endblock %} 

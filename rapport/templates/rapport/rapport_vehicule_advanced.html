@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% block title %}Rapport Véhicule Avancé{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- ... (head inchangé) ... -->
+</head>
+<body>
+    <div style="text-align:center; margin-bottom: 20px;">
+        <img src="{% static 'img/logo.png' %}" alt="Logo" style="height:60px; max-width:200px;"/>
+    </div>
+    <div class="container mt-4">
+        <h2 class="mb-4"><i class="fas fa-car me-2"></i>Rapport Véhicule Avancé</h2>
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label for="vehicule" class="form-label">Véhicule</label>
+                <select name="vehicule" id="vehicule" class="form-select">
+                    {% for v in vehicules %}
+                        <option value="{{ v.id }}" {% if selected_vehicule and v.id == selected_vehicule.id %}selected{% endif %}>{{ v.immatriculation }} - {{ v.marque }} {{ v.modele }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="date_debut" class="form-label">Date début</label>
+                <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_fin" class="form-label">Date fin</label>
+                <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+                <a href="?" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+            </div>
+        </form>
+        {% if vehicules and selected_vehicule %}
+            <div class="d-flex justify-content-end mb-3">
+                <a href="?vehicule={{ selected_vehicule.id }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}&export=pdf" class="btn btn-danger me-2"><i class="fas fa-file-pdf me-1"></i> Export PDF</a>
+                <a href="?vehicule={{ selected_vehicule.id }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}&export=excel" class="btn btn-success"><i class="fas fa-file-excel me-1"></i> Export Excel</a>
+            </div>
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Kilométrage actuel</h6>
+                            <h4>{% if km_actuel is not None %}{{ km_actuel }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Missions</h6>
+                            <h4>{% if missions_count is not None %}{{ missions_count }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Km parcourus</h6>
+                            <h4>{% if distance_totale is not None %}{{ distance_totale }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Conso. (L/100km)</h6>
+                            <h4>{% if conso_moyenne is not None %}{{ conso_moyenne }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Coût carburant</h6>
+                            <h4>{% if cout_total_carburant is not None %}{{ cout_total_carburant }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Incidents</h6>
+                            <h4>{% if incidents is not None %}{{ incidents }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Prochain entretien</h6>
+                            <h4>{% if prochain_entretien %}{{ prochain_entretien.date_entretien|date:'d/m/Y' }}{% else %}—{% endif %}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title">Alertes</h6>
+                            {% if alertes %}
+                                <ul class="list-unstyled mb-0">
+                                {% for a in alertes %}
+                                    <li class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>{{ a }}</li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                <span class="text-success">Aucune</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h4 class="mt-4">Statistiques par mois</h4>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <canvas id="kmChart"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <canvas id="missionsChart"></canvas>
+                </div>
+            </div>
+            <h4 class="mt-4">Historique des entretiens (10 derniers)</h4>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Kilométrage</th>
+                            <th>Coût</th>
+                            <th>Observations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in entretiens_list %}
+                        <tr>
+                            <td>{% if e.date_entretien %}{{ e.date_entretien|date:'d/m/Y' }}{% else %}—{% endif %}</td>
+                            <td>{% if e.get_type_entretien_display %}{{ e.get_type_entretien_display }}{% else %}—{% endif %}</td>
+                            <td>{% if e.kilometrage is not None %}{{ e.kilometrage }}{% else %}—{% endif %}</td>
+                            <td>{% if e.cout is not None %}{{ e.cout }}{% else %}—{% endif %}</td>
+                            <td>{{ e.commentaires|default:'—' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">Aucun entretien.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <h4 class="mt-4">Historique des ravitaillements (10 derniers)</h4>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Kilométrage</th>
+                            <th>Litres</th>
+                            <th>Coût</th>
+                            <th>Station</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in ravs_list %}
+                        <tr>
+                            <td>{% if r.date_ravitaillement %}{{ r.date_ravitaillement|date:'d/m/Y' }}{% else %}—{% endif %}</td>
+                            <td>{% if r.kilometrage_apres is not None %}{{ r.kilometrage_apres }}{% else %}—{% endif %}</td>
+                            <td>{% if r.litres is not None %}{{ r.litres }}{% else %}—{% endif %}</td>
+                            <td>{% if r.cout_total is not None %}{{ r.cout_total }}{% else %}—{% endif %}</td>
+                            <td>{{ r.station|default:'—' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">Aucun ravitaillement.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <h4 class="mt-4">Historique détaillé (tous événements)</h4>
+            <form method="get" class="row g-2 mb-3 align-items-end">
+                <input type="hidden" name="vehicule" value="{{ selected_vehicule.id }}">
+                <input type="hidden" name="date_debut" value="{{ date_debut }}">
+                <input type="hidden" name="date_fin" value="{{ date_fin }}">
+                <div class="col-auto">
+                    <label class="form-label">Types :</label><br>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="type_entretien" value="1" id="type_entretien" {% if request.GET.type_entretien %}checked{% endif %}>
+                        <label class="form-check-label" for="type_entretien">Entretiens</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="type_ravitaillement" value="1" id="type_ravitaillement" {% if request.GET.type_ravitaillement %}checked{% endif %}>
+                        <label class="form-check-label" for="type_ravitaillement">Ravitaillements</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="type_correction_km" value="1" id="type_correction_km" {% if request.GET.type_correction_km %}checked{% endif %}>
+                        <label class="form-check-label" for="type_correction_km">Corrections km</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="type_incident" value="1" id="type_incident" {% if request.GET.type_incident %}checked{% endif %}>
+                        <label class="form-check-label" for="type_incident">Incidents</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <label for="periode_debut" class="form-label">Du</label>
+                    <input type="date" class="form-control" name="periode_debut" id="periode_debut" value="{{ request.GET.periode_debut }}">
+                </div>
+                <div class="col-auto">
+                    <label for="periode_fin" class="form-label">Au</label>
+                    <input type="date" class="form-control" name="periode_fin" id="periode_fin" value="{{ request.GET.periode_fin }}">
+                </div>
+                <div class="col-auto">
+                    <label for="recherche" class="form-label">Recherche</label>
+                    <input type="text" class="form-control" name="recherche" id="recherche" placeholder="Mot-clé..." value="{{ request.GET.recherche }}">
+                </div>
+                <div class="col-auto">
+                    <label for="tri" class="form-label">Trier par</label>
+                    <select class="form-select" name="tri" id="tri">
+                        <option value="date" {% if request.GET.tri == 'date' or not request.GET.tri %}selected{% endif %}>Date</option>
+                        <option value="type" {% if request.GET.tri == 'type' %}selected{% endif %}>Type</option>
+                        <option value="km" {% if request.GET.tri == 'km' %}selected{% endif %}>Kilométrage</option>
+                        <option value="cout" {% if request.GET.tri == 'cout' %}selected{% endif %}>Coût</option>
+                        <option value="auteur" {% if request.GET.tri == 'auteur' %}selected{% endif %}>Auteur</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select class="form-select" name="ordre" id="ordre">
+                        <option value="desc" {% if request.GET.ordre == 'desc' or not request.GET.ordre %}selected{% endif %}>Décroissant</option>
+                        <option value="asc" {% if request.GET.ordre == 'asc' %}selected{% endif %}>Croissant</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Filtrer</button>
+                </div>
+            </form>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Libellé</th>
+                            <th>Kilométrage</th>
+                            <th>Coût</th>
+                            <th>Auteur</th>
+                            <th>Observations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in historique_detaille %}
+                        <tr>
+                            <td>{% if h.date %}{{ h.date|date:'d/m/Y' }}{% else %}—{% endif %}</td>
+                            <td>
+                                {% if h.type == 'entretien' %}<span class="badge bg-primary"><i class="fas fa-tools"></i> Entretien</span>{% endif %}
+                                {% if h.type == 'ravitaillement' %}<span class="badge bg-success"><i class="fas fa-gas-pump"></i> Ravitaillement</span>{% endif %}
+                                {% if h.type == 'correction_km' %}<span class="badge bg-warning text-dark"><i class="fas fa-pen"></i> Correction km</span>{% endif %}
+                                {% if h.type == 'incident' %}<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Incident</span>{% endif %}
+                            </td>
+                            <td>{% if h.libelle %}{{ h.libelle }}{% else %}—{% endif %}</td>
+                            <td>{% if h.km is not None %}{{ h.km }}{% else %}—{% endif %}</td>
+                            <td>{% if h.cout %}{{ h.cout }}{% else %}—{% endif %}</td>
+                            <td>{% if h.auteur %}{{ h.auteur }}{% else %}—{% endif %}</td>
+                            <td>{% if h.obs %}{{ h.obs }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">Aucun événement historique.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <nav aria-label="Pagination historique">
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{{ request.GET.urlencode|safe|cut:'page=' }}&page={{ page|add:'-1' }}" aria-label="Précédent"><span aria-hidden="true">&laquo;</span></a>
+                    </li>
+                    {% endif %}
+                    {% for p in page_range %}
+                    <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?{{ request.GET.urlencode|safe|cut:'page=' }}&page={{ p }}">{{ p }}</a></li>
+                    {% endfor %}
+                    {% if page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{{ request.GET.urlencode|safe|cut:'page=' }}&page={{ page|add:'1' }}" aria-label="Suivant"><span aria-hidden="true">&raquo;</span></a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% else %}
+            <div class="alert alert-warning text-center mt-5">Aucun véhicule disponible ou sélectionné.<br>Veuillez ajouter un véhicule ou vérifier vos filtres.</div>
+        {% endif %}
+    </div>
+    {% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Préparer les données pour les graphiques
+        const labels = [{% for stat in stats_mois %}'{{ stat.mois|date:'M Y' }}',{% endfor %}];
+        const kmData = [{% for stat in stats_mois %}{{ stat.km|default:0 }},{% endfor %}];
+        const missionsData = [{% for stat in stats_mois %}{{ stat.missions|default:0 }},{% endfor %}];
+        // Graphique kilométrage
+        new Chart(document.getElementById('kmChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Kilomètres parcourus',
+                    data: kmData,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+        // Graphique missions
+        new Chart(document.getElementById('missionsChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Missions réalisées',
+                    data: missionsData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+    {% endblock %} 

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Contrôle de l'application{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Contrôle de l'application</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-success">Enregistrer</button>
+                        <a href="{% url 'application_control_logout' %}" class="btn btn-secondary ms-2">Quitter</a>
+                    </form>
+                    <hr>
+                    <p><strong>Statut actuel :</strong> {% if control.is_open %}<span class="text-success">Ouvert</span>{% else %}<span class="text-danger">Fermé</span>{% endif %}</p>
+                    <p><strong>Période autorisée :</strong> du {{ control.start_datetime|date:'d/m/Y H:i' }} au {{ control.end_datetime|date:'d/m/Y H:i' }}</p>
+                    <p><strong>Message de blocage :</strong> {{ control.message }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

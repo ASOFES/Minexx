@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport des missions</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2c3e50;
+        }
+        .header h1 {
+            margin: 0 0 5px 0;
+            font-size: 22pt;
+            color: #2c3e50;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header .subtitle {
+            font-size: 10pt;
+            color: #7f8c8d;
+        }
+        .header .export-info {
+            font-size: 8pt;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+        .company-info {
+            text-align: right;
+            margin-bottom: 15px;
+            font-size: 8pt;
+            color: #7f8c8d;
+        }
+        .filters {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .filters h3 {
+            margin: 0 0 8px 0;
+            font-size: 10pt;
+            color: #2c3e50;
+        }
+        .filters ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .filters li {
+            margin-bottom: 3px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 8pt;
+            page-break-inside: auto;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 8pt;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #ecf0f1;
+            vertical-align: top;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #f1f8fe;
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 600;
+            text-align: center;
+            min-width: 80px;
+        }
+        .status-validee { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-en_cours { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .status-terminee { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            text-align: center;
+            font-size: 7pt;
+            color: #95a5a6;
+            border-top: 1px solid #ecf0f1;
+        }
+        .page-number:after {
+            content: counter(page);
+        }
+        .page-count:after {
+            content: counter(pages);
+        }
+        .pagination {
+            text-align: right;
+            font-size: 8pt;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .logo {
+            max-width: 120px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td style="width: 20%; text-align: left;">
+                    <img src="/static/images/logo_minexx.png" alt="Logo MINEXX" style="max-height: 60px; object-fit:contain;">
+                </td>
+                <td style="text-align: center;">
+                    <h1>Rapport des missions</h1>
+                    <div class="subtitle">Gestion de flotte automobile - Synthèse des missions de transport</div>
+                    {% if departement %}
+                    <div style="margin-top: 5px; font-size: 10pt; color: #555;">
+                        Département : {{ departement }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td style="width: 20%; text-align: right; vertical-align: top; padding-top: 5px;">
+                    <div style="font-size: 9pt; color: #666; margin-bottom: 5px;">
+                        Généré le {{ now|date:"d/m/Y H:i" }}
+                    </div>
+                    <div style="font-size: 9pt; color: #666;">
+                        Par {{ request.user.get_full_name|default:request.user.username }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {% if filters.statut or filters.date_debut or filters.date_fin %}
+    <div class="filters">
+        <h3>Critères de sélection :</h3>
+        <ul>
+            {% if filters.statut %}<li><strong>Statut :</strong> {{ filters.statut|title }}</li>{% endif %}
+            {% if filters.date_debut %}<li><strong>Période :</strong> Du {{ filters.date_debut }}{% if filters.date_fin %} au {{ filters.date_fin }}{% endif %}</li>{% endif %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 10%;">Date</th>
+                <th style="width: 10%;">Statut</th>
+                <th style="width: 15%;">Départ</th>
+                <th style="width: 15%;">Destination</th>
+                <th style="width: 12%;">Demandeur</th>
+                <th style="width: 15%;">Véhicule</th>
+                <th style="width: 10%;" class="text-center">Distance (km)</th>
+                <th style="width: 8%;" class="text-center">Durée</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mission in missions %}
+            <tr>
+                <td><strong>#{{ mission.id }}</strong></td>
+                <td>{{ mission.date_validation|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <span class="status status-{{ mission.statut }}">
+                        {{ mission.get_statut_display }}
+                    </span>
+                </td>
+                <td>{{ mission.point_embarquement|truncatechars:30 }}</td>
+                <td>{{ mission.destination|truncatechars:30 }}</td>
+                <td>{{ mission.demandeur.get_full_name|default:mission.demandeur.username|truncatechars:20 }}</td>
+                <td>
+                    {% if mission.vehicule %}
+                        {{ mission.vehicule.immatriculation }} ({{ mission.vehicule.marque|truncatechars:10 }} {{ mission.vehicule.modele|truncatechars:10 }})
+                    {% else %}-
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ mission.distance_parcourue|default:"-" }}</td>
+                <td class="text-center">
+                    {% if mission.date_depart and mission.date_fin %}
+                        {% with duration=mission.date_fin|timesince:mission.date_depart %}
+                            {{ duration|slice:":1" }}
+                        {% endwith %}
+                    {% else %}-
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 20px; color: #95a5a6;">Aucune mission trouvée pour les critères sélectionnés</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        Page <span class="page-number"></span> sur <span class="page-count"></span>
+    </div>
+
+    <div class="footer">
+        <div>Document généré par le système de gestion de flotte - Confidential</div>
+        <div>© {% now "Y" %} Tous droits réservés</div>
+    </div>
+</body>
+</html>

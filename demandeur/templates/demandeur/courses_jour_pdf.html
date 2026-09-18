@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Courses du jour - {{ date }}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm 1cm 1.5cm 1cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            font-size: 12px;
+            background-color: #fff;
+        }
+        .header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2c3e50;
+            text-align: center;
+        }
+        .header .logo {
+            margin-bottom: 10px;
+        }
+        .header .logo-img {
+            max-height: 50px;
+        }
+        .header-content {
+            margin-bottom: 15px;
+        }
+        .header .title {
+            margin: 5px 0;
+            font-size: 18pt;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .header .subtitle {
+            font-size: 10pt;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .header .company-info {
+            font-size: 10px;
+            color: #a0aec0;
+            letter-spacing: 1px;
+        }
+        .table-container { 
+            width: 100%; 
+            overflow: auto;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0 20px 0;
+            font-size: 8pt;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-weight: normal;
+            border: 1px solid #1a252f;
+        }
+        td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            vertical-align: middle;
+            word-break: break-word;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 8pt;
+            color: #95a5a6;
+            text-align: center;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 8pt;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .status-en_attente { background-color: #95a5a6; color: white; }
+        .status-en_cours { background-color: #3498db; color: white; }
+        .status-validee { background-color: #f39c12; color: white; }
+        .status-terminee { background-color: #2ecc71; color: white; }
+        .status-annulee { background-color: #e74c3c; color: white; }
+        .status-refusee { background-color: #c0392b; color: white; }
+        .priority-important { 
+            background-color: #cce5ff; 
+            color: #004085; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 8pt;
+            display: inline-block;
+        }
+        .priority-urgence { 
+            background-color: #ffcccc; 
+            color: #a94442; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 8pt;
+            display: inline-block;
+        }
+        .priority-haute_urgence { 
+            background-color: #ffe5b4; 
+            color: #b36b00; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 8pt;
+            display: inline-block;
+        }
+        .summary-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 9pt;
+        }
+        .summary-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-weight: bold;
+        }
+        .summary-value {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            {% if logo_data_uri %}
+                <img src="{{ logo_data_uri }}" alt="Logo MINEXX" class="logo-img">
+            {% endif %}
+        </div>
+        <div class="header-content">
+            <h1 class="title">COURSES DU JOUR</h1>
+            <div class="subtitle">
+                Document généré le {{ now|date:"d/m/Y à H:i" }} par {{ user.get_full_name|default:user.username }}
+            </div>
+            <div class="company-info">
+                MINEXX - Gestion de Parc Automobile
+            </div>
+            <div style="margin-top: 5px; font-size: 10pt; color: #555;">
+                Date : {{ date|date:'d/m/Y' }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Résumé des courses -->
+    <div class="summary-box">
+        <div class="summary-item">
+            Total courses: <span class="summary-value">{{ courses|length }}</span>
+        </div>
+        <div class="summary-item">
+            En attente: <span class="summary-value">{{ courses|dictsort:"statut"|length }}</span>
+        </div>
+        <div class="summary-item">
+            En cours: <span class="summary-value">{{ courses|dictsort:"statut"|length }}</span>
+        </div>
+        <div class="summary-item">
+            Terminées: <span class="summary-value">{{ courses|dictsort:"statut"|length }}</span>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Demandeur</th>
+                    <th>Départ</th>
+                    <th>Destination</th>
+                    <th>Motif</th>
+                    <th>Passagers</th>
+                    <th>Chauffeur</th>
+                    <th>Véhicule</th>
+                    <th>Statut</th>
+                    <th>Priorité</th>
+                    <th>Date souhaitée</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for course in courses %}
+                <tr>
+                    <td>{{ course.id }}</td>
+                    <td>{{ course.demandeur.get_full_name|default:course.demandeur.username }}</td>
+                    <td>{{ course.point_embarquement }}</td>
+                    <td>{{ course.destination }}</td>
+                    <td>{{ course.motif|truncatechars:30 }}</td>
+                    <td>{{ course.nombre_passagers }}</td>
+                    <td>{% if course.chauffeur %}{{ course.chauffeur.get_full_name|default:course.chauffeur.username }}{% else %}-{% endif %}</td>
+                    <td>{% if course.vehicule %}{{ course.vehicule.immatriculation }}{% else %}-{% endif %}</td>
+                    <td>
+                        <span class="status-badge status-{{ course.statut }}">
+                            {{ course.get_statut_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if course.priorite == 'urgence' %}
+                        <span class="priority-urgence">Urgence</span>
+                        {% elif course.priorite == 'haute_urgence' %}
+                        <span class="priority-haute_urgence">Haute urgence</span>
+                        {% else %}
+                        <span class="priority-important">Important</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if course.date_souhaitee %}{{ course.date_souhaitee|date:'d/m/Y H:i' }}{% else %}-{% endif %}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="footer">
+        Application Gestion de Flotte &mdash; Généré le {{ now|date:"d/m/Y H:i" }}
+    </div>
+</body>
+</html> 

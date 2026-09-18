@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des Utilisateurs</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .logo { width: 120px; margin-bottom: 10px; }
+        .departement { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .date-gen { font-size: 11px; color: #555; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #888; padding: 6px 4px; text-align: left; }
+        th { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_path %}
+            <img src="{{ logo_path }}" class="logo" alt="Logo" />
+        {% endif %}
+        <div class="departement">Département : {{ departement_nom }}</div>
+        <div class="date-gen">Généré le {{ date_generation }}</div>
+        <h2>Liste des Utilisateurs</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Nom d'utilisateur</th>
+                <th>Nom complet</th>
+                <th>Email</th>
+                <th>Rôle</th>
+                <th>Département</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.get_full_name|default:"-" }}</td>
+                <td>{{ user.email|default:"-" }}</td>
+                <td>{{ user.get_role_display }}</td>
+                <td>{{ user.etablissement.nom|default:"-" }}</td>
+                <td>{% if user.is_active %}Actif{% else %}Inactif{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align:center;">Aucun utilisateur trouvé.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="font-size:13px; color:#444; margin:0;">Département : <strong>{{ user_list.0.departement.nom|default:'AUCUN' }}</strong></p>
+</body>
+</html> 

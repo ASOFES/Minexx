@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Détails du Véhicule" %} {{ vehicule.immatriculation }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .document-card {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .document-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    }
+    .status-indicator {
+        height: 8px;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .document-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
+    .progress-bar-custom {
+        height: 10px;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        margin: 10px 0;
+        overflow: hidden;
+        position: relative;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        border-radius: 5px;
+    }
+    .vehicle-image {
+        max-height: 250px;
+        object-fit: contain;
+    }
+    .info-badge {
+        font-size: 1.1rem;
+        padding: 8px 15px;
+        border-radius: 6px;
+    }
+    .vehicle-info-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        height: 100%;
+    }
+    .days-remaining {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-car me-2"></i>{% trans "Détails du Véhicule" %}</h5>
+                    <div>
+                        <a href="{% url 'vehicule_list' %}" class="btn btn-light btn-sm me-2">
+                            <i class="fas fa-arrow-left me-1"></i>{% trans "Retour à la liste" %}
+                        </a>
+                        <a href="{% url 'vehicule_detail_pdf' vehicule.id %}" class="btn btn-danger btn-sm me-2" target="_blank">
+                            <i class="fas fa-file-pdf me-1"></i>{% trans "Exporter PDF" %}
+                        </a>
+                        <a href="{% url 'vehicule_edit' vehicule.id %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit me-1"></i>{% trans "Modifier" %}
+                        </a>
+                        {% if user.is_superuser or user.role == 'admin' or user.role == 'dispatch' %}
+                        <a href="{% url 'vehicule_change_etablissement' vehicule.id %}" class="btn btn-info btn-sm ms-2">
+                            <i class="fas fa-exchange-alt me-1"></i>{% trans "Changer d'établissement" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- En-tête avec immatriculation et statut -->
+                <div class="bg-light p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">{{ vehicule.marque }} {{ vehicule.modele }} <span class="badge bg-primary">{{ vehicule.immatriculation }}</span></h3>
+                        <div>
+                            {% with jours_assurance=vehicule.jours_avant_expiration_assurance jours_controle=vehicule.jours_avant_expiration_controle jours_vignette=vehicule.jours_avant_expiration_vignette %}
+                                {% if jours_assurance <= 0 or jours_controle <= 0 or jours_vignette <= 0 %}
+                                    <span class="badge bg-danger p-2"><i class="fas fa-exclamation-triangle me-1"></i>{% trans "Documents expirés" %}</span>
+                                {% elif jours_assurance <= 30 or jours_controle <= 30 or jours_vignette <= 30 %}
+                                    <span class="badge bg-warning p-2"><i class="fas fa-exclamation-circle me-1"></i>{% trans "Expiration proche" %}</span>
+                                {% else %}
+                                    <span class="badge bg-success p-2"><i class="fas fa-check-circle me-1"></i>{% trans "En règle" %}</span>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-4">
+                            <div class="vehicle-info-card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-image me-2"></i>{% trans "Photo du véhicule" %}</h6>
+                                </div>
+                                <div class="card-body text-center p-0">
+                                    {% if vehicule.image %}
+                                        <div class="p-3">
+                                            <img src="{{ vehicule.image.url }}" alt="{{ vehicule.immatriculation }}" class="vehicle-image img-fluid rounded shadow-sm">
+                                        </div>
+                                    {% else %}
+                                        <div class="p-5 bg-light">
+                                            <i class="fas fa-car fa-5x text-muted"></i>
+                                            <p class="mt-3 text-muted">{% trans "Aucune image disponible" %}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <div class="vehicle-info-card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>{% trans "Informations générales" %}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-4 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Immatriculation" %}</p>
+                                                <p class="info-badge bg-primary text-white mb-0">{{ vehicule.immatriculation }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-4 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Département" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.etablissement.nom }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Marque" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.marque }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Modèle" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.modele }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Couleur" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.couleur }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "N° châssis" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.numero_chassis|default:"—" }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "N° moteur" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.numero_moteur|default:"—" }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Carte rose" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.numero_carte_rose|default:"—" }}</p>
+                                                {% if vehicule.document_carte_rose %}
+                                                <a href="{{ vehicule.document_carte_rose.url }}" class="small" target="_blank">{% trans "Voir document" %}</a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Km de début" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.kilometrage_debut|default:"—" }} km</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Km actuel" %}</p>
+                                                <p class="info-badge bg-light mb-0">{{ vehicule.kilometrage_actuel|default:"—" }} km</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <p class="mb-2 fw-bold text-muted text-center">{% trans "Pneus (identification)" %}</p>
+                                        </div>
+                                        <div class="col-md-4 mb-2 text-center">
+                                            <small class="text-muted">{% trans "Avant gauche" %}</small>
+                                            <p class="info-badge bg-light mb-0">{{ vehicule.numero_pneu_avant_gauche|default:"—" }}</p>
+                                        </div>
+                                        <div class="col-md-4 mb-2 text-center">
+                                            <small class="text-muted">{% trans "Avant droit" %}</small>
+                                            <p class="info-badge bg-light mb-0">{{ vehicule.numero_pneu_avant_droit|default:"—" }}</p>
+                                        </div>
+                                        <div class="col-md-4 mb-2 text-center">
+                                            <small class="text-muted">{% trans "Arrière gauche" %}</small>
+                                            <p class="info-badge bg-light mb-0">{{ vehicule.numero_pneu_arriere_gauche|default:"—" }}</p>
+                                        </div>
+                                        <div class="col-md-4 mb-2 text-center">
+                                            <small class="text-muted">{% trans "Arrière droit" %}</small>
+                                            <p class="info-badge bg-light mb-0">{{ vehicule.numero_pneu_arriere_droit|default:"—" }}</p>
+                                        </div>
+                                        <div class="col-md-4 mb-2 text-center">
+                                            <small class="text-muted">{% trans "Secours" %}</small>
+                                            <p class="info-badge bg-light mb-0">{{ vehicule.numero_pneu_secours|default:"—" }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-md-12">
+                                            <div class="mb-3 text-center">
+                                                <p class="mb-1 fw-bold text-muted">{% trans "Prochain entretien estimé" %}</p>
+                                                {% with date_entretien=vehicule.date_prochain_entretien_estimee %}
+                                                    {% if date_entretien.0 %}
+                                                        <p class="info-badge bg-warning text-dark mb-0">{{ date_entretien.0|date:"d/m/Y" }}</p>
+                                                    {% elif date_entretien.1 %}
+                                                        <p class="info-badge bg-light mb-0">{{ date_entretien.1 }}</p>
+                                                    {% else %}
+                                                        <p class="info-badge bg-light mb-0">{% trans "Non disponible" %}</p>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12 mb-3">
+                            <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>{% trans "Dates d'expiration des documents" %}</h5>
+                        </div>
+                        
+                        <!-- Assurance -->
+                        <div class="col-md-3 mb-4">
+                            <div class="document-card position-relative shadow-sm">
+                                <div class="status-indicator {% if vehicule.jours_avant_expiration_assurance <= 0 %}bg-danger{% elif vehicule.jours_avant_expiration_assurance <= 30 %}bg-warning{% else %}bg-success{% endif %}"></div>
+                                <div class="card-body text-center p-4">
+                                    <div class="document-icon {% if vehicule.jours_avant_expiration_assurance <= 0 %}text-danger{% elif vehicule.jours_avant_expiration_assurance <= 30 %}text-warning{% else %}text-success{% endif %}">
+                                        <i class="fas fa-file-contract"></i>
+                                    </div>
+                                    <h5 class="card-title mb-3">{% trans "Assurance" %}</h5>
+                                    
+                                    {% if vehicule.date_expiration_assurance %}
+                                        <div class="mb-3">
+                                            <span class="d-block text-muted">{% trans "Date d'expiration" %}</span>
+                                            <strong>{{ vehicule.date_expiration_assurance|date:"d/m/Y" }}</strong>
+                                        </div>
+                                        
+                                        {% with jours=vehicule.jours_avant_expiration_assurance %}
+                                            {% if jours <= 0 %}
+                                                <div class="alert alert-danger py-2 mt-3 mb-0">
+                                                    <span class="days-remaining">{% trans "Expirée" %}</span>
+                                                </div>
+                                            {% else %}
+                                                <div class="progress-bar-custom">
+                                                    <div class="progress-bar-fill {% if jours <= 30 %}bg-warning{% else %}bg-success{% endif %}" style="width: {% if jours >= 365 %}100{% else %}{{ jours|floatformat:0|default:0 }}{% endif %}%;"></div>
+                                                </div>
+                                                <div class="{% if jours <= 30 %}text-warning{% else %}text-success{% endif %}">
+                                                    <span class="days-remaining">{{ jours }}</span> {% trans "jours restants" %}
+                                                </div>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <div class="alert alert-secondary py-2 mt-3 mb-0">
+                                            <span>{% trans "Non définie" %}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contrôle technique -->
+                        <div class="col-md-3 mb-4">
+                            <div class="document-card position-relative shadow-sm">
+                                <div class="status-indicator {% if vehicule.jours_avant_expiration_controle <= 0 %}bg-danger{% elif vehicule.jours_avant_expiration_controle <= 30 %}bg-warning{% else %}bg-success{% endif %}"></div>
+                                <div class="card-body text-center p-4">
+                                    <div class="document-icon {% if vehicule.jours_avant_expiration_controle <= 0 %}text-danger{% elif vehicule.jours_avant_expiration_controle <= 30 %}text-warning{% else %}text-success{% endif %}">
+                                        <i class="fas fa-clipboard-check"></i>
+                                    </div>
+                                    <h5 class="card-title mb-3">{% trans "Contrôle technique" %}</h5>
+                                    
+                                    {% if vehicule.date_expiration_controle_technique %}
+                                        <div class="mb-3">
+                                            <span class="d-block text-muted">{% trans "Date d'expiration" %}</span>
+                                            <strong>{{ vehicule.date_expiration_controle_technique|date:"d/m/Y" }}</strong>
+                                        </div>
+                                        
+                                        {% with jours=vehicule.jours_avant_expiration_controle %}
+                                            {% if jours <= 0 %}
+                                                <div class="alert alert-danger py-2 mt-3 mb-0">
+                                                    <span class="days-remaining">{% trans "Expirée" %}</span>
+                                                </div>
+                                            {% else %}
+                                                <div class="progress-bar-custom">
+                                                    <div class="progress-bar-fill {% if jours <= 30 %}bg-warning{% else %}bg-success{% endif %}" style="width: {% if jours >= 365 %}100{% else %}{{ jours|floatformat:0|default:0 }}{% endif %}%;"></div>
+                                                </div>
+                                                <div class="{% if jours <= 30 %}text-warning{% else %}text-success{% endif %}">
+                                                    <span class="days-remaining">{{ jours }}</span> {% trans "jours restants" %}
+                                                </div>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <div class="alert alert-secondary py-2 mt-3 mb-0">
+                                            <span>{% trans "Non définie" %}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Vignette -->
+                        <div class="col-md-3 mb-4">
+                            <div class="document-card position-relative shadow-sm">
+                                <div class="status-indicator {% if vehicule.jours_avant_expiration_vignette <= 0 %}bg-danger{% elif vehicule.jours_avant_expiration_vignette <= 30 %}bg-warning{% else %}bg-success{% endif %}"></div>
+                                <div class="card-body text-center p-4">
+                                    <div class="document-icon {% if vehicule.jours_avant_expiration_vignette <= 0 %}text-danger{% elif vehicule.jours_avant_expiration_vignette <= 30 %}text-warning{% else %}text-success{% endif %}">
+                                        <i class="fas fa-ticket-alt"></i>
+                                    </div>
+                                    <h5 class="card-title mb-3">{% trans "Vignette" %}</h5>
+                                    
+                                    {% if vehicule.date_expiration_vignette %}
+                                        <div class="mb-3">
+                                            <span class="d-block text-muted">{% trans "Date d'expiration" %}</span>
+                                            <strong>{{ vehicule.date_expiration_vignette|date:"d/m/Y" }}</strong>
+                                        </div>
+                                        
+                                        {% with jours=vehicule.jours_avant_expiration_vignette %}
+                                            {% if jours <= 0 %}
+                                                <div class="alert alert-danger py-2 mt-3 mb-0">
+                                                    <span class="days-remaining">{% trans "Expirée" %}</span>
+                                                </div>
+                                            {% else %}
+                                                <div class="progress-bar-custom">
+                                                    <div class="progress-bar-fill {% if jours <= 30 %}bg-warning{% else %}bg-success{% endif %}" style="width: {% if jours >= 365 %}100{% else %}{{ jours|floatformat:0|default:0 }}{% endif %}%;"></div>
+                                                </div>
+                                                <div class="{% if jours <= 30 %}text-warning{% else %}text-success{% endif %}">
+                                                    <span class="days-remaining">{{ jours }}</span> {% trans "jours restants" %}
+                                                </div>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <div class="alert alert-secondary py-2 mt-3 mb-0">
+                                            <span>{% trans "Non définie" %}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Stationnement -->
+                        <div class="col-md-3 mb-4">
+                            <div class="document-card position-relative shadow-sm">
+                                <div class="card-body text-center p-4">
+                                    <div class="document-icon text-primary">
+                                        <i class="fas fa-parking"></i>
+                                    </div>
+                                    <h5 class="card-title mb-3">{% trans "Stationnement" %}</h5>
+                                    
+                                    {% if vehicule.date_expiration_stationnement %}
+                                        <div class="mb-3">
+                                            <span class="d-block text-muted">{% trans "Date d'expiration" %}</span>
+                                            <strong>{{ vehicule.date_expiration_stationnement|date:"d/m/Y" }}</strong>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-secondary py-2 mt-3 mb-0">
+                                            <span>{% trans "Non définie" %}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

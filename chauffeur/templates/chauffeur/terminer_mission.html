@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}Terminer la mission #{{ mission.id }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-flag-checkered me-2"></i>Terminer la mission #{{ mission.id }}</h1>
+            <a href="{% url 'chauffeur:detail_mission' mission.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour aux détails
+            </a>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header module-chauffeur text-white">
+                <h5 class="mb-0"><i class="fas fa-car-side me-2"></i>Informations d'arrivée</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6 class="mb-3">Résumé de la mission</h6>
+                    <div class="row mb-2">
+                        <div class="col-md-4 fw-bold">Demandeur:</div>
+                        <div class="col-md-8">
+                            {% if mission.demandeur %}
+                                {% if mission.demandeur.get_full_name %}
+                                    {{ mission.demandeur.get_full_name }}
+                                {% else %}
+                                    {{ mission.demandeur.username }}
+                                {% endif %}
+                                {% if mission.demandeur.email %}
+                                    <br><small class="text-muted">{{ mission.demandeur.email }}</small>
+                                {% endif %}
+                            {% else %}
+                                Non spécifié
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4 fw-bold">Point d'embarquement:</div>
+                        <div class="col-md-8">{{ mission.point_embarquement }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4 fw-bold">Destination:</div>
+                        <div class="col-md-8">{{ mission.destination }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4 fw-bold">Véhicule:</div>
+                        <div class="col-md-8">{{ mission.vehicule.immatriculation }} - {{ mission.vehicule.marque }} {{ mission.vehicule.modele }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4 fw-bold">Kilométrage départ:</div>
+                        <div class="col-md-8">{{ mission.kilometrage_depart }} km</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4 fw-bold">Date départ:</div>
+                        <div class="col-md-8">{{ mission.date_depart|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <p><strong>Veuillez corriger les erreurs suivantes :</strong></p>
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                <li>{{ field.label }} : {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_kilometrage_fin" class="form-label">Kilométrage d'arrivée</label>
+                        <div class="input-group">
+                            <input type="number" name="kilometrage_fin" id="id_kilometrage_fin" class="form-control {% if form.kilometrage_fin.errors %}is-invalid{% endif %}" value="{{ form.kilometrage_fin.value|default:'' }}" required min="{{ mission.kilometrage_depart }}">
+                            <span class="input-group-text">km</span>
+                            {% if form.kilometrage_fin.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.kilometrage_fin.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-text">Indiquez le kilométrage actuel du véhicule à l'arrivée de la mission. Doit être supérieur au kilométrage de départ ({{ mission.kilometrage_depart }} km).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_kilometrage_fin_confirm" class="form-label">Confirmer le kilométrage d'arrivée</label>
+                        <div class="input-group">
+                            <input type="number" name="kilometrage_fin_confirm" id="id_kilometrage_fin_confirm" class="form-control {% if form.kilometrage_fin_confirm.errors %}is-invalid{% endif %}" value="{{ form.kilometrage_fin_confirm.value|default:'' }}" required min="{{ mission.kilometrage_depart }}">
+                            <span class="input-group-text">km</span>
+                            {% if form.kilometrage_fin_confirm.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.kilometrage_fin_confirm.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-text">Saisissez à nouveau le kilométrage d'arrivée pour confirmation.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_commentaire" class="form-label">Commentaire (facultatif)</label>
+                        <textarea name="commentaire" id="id_commentaire" rows="3" class="form-control {% if form.commentaire.errors %}is-invalid{% endif %}">{{ form.commentaire.value|default:'' }}</textarea>
+                        {% if form.commentaire.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.commentaire.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Ajoutez un commentaire concernant le déroulement de la mission ou tout autre information pertinente.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-flag-checkered me-2"></i>Terminer la mission
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const vehiculeId = '{{ mission.vehicule.id }}';
+    const kmInput = document.getElementById('id_kilometrage_fin');
+    const kmDepart = {{ mission.kilometrage_depart }};
+    const submitButton = document.querySelector('button[type="submit"]');
+    const form = document.querySelector('form');
+
+    if (kmInput) {
+        // Validation en temps réel lors de la saisie
+        kmInput.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            if (value < kmDepart) {
+                this.setCustomValidity(`Le kilométrage d'arrivée ne peut pas être inférieur à ${kmDepart} km`);
+                submitButton.disabled = true;
+            } else {
+                this.setCustomValidity('');
+                submitButton.disabled = false;
+            }
+        });
+
+        // Validation lors de la soumission du formulaire
+        form.addEventListener('submit', function(e) {
+            const value = parseInt(kmInput.value);
+            if (value < kmDepart) {
+                e.preventDefault();
+                alert(`Le kilométrage d'arrivée (${value} km) ne peut pas être inférieur au kilométrage de départ (${kmDepart} km).`);
+            }
+        });
+
+        // Récupération du dernier kilométrage via l'API
+        if (vehiculeId) {
+            fetch('{% url "chauffeur:get_vehicule_kilometrage" %}?vehicule_id=' + vehiculeId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.kilometrage) {
+                        const lastKm = parseInt(data.kilometrage);
+                        if (lastKm >= kmDepart) {
+                            kmInput.value = lastKm;
+                        } else {
+                            // Si le dernier kilométrage est inférieur au départ, on met le départ + 1
+                            kmInput.value = kmDepart + 1;
+                            kmInput.setCustomValidity(`Le dernier kilométrage connu (${lastKm} km) est inférieur au kilométrage de départ (${kmDepart} km). Veuillez vérifier et saisir un kilométrage valide.`);
+                            submitButton.disabled = true;
+                        }
+                    }
+                });
+        }
+    }
+});
+</script>
+{% endblock %}

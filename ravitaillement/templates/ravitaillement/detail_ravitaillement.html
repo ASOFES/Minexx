@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Détails du ravitaillement{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-gas-pump me-2"></i>Détails du ravitaillement</h5>
+                    <div>
+                        <a href="{% url 'ravitaillement:liste_ravitaillements' %}" class="btn btn-outline-light btn-sm me-2">
+                            <i class="fas fa-list me-1"></i>Liste
+                        </a>
+                        <a href="{% url 'ravitaillement:modifier_ravitaillement' ravitaillement.id %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-edit me-1"></i>Modifier
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-end mb-3">
+                        <div class="btn-group">
+                            <a href="{% url 'ravitaillement:exporter_ravitaillement_pdf' ravitaillement.id %}" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf me-1"></i>Exporter en PDF
+                            </a>
+                            <a href="{% url 'ravitaillement:exporter_ravitaillement_excel' ravitaillement.id %}" class="btn btn-success btn-sm">
+                                <i class="fas fa-file-excel me-1"></i>Exporter en Excel
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-car me-2"></i>Informations du véhicule</h5>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-striped">
+                                        <tr>
+                                            <th>Immatriculation :</th>
+                                            <td>{{ ravitaillement.vehicule.immatriculation }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Marque / Modèle :</th>
+                                            <td>{{ ravitaillement.vehicule.marque }} {{ ravitaillement.vehicule.modele }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kilométrage avant :</th>
+                                            <td>{{ ravitaillement.kilometrage_avant }} km</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kilométrage après :</th>
+                                            <td>{{ ravitaillement.kilometrage_apres }} km</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Distance parcourue :</th>
+                                            <td>{{ ravitaillement.distance_parcourue }} km</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations du ravitaillement</h5>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-striped">
+                                        <tr>
+                                            <th>Date :</th>
+                                            <td>{{ ravitaillement.date_ravitaillement|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Station :</th>
+                                            <td>{{ ravitaillement.nom_station|default:"Non spécifiée" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Quantité :</th>
+                                            <td>{{ ravitaillement.litres }} litres</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Prix unitaire :</th>
+                                            <td>{{ ravitaillement.cout_unitaire }} $/L</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Coût total :</th>
+                                            <td>{{ ravitaillement.cout_total }} $</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Consommation moyenne :</th>
+                                            <td>
+                                                {% if ravitaillement.consommation_moyenne > 0 %}
+                                                    {{ ravitaillement.consommation_moyenne|floatformat:2 }} L/100km
+                                                {% else %}
+                                                    Non disponible
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if ravitaillement.commentaires %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-comment me-2"></i>Commentaires</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-0">{{ ravitaillement.commentaires|linebreaks }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ravitaillement.image %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-image me-2"></i>Photo du reçu</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <img src="{{ ravitaillement.image.url }}" alt="Photo du reçu" class="img-fluid" style="max-height: 400px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card border-0 shadow-sm mt-4">
+                        <div class="card-footer bg-light text-muted">
+                            <small>
+                                <i class="fas fa-user me-1"></i>Créé par: {{ ravitaillement.createur.get_full_name|default:ravitaillement.createur.username }} 
+                                | <i class="fas fa-calendar me-1"></i>Le: {{ ravitaillement.date_creation|date:"d/m/Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'ravitaillement:liste_ravitaillements' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+                        </a>
+                        <div>
+                            <a href="{% url 'ravitaillement:modifier_ravitaillement' ravitaillement.id %}" class="btn btn-warning me-2">
+                                <i class="fas fa-edit me-2"></i>Modifier
+                            </a>
+                            <a href="{% url 'ravitaillement:supprimer_ravitaillement' ravitaillement.id %}" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Supprimer
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

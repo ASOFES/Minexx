@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: minexx
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Le Dockerfile exécute start.sh (migrations + gunicorn sur $PORT)
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: gestion_vehicules.settings
+      - key: DATABASE_URL
+        fromDatabase:
+          name: minexx-postgres
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://minexx.onrender.com"
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: "admin@minexx.com"
+      - key: AFRICASTALKING_USERNAME
+        sync: false
+      - key: AFRICASTALKING_API_KEY
+        sync: false
+
+databases:
+  - name: minexx-postgres
+    databaseName: minexx_db
+    user: minexx_user

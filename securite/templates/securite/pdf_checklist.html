@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Checklist de sécurité #{{ checklist.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #222;
+        }
+        .header {
+            margin-bottom: 28px;
+            border-bottom: 2px solid #005baa;
+            padding-bottom: 12px;
+        }
+        .header h1 {
+            font-size: 28px;
+            color: #005baa;
+            font-weight: bold;
+            margin: 0 0 2px 0;
+            letter-spacing: 1px;
+        }
+        .header p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            background: #eaf2fb;
+            color: #005baa;
+            padding: 8px 12px;
+            border-left: 5px solid #005baa;
+            margin-bottom: 12px;
+            margin-top: 32px;
+        }
+        .info-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 18px;
+        }
+        .info-table th {
+            background: #f0f4f8;
+            color: #005baa;
+            font-weight: bold;
+            text-align: right;
+            width: 24%;
+            padding: 8px 4px 8px 10px;
+            font-size: 14px;
+            border: 1px solid #dbe6f3;
+            vertical-align: middle;
+        }
+        .info-table td {
+            background: #fff;
+            color: #222;
+            text-align: left;
+            padding: 8px 12px 8px 12px;
+            font-size: 14px;
+            border: 1px solid #dbe6f3;
+            vertical-align: middle;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 18px;
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background-color: #f0f4f8;
+            font-weight: bold;
+            color: #005baa;
+        }
+        .status {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+        }
+        .status-ok {
+            background-color: #28a745;
+        }
+        .status-warning {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .status-danger {
+            background-color: #dc3545;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 12px;
+        }
+        .observations {
+            padding: 12px;
+            border: 1px solid #dbe6f3;
+            background-color: #f9fafd;
+            min-height: 50px;
+            font-size: 14px;
+        }
+        .signature-box {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature {
+            width: 45%;
+            border-top: 1px solid #333;
+            padding-top: 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header" style="margin-bottom: 20px; border-bottom: 2px solid #005baa; padding-bottom: 10px;">
+        <table style="width: 100%; border: none;">
+            <tr>
+                <td style="width: 120px; vertical-align: middle; border: none;">
+                    <img src="/static/images/logo_minexx.png" alt="Logo MINEXX" style="height: 60px; max-width: 160px; object-fit:contain;">
+                </td>
+                <td style="text-align: center; border: none;">
+                    <h1 style="font-size: 22px; color: #005baa; margin-bottom: 2px; letter-spacing: 1px;">RAPPORT DE CONTRÔLE DE SÉCURITÉ</h1>
+                    <p style="margin: 0; color: #666; font-size: 12px;">Checklist #{{ checklist.id }} - Généré le {{ date_generation|date:"d/m/Y à H:i" }}</p>
+                </td>
+                <td style="width: 120px; border: none;"></td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="section-title">Informations générales</div>
+    <div style="display: flex; justify-content: space-between;">
+        <div style="width: 60%;">
+            <table class="info-table">
+                <tr>
+                    <th>Véhicule</th>
+                    <td>{{ checklist.vehicule.immatriculation }} - {{ checklist.vehicule.marque }} {{ checklist.vehicule.modele }}</td>
+                </tr>
+                <tr>
+                    <th>Type de check-list</th>
+                    <td>{{ checklist.get_type_check_display }}</td>
+                </tr>
+                <tr>
+                    <th>Date du contrôle</th>
+                    <td>{{ checklist.date_controle|date:"d/m/Y à H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Lieu du contrôle</th>
+                    <td>{{ checklist.lieu_controle }}</td>
+                </tr>
+                <tr>
+                    <th>Contrôleur</th>
+                    <td>{{ checklist.controleur.get_full_name }}</td>
+                </tr>
+                <tr>
+                    <th>Kilométrage</th>
+                    <td>{{ checklist.kilometrage }} km</td>
+                </tr>
+                <tr>
+                    <th>Statut global</th>
+                    <td>
+                        {% if checklist.statut == 'conforme' %}
+                        <span class="status status-ok">CONFORME</span>
+                        {% elif checklist.statut == 'anomalie_mineure' %}
+                        <span class="status status-warning">ANOMALIES MINEURES</span>
+                        {% else %}
+                        <span class="status status-danger">NON CONFORME</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Département</th>
+                    <td>
+                        <p style="font-size:13px; color:#444; margin:0;">Département : <strong>{{ checklist.vehicule.etablissement.nom|default:'AUCUN' }}</strong></p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div style="width: 35%; text-align: center; border: 1px solid #dbe6f3; padding: 10px; border-radius: 5px; background: #f9fafd;">
+            {% if checklist.vehicule.image %}
+            <img src="{{ MEDIA_URL }}{{ checklist.vehicule.image }}" style="max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 6px;">
+            {% else %}
+            <div style="height: 150px; display: flex; align-items: center; justify-content: center; background-color: #f5f5f5; border-radius: 6px;">
+                <p style="color: #999;">Image non disponible</p>
+            </div>
+            {% endif %}
+            <p style="margin-top: 8px; font-weight: bold; font-size: 15px;">{{ checklist.vehicule.immatriculation }}</p>
+            <p style="font-style: italic; font-size: 12px; color: #666;">{{ checklist.vehicule.marque }} {{ checklist.vehicule.modele }}</p>
+        </div>
+    </div>
+    
+    <div class="section-title">Éléments extérieurs</div>
+    <table>
+        <tr>
+            <th style="width: 50%;">Élément</th>
+            <th>État</th>
+        </tr>
+        <tr>
+            <td>Phares avant</td>
+            <td>
+                {% if checklist.phares_avant == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% else %}
+                <span class="status status-danger">DÉFECTUEUX</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Phares arrière</td>
+            <td>
+                {% if checklist.phares_arriere == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% else %}
+                <span class="status status-danger">DÉFECTUEUX</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Clignotants</td>
+            <td>
+                {% if checklist.clignotants == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% else %}
+                <span class="status status-danger">DÉFECTUEUX</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>État des pneus</td>
+            <td>
+                {% if checklist.etat_pneus == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% elif checklist.etat_pneus == 'usure' %}
+                <span class="status status-warning">USURE</span>
+                {% else %}
+                <span class="status status-danger">CRITIQUE</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Carrosserie</td>
+            <td>
+                {% if checklist.carrosserie == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% elif checklist.carrosserie == 'rayures' %}
+                <span class="status status-warning">RAYURES MINEURES</span>
+                {% else %}
+                <span class="status status-danger">DOMMAGES IMPORTANTS</span>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+    
+    <div class="section-title">Éléments intérieurs</div>
+    <table>
+        <tr>
+            <th style="width: 50%;">Élément</th>
+            <th>État</th>
+        </tr>
+        <tr>
+            <td>Tableau de bord</td>
+            <td>
+                {% if checklist.tableau_bord == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% else %}
+                <span class="status status-warning">VOYANTS ALLUMÉS</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Freins</td>
+            <td>
+                {% if checklist.freins == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% elif checklist.freins == 'usure' %}
+                <span class="status status-warning">USURE</span>
+                {% else %}
+                <span class="status status-danger">DÉFECTUEUX</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Ceintures de sécurité</td>
+            <td>
+                {% if checklist.ceintures == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% else %}
+                <span class="status status-danger">DÉFECTUEUSES</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Propreté intérieure</td>
+            <td>
+                {% if checklist.proprete == 'ok' %}
+                <span class="status status-ok">OK</span>
+                {% else %}
+                <span class="status status-warning">SALE</span>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+    
+    <div class="section-title">Documents et équipements obligatoires</div>
+    <table>
+        <tr>
+            <th style="width: 50%;">Élément</th>
+            <th>État</th>
+        </tr>
+        <tr>
+            <td>Carte grise</td>
+            <td>
+                {% if checklist.carte_grise == 'present' %}
+                <span class="status status-ok">PRÉSENTE</span>
+                {% else %}
+                <span class="status status-danger">ABSENTE</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Assurance</td>
+            <td>
+                {% if checklist.assurance == 'present' %}
+                <span class="status status-ok">PRÉSENTE</span>
+                {% else %}
+                <span class="status status-danger">ABSENTE</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Triangle de signalisation</td>
+            <td>
+                {% if checklist.triangle == 'present' %}
+                <span class="status status-ok">PRÉSENT</span>
+                {% else %}
+                <span class="status status-danger">ABSENT</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Logos</td>
+            <td>
+                {% if checklist.logos == 'present' %}
+                <span class="status status-ok">PRÉSENTS</span>
+                {% else %}
+                <span class="status status-danger">ABSENTS</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Gilet de sécurité</td>
+            <td>
+                {% if checklist.gilet == 'present' %}
+                <span class="status status-ok">PRÉSENT</span>
+                {% else %}
+                <span class="status status-danger">ABSENT</span>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+    
+    <div class="section-title">Observations</div>
+    <div class="observations">
+        {% if checklist.commentaires %}
+        {{ checklist.commentaires|linebreaks }}
+        {% else %}
+        Aucune observation.
+        {% endif %}
+    </div>
+    
+    <div class="signature-box">
+        <div class="signature">
+            <p>Signature du contrôleur</p>
+        </div>
+        <div class="signature">
+            <p>Signature du responsable</p>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Document généré automatiquement par le système de gestion de flotte - {{ date_generation|date:"d/m/Y H:i:s" }}</p>
+    </div>
+</body>
+</html>

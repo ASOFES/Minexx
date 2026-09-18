@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block title %}Rapport de consommation de carburant{% endblock %}
+
+<!-- JavaScript pour améliorer l'expérience utilisateur -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateDebut = document.getElementById('date_debut');
+    const dateFin = document.getElementById('date_fin');
+    const filterForm = document.getElementById('filterForm');
+    
+    // Validation des dates
+    function validateDates() {
+        if (dateDebut.value && dateFin.value) {
+            if (dateDebut.value > dateFin.value) {
+                alert('La date de début ne peut pas être postérieure à la date de fin');
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // Validation avant soumission
+    filterForm.addEventListener('submit', function(e) {
+        if (!validateDates()) {
+            e.preventDefault();
+        }
+    });
+    
+    // Auto-submit avec délai pour éviter trop de requêtes
+    const filterInputs = filterForm.querySelectorAll('select, input[type="date"], input[type="text"], input[type="number"]');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            setTimeout(() => {
+                if (validateDates()) {
+                    filterForm.submit();
+                }
+            }, 1000);
+        });
+    });
+    
+    // Réinitialiser la page à 1 quand on change les filtres
+    filterForm.addEventListener('submit', function() {
+        const pageInput = document.createElement('input');
+        pageInput.type = 'hidden';
+        pageInput.name = 'page';
+        pageInput.value = '1';
+        filterForm.appendChild(pageInput);
+    });
+});
+</script>
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="fas fa-gas-pump me-2"></i>Rapport de consommation de carburant</h1>
+    <form method="get" class="row g-3 mb-4" id="filterForm">
+        <div class="col-md-3">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <select name="vehicule" id="vehicule" class="form-select">
+                <option value="">Tous</option>
+                {% for v in vehicules %}
+                <option value="{{ v.id }}" {% if request.GET.vehicule == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="station" class="form-label">Station</label>
+            <input type="text" name="station" id="station" class="form-control" value="{{ request.GET.station }}">
+        </div>
+        <div class="col-md-3">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+        </div>
+        <div class="col-md-3">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+        </div>
+        <div class="col-md-3">
+            <label for="montant_min" class="form-label">Montant min. ($)</label>
+            <input type="number" name="montant_min" id="montant_min" class="form-control" value="{{ request.GET.montant_min }}" min="0" step="0.01">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+            <a href="{% url 'rapport:carburant' %}" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+        </div>
+        <div class="col-md-3 d-flex align-items-end justify-content-end">
+            <a href="?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}&export=pdf" class="btn btn-danger me-2"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+            <a href="?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}&export=excel" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Excel</a>
+        </div>
+    </form>
+
+    <!-- Commentaire Général sur le Carburant -->
+    <div class="card mb-4 bg-light-blue">
+        <div class="card-body">
+            <h5 class="card-title text-primary"><i class="fas fa-info-circle me-2"></i>Synthèse du Rapport de Carburant</h5>
+            <p class="card-text">
+                Ce rapport de consommation de carburant présente une vue d'ensemble de l'utilisation du carburant sur la période sélectionnée.
+                Au total, <strong>{{ total_litres_stats|floatformat:2 }} litres</strong> ont été consommés pour un coût de <strong>{{ total_cout_stats|floatformat:2 }} $</strong>,
+                couvrant une distance de <strong>{{ total_distance_stats|floatformat:2 }} km</strong>.
+                Le coût moyen du litre de carburant est de <strong>{{ cout_moyen_par_litre_global|floatformat:2 }} $/L</strong>,
+                et la consommation moyenne globale s'établit à <strong>{% if global_average_consumption_per_100km > 0 %}{{ global_average_consumption_per_100km|floatformat:2 }} L/100km{% else %}0.00 L/100km{% endif %}</strong>.
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistiques par véhicule -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques par Véhicule</h5>
+        </div>
+        <div class="card-body">
+            <!-- Filtres supplémentaires pour les statistiques -->
+            <form class="row g-2 mb-3" id="stats-filters-form" onsubmit="return false;">
+                <div class="col-md-3">
+                    <label for="minRavitaillements" class="form-label mb-0">Ravitaillements min.</label>
+                    <input type="number" min="0" class="form-control" id="minRavitaillements" placeholder="0">
+                </div>
+                <div class="col-md-3">
+                    <label for="minLitres" class="form-label mb-0">Litres min.</label>
+                    <input type="number" min="0" step="0.01" class="form-control" id="minLitres" placeholder="0">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-primary w-100" onclick="filterStatsTable()"><i class="fas fa-filter me-1"></i>Filtrer</button>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" onclick="resetStatsTable()"><i class="fas fa-undo me-1"></i>Réinitialiser</button>
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle" id="stats-vehicules-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="cursor:pointer" onclick="sortTable(0)">Véhicule <i class="fas fa-sort"></i></th>
+                            <th style="cursor:pointer" onclick="sortTable(1)">Nombre de ravitaillements <i class="fas fa-sort"></i></th>
+                            <th style="cursor:pointer" onclick="sortTable(2)">Total litres <i class="fas fa-sort"></i></th>
+                            <th style="cursor:pointer" onclick="sortTable(3)">Total coût <i class="fas fa-sort"></i></th>
+                            <th style="cursor:pointer" onclick="sortTable(4)">Distance totale <i class="fas fa-sort"></i></th>
+                            <th style="cursor:pointer" onclick="sortTable(5)">Consommation moyenne <i class="fas fa-sort"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_vehicules %}
+                        <tr>
+                            <td>{{ stat.vehicule.immatriculation }}</td>
+                            <td>{{ stat.nb_ravitaillements }}</td>
+                            <td>{{ stat.total_litres|floatformat:2 }} L</td>
+                            <td>{{ stat.total_cout|floatformat:2 }} $</td>
+                            <td>{{ stat.total_distance|floatformat:2 }} km</td>
+                            <td>{% if stat.consommation_moyenne %}{{ stat.consommation_moyenne|floatformat:2 }} L/100km{% else %}-{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center">Aucune statistique disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-secondary fw-bold">
+                            <td class="text-end">Totaux :</td>
+                            <td>{{ total_ravitaillements }}</td>
+                            <td>{{ total_litres_stats|floatformat:2 }} L</td>
+                            <td>{{ total_cout_stats|floatformat:2 }} $</td>
+                            <td>{{ total_distance_stats|floatformat:2 }} km</td>
+                            <td></td>
+                        </tr>
+                        <tr class="table-secondary fw-bold">
+                            <td class="text-end" colspan="5">Coût moyen par litre global :</td>
+                            <td>{{ cout_moyen_par_litre_global|floatformat:2 }} $/L</td>
+                        </tr>
+                        <tr class="table-secondary fw-bold">
+                            <td class="text-end" colspan="5">Consommation moyenne globale :</td>
+                            <td>{% if global_average_consumption_per_100km > 0 %}{{ global_average_consumption_per_100km|floatformat:2 }} L/100km{% else %}-{% endif %}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par Station -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-gas-pump me-2"></i>Statistiques par Station de Ravitaillement</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Station</th>
+                            <th>Nombre de ravitaillements</th>
+                            <th>Total litres</th>
+                            <th>Total coût</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_par_station %}
+                        <tr>
+                            <td>{{ stat.nom_station }}</td>
+                            <td>{{ stat.nb_ravitaillements }}</td>
+                            <td>{{ stat.total_litres|floatformat:2 }} L</td>
+                            <td>{{ stat.total_cout|floatformat:2 }} $</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center">Aucune statistique par station disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des ravitaillements -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Liste des Ravitaillements</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Véhicule</th>
+                            <th>Station</th>
+                            <th>Kilométrage avant</th>
+                            <th>Kilométrage après</th>
+                            <th>Distance</th>
+                            <th>Litres</th>
+                            <th>Prix unitaire</th>
+                            <th>Coût total</th>
+                            <th>Consommation</th>
+                            <th>Commentaires</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in ravitaillements %}
+                        <tr>
+                            <td>{{ r.date_ravitaillement|date:'d/m/Y H:i' }}</td>
+                            <td>{{ r.vehicule.immatriculation }}</td>
+                            <td>{{ r.nom_station }}</td>
+                            <td>{{ r.kilometrage_avant }}</td>
+                            <td>{{ r.kilometrage_apres }}</td>
+                            <td>{{ r.distance_parcourue }}</td>
+                            <td>{{ r.litres }}</td>
+                            <td>{{ r.cout_unitaire }}</td>
+                            <td>{{ r.cout_total }}</td>
+                            <td>{% if r.consommation_moyenne > 0 %}{{ r.consommation_moyenne|floatformat:2 }} L/100km{% else %}-{% endif %}</td>
+                            <td>{{ r.commentaires }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="11" class="text-center">Aucun ravitaillement trouvé.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination -->
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if ravitaillements.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page=1{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Première</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ ravitaillements.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Précédente</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ ravitaillements.number }} / {{ ravitaillements.paginator.num_pages }}</span></li>
+                    {% if ravitaillements.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ ravitaillements.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Suivante</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ ravitaillements.paginator.num_pages }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{k}}={{v|urlencode}}{% endif %}{% endfor %}">Dernière</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %} 

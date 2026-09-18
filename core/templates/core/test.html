@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Diagnostic - MINEXX</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .ok { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Diagnostic de l'Application MINEXX</h1>
+    
+    <div class="status info">
+        <h3>📋 Informations Générales</h3>
+        <p><strong>Mode Debug:</strong> {{ debug }}</p>
+        <p><strong>Hôtes autorisés:</strong> {{ allowed_hosts|join:", " }}</p>
+    </div>
+    
+    <div class="status {% if db_ok %}ok{% else %}error{% endif %}">
+        <h3>🗄️ Test Base de Données</h3>
+        {% if db_ok %}
+            <p>✅ Connexion à la base de données réussie</p>
+        {% else %}
+            <p>❌ Erreur de connexion à la base de données</p>
+            <p><strong>Erreur:</strong> {{ db_error }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="status {% if models_ok %}ok{% else %}error{% endif %}">
+        <h3>📊 Test des Modèles</h3>
+        {% if models_ok %}
+            <p>✅ Modèles Django fonctionnels</p>
+            <p><strong>Nombre d'utilisateurs:</strong> {{ user_count }}</p>
+        {% else %}
+            <p>❌ Erreur avec les modèles Django</p>
+            <p><strong>Erreur:</strong> {{ models_error }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="status info">
+        <h3>🔧 Actions Recommandées</h3>
+        {% if not db_ok %}
+            <p>1. Vérifier la configuration DATABASE_URL dans Render</p>
+            <p>2. Vérifier que Supabase est accessible</p>
+        {% endif %}
+        {% if not models_ok %}
+            <p>1. Vérifier les migrations Django</p>
+            <p>2. Vérifier la structure de la base de données</p>
+        {% endif %}
+        {% if db_ok and models_ok %}
+            <p>✅ Tous les tests sont passés - Le problème est ailleurs</p>
+            <p>Vérifiez les logs Render pour plus de détails</p>
+        {% endif %}
+    </div>
+    
+    <hr>
+    <p><em>Page de diagnostic générée le {{ now|date:"d/m/Y H:i:s" }}</em></p>
+</body>
+</html>

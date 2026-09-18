@@ -1,0 +1,2 @@
+# Placeholder pour les polices
+# Ajoutez vos fichiers de police ici (ex: Poppins-Regular.ttf)

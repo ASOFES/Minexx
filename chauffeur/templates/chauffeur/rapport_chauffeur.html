@@ -1,0 +1,565 @@
+{% extends 'base.html' %}
+{% block title %}Rapport Chauffeur{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-user-tie me-2"></i>Rapport Chauffeur</h2>
+    <form method="get" class="row g-3 mb-4" id="filterForm">
+        <div class="col-md-2">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+        </div>
+        <div class="col-md-2">
+            <label for="statut" class="form-label">Statut</label>
+            <select name="statut" id="statut" class="form-select">
+                <option value="">Tous les statuts</option>
+                <option value="en_attente" {% if request.GET.statut == 'en_attente' %}selected{% endif %}>En attente</option>
+                <option value="validee" {% if request.GET.statut == 'validee' %}selected{% endif %}>Validée</option>
+                <option value="en_cours" {% if request.GET.statut == 'en_cours' %}selected{% endif %}>En cours</option>
+                <option value="terminee" {% if request.GET.statut == 'terminee' %}selected{% endif %}>Terminée</option>
+                <option value="refusee" {% if request.GET.statut == 'refusee' %}selected{% endif %}>Refusée</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <select name="vehicule" id="vehicule" class="form-select">
+                <option value="">Tous les véhicules</option>
+                {% for v in vehicules %}
+                <option value="{{ v.id }}" {% if request.GET.vehicule == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+            <a href="{% url 'chauffeur:rapport_chauffeur' %}" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+        </div>
+        <div class="col-md-2 d-flex align-items-end justify-content-end">
+            <a href="{% url 'chauffeur:rapport_chauffeur_pdf' %}?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}" class="btn btn-danger me-2"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+            <a href="{% url 'chauffeur:rapport_chauffeur_excel' %}?{% for key, value in request.GET.items %}{{ key }}={{ value }}{% if not forloop.last %}&{% endif %}{% endfor %}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Excel</a>
+        </div>
+    </form>
+    <div class="row mb-2">
+        <div class="col-md-6">
+            <h5>Département : <span class="fw-bold">{{ departement }}</span></h5>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Missions</h5>
+                    <h3>{{ total_missions }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Km parcourus</h5>
+                    <h3>{{ total_km }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Jours travaillés</h5>
+                    <h3>{{ jours_travailles }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Conso. (L/100km)</h5>
+                    <h3>{% if conso_moyenne %}{{ conso_moyenne }}{% else %}-{% endif %}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Coût total ($)</h5>
+                    <h3>{{ cout_total }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Score</h5>
+                    <h3>{{ score }}/10</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <h4 class="mt-4">Statistiques par mois</h4>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Mois</th>
+                    <th>Missions</th>
+                    <th>Kilomètres</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in stats_mois %}
+                <tr>
+                    <td>{{ stat.mois|date:'F Y' }}</td>
+                    <td>{{ stat.missions }}</td>
+                    <td>{{ stat.km }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center">Aucune donnée disponible.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <canvas id="kmChart"></canvas>
+        </div>
+        <div class="col-md-6">
+            <canvas id="missionsChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Résumé et analyses -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Répartition par statut</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statutChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Destinations fréquentes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Destination</th>
+                                    <th>Missions</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dest in destinations_frequentes %}
+                                <tr>
+                                    <td>{{ dest.destination }}</td>
+                                    <td>{{ dest.count }}</td>
+                                    <td>{% widthratio dest.count total_missions 100 %}%</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center">Aucune donnée</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Liste des missions avec pagination -->
+    <h4 class="mt-4">Liste des missions</h4>
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Point d'embarquement</th>
+                    <th>Destination</th>
+                    <th>Statut</th>
+                    <th>Demandeur</th>
+                    <th>Véhicule</th>
+                    <th>Distance parcourue (km)</th>
+                    <th>Durée estimée</th>
+                    <th>Coût estimé ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mission in missions %}
+                <tr>
+                    <td>{{ mission.id }}</td>
+                    <td>{{ mission.date_validation|date:'d/m/Y H:i' }}</td>
+                    <td>{{ mission.point_embarquement }}</td>
+                    <td>{{ mission.destination }}</td>
+                    <td>
+                        <span class="badge {% if mission.statut == 'terminee' %}bg-success{% elif mission.statut == 'en_cours' %}bg-warning{% elif mission.statut == 'validee' %}bg-info{% elif mission.statut == 'refusee' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ mission.get_statut_display }}
+                        </span>
+                    </td>
+                    <td>{% if mission.demandeur %}{{ mission.demandeur.get_full_name }}{% else %}-{% endif %}</td>
+                    <td>{% if mission.vehicule %}{{ mission.vehicule.immatriculation }}{% else %}-{% endif %}</td>
+                    <td>{{ mission.distance_parcourue|default:'-' }}</td>
+                    <td>{% if mission.distance_parcourue %}{{ mission.distance_parcourue|add:0|floatformat:0 }} min{% else %}-{% endif %}</td>
+                    <td>{% if mission.distance_parcourue %}{{ mission.distance_parcourue|floatformat:2 }}{% else %}-{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10" class="text-center">Aucune mission trouvée pour cette période.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if missions.has_other_pages %}
+    <nav aria-label="Pagination des missions">
+        <ul class="pagination justify-content-center">
+            {% if missions.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Première">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ missions.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Précédente">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for i in missions.paginator.page_range %}
+                {% if missions.number == i %}
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                {% elif i > missions.number|add:'-3' and i < missions.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if missions.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ missions.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Suivante">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ missions.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Dernière">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    <!-- Métriques avancées -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Indicateurs de performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted">Efficacité</h6>
+                                <h4 class="text-primary">
+                                    {% if total_missions > 0 %}
+                                        {% widthratio missions_terminees total_missions 100 %}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </h4>
+                                <small class="text-muted">Missions terminées</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted">Productivité</h6>
+                                <h4 class="text-success">
+                                    {% if jours_travailles > 0 %}
+                                        {{ total_missions|floatformat:1|floatformat:1 }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </h4>
+                                <small class="text-muted">Missions/jour</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted">Rendement</h6>
+                                <h4 class="text-info">
+                                    {% if total_missions > 0 %}
+                                        {{ total_km|floatformat:1|floatformat:1 }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </h4>
+                                <small class="text-muted">Km/mission</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted">Coût/km</h6>
+                                <h4 class="text-warning">
+                                    {% if total_km > 0 %}
+                                        {{ cout_total|floatformat:2|floatformat:2 }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </h4>
+                                <small class="text-muted">$/km</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <h4 class="mt-4">Incidents</h4>
+    <div class="mb-4">
+        {% if incidents > 0 %}
+            <p><strong>{{ incidents }}</strong> incident(s) signalé(s) sur la période.</p>
+            <ul>
+                <!-- Suppression de la boucle sur mission.commentaires -->
+            </ul>
+        {% else %}
+            <p>Aucun incident signalé.</p>
+        {% endif %}
+    </div>
+    <!-- Recommandations et actions -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recommandations</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        {% if conso_moyenne and conso_moyenne > 8 %}
+                        <li class="mb-2">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <strong>Consommation élevée :</strong> Optimiser la conduite pour réduire la consommation
+                        </li>
+                        {% endif %}
+                        {% if total_missions > 0 and missions_terminees < total_missions %}
+                        <li class="mb-2">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <strong>Taux de completion :</strong> Améliorer le taux de missions terminées
+                        </li>
+                        {% endif %}
+                        {% if jours_travailles > 0 and total_missions|floatformat:1 < 2 %}
+                        <li class="mb-2">
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            <strong>Productivité :</strong> Augmenter le nombre de missions par jour
+                        </li>
+                        {% endif %}
+                        {% if total_km > 0 and cout_total|floatformat:2 > 0.8 %}
+                        <li class="mb-2">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <strong>Coût par km :</strong> Optimiser les coûts de carburant
+                        </li>
+                        {% endif %}
+                        {% if score >= 8 %}
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Performance excellente :</strong> Continuer dans cette direction
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Actions à entreprendre</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-route text-primary me-2"></i>
+                            Planifier les missions de la semaine prochaine
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-tools text-secondary me-2"></i>
+                            Vérifier l'état du véhicule avant chaque mission
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-gas-pump text-warning me-2"></i>
+                            Surveiller la consommation de carburant
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-info me-2"></i>
+                            Respecter les horaires de mission
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-phone text-success me-2"></i>
+                            Maintenir une communication régulière avec le dispatch
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <h4 class="mt-4">Commentaires / Appréciations</h4>
+    <div class="mb-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        <form method="post" class="mb-3">
+            {% csrf_token %}
+            <textarea class="form-control mb-2" name="commentaire" rows="3" placeholder="Zone réservée à l'administration ou au chauffeur pour les remarques..."></textarea>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-comment-dots me-1"></i>Enregistrer le commentaire</button>
+        </form>
+        <div>
+            <h6>Commentaires enregistrés :</h6>
+            {% for c in commentaires %}
+                <div class="border rounded p-2 mb-2">
+                    <div class="small text-muted">Par {% if c.auteur %}{{ c.auteur.username }}{% else %}Anonyme{% endif %} le {{ c.date_commentaire|date:'d/m/Y H:i' }}</div>
+                    <div>{{ c.texte|linebreaks }}</div>
+                </div>
+            {% empty %}
+                <div class="text-muted">Aucun commentaire pour cette période.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Préparer les données pour les graphiques
+    const labels = [{% for stat in stats_mois %}'{{ stat.mois|date:'M Y' }}',{% endfor %}];
+    const kmData = [{% for stat in stats_mois %}{{ stat.km }},{% endfor %}];
+    const missionsData = [{% for stat in stats_mois %}{{ stat.missions }},{% endfor %}];
+    
+    // Données pour le graphique des statuts
+    const statutLabels = [{% for stat in stats_par_statut %}'{{ stat.statut|title }}',{% endfor %}];
+    const statutData = [{% for stat in stats_par_statut %}{{ stat.count }},{% endfor %}];
+    const statutColors = ['#28a745', '#ffc107', '#17a2b8', '#dc3545', '#6c757d'];
+    
+    // Graphique kilométrage
+    new Chart(document.getElementById('kmChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Kilomètres parcourus',
+                data: kmData,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+    
+    // Graphique missions
+    new Chart(document.getElementById('missionsChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Missions réalisées',
+                data: missionsData,
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+    
+    // Graphique des statuts
+    new Chart(document.getElementById('statutChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statutLabels,
+            datasets: [{
+                data: statutData,
+                backgroundColor: statutColors.slice(0, statutData.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Validation et amélioration du formulaire de filtre
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateDebut = document.getElementById('date_debut');
+        const dateFin = document.getElementById('date_fin');
+        const filterForm = document.getElementById('filterForm');
+        
+        // Validation des dates
+        function validateDates() {
+            if (dateDebut.value && dateFin.value) {
+                if (dateDebut.value > dateFin.value) {
+                    alert('La date de début ne peut pas être postérieure à la date de fin');
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Validation avant soumission
+        filterForm.addEventListener('submit', function(e) {
+            if (!validateDates()) {
+                e.preventDefault();
+            }
+        });
+        
+        // Auto-submit quand on change un filtre (optionnel)
+        const filterInputs = filterForm.querySelectorAll('select, input[type="date"]');
+        filterInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Délai pour éviter trop de requêtes
+                setTimeout(() => {
+                    if (validateDates()) {
+                        filterForm.submit();
+                    }
+                }, 500);
+            });
+        });
+        
+        // Réinitialiser la page à 1 quand on change les filtres
+        filterForm.addEventListener('submit', function() {
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'page';
+            pageInput.value = '1';
+            filterForm.appendChild(pageInput);
+        });
+    });
+</script>
+{% endblock %} 

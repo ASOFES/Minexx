@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if entretien %}
+                            <i class="fas fa-edit me-2"></i>{{ title }}
+                        {% else %}
+                            <i class="fas fa-plus me-2"></i>{{ title }}
+                        {% endif %}
+                    </h5>
+                    <div>
+                        <a href="{% url 'entretien:liste_entretiens' %}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-list me-1"></i>Liste des entretiens
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" novalidate enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.vehicule.id_for_label }}" class="form-label">{{ form.vehicule.label }}*</label>
+                                    {{ form.vehicule }}
+                                    {% if form.vehicule.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.vehicule.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.kilometrage.id_for_label }}" class="form-label">{{ form.kilometrage.label }}*</label>
+                                    {{ form.kilometrage }}
+                                    <small class="text-muted">Le kilométrage est automatiquement rempli en fonction du véhicule sélectionné.</small>
+                                    {% if form.kilometrage.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.kilometrage.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.kilometrage_apres.id_for_label }}" class="form-label">{{ form.kilometrage_apres.label }}</label>
+                                    {{ form.kilometrage_apres }}
+                                    <small class="text-muted">Saisir le kilométrage relevé après l'entretien.</small>
+                                    {% if form.kilometrage_apres.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.kilometrage_apres.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.prochain_entretien.id_for_label }}" class="form-label">{{ form.prochain_entretien.label }}</label>
+                                    {{ form.prochain_entretien }}
+                                    <small class="text-muted">Prochain entretien prévu à ce kilométrage.</small>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.garage.id_for_label }}" class="form-label">{{ form.garage.label }}*</label>
+                                    {{ form.garage }}
+                                    {% if form.garage.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.garage.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.date_entretien.id_for_label }}" class="form-label">{{ form.date_entretien.label }}*</label>
+                                    {{ form.date_entretien }}
+                                    {% if form.date_entretien.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.date_entretien.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.statut.id_for_label }}" class="form-label">{{ form.statut.label }}*</label>
+                                    {{ form.statut }}
+                                    {% if form.statut.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.statut.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.cout.id_for_label }}" class="form-label">{{ form.cout.label }}*</label>
+                                    {{ form.cout }}
+                                    {% if form.cout.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.cout.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.motif.id_for_label }}" class="form-label">{{ form.motif.label }}*</label>
+                            {{ form.motif }}
+                            {% if form.motif.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.motif.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.piece_justificative.id_for_label }}" class="form-label">{{ form.piece_justificative.label }}</label>
+                            {{ form.piece_justificative }}
+                            <small class="text-muted">Téléchargez une facture, un reçu ou tout autre document justificatif (formats acceptés: PDF, JPG, PNG)</small>
+                            {% if form.piece_justificative.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.piece_justificative.errors }}
+                                </div>
+                            {% endif %}
+                            {% if entretien and entretien.piece_justificative %}
+                                <div class="mt-2">
+                                    <p class="mb-1">Document actuel : 
+                                        <a href="{{ entretien.piece_justificative.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-file me-1"></i>{{ entretien.piece_justificative.name|slice:"9:" }}
+                                        </a>
+                                    </p>
+                                    <small class="text-muted">Télécharger un nouveau document remplacera celui-ci</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.commentaires.id_for_label }}" class="form-label">{{ form.commentaires.label }}</label>
+                            {{ form.commentaires }}
+                            {% if form.commentaires.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.commentaires.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_type_entretien" class="form-label">Type d'entretien</label>
+                            {{ form.type_entretien }}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% if entretien %}{% url 'entretien:detail_entretien' entretien.id %}{% else %}{% url 'entretien:liste_entretiens' %}{% endif %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les sélecteurs avec Select2 pour une meilleure expérience utilisateur
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('#id_vehicule, #id_statut').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+        
+        const vehiculeSelect = document.getElementById('id_vehicule');
+        const kilometrageInput = document.getElementById('id_kilometrage');
+        const kilometrageApresInput = document.getElementById('id_kilometrage_apres');
+        const form = document.querySelector('form');
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        // Fonction pour récupérer le dernier kilométrage
+        function getLastKilometrage(vehiculeId) {
+            if (!vehiculeId) return;
+            
+            fetch(`{% url 'chauffeur:get_vehicule_kilometrage' %}?vehicule_id=${vehiculeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.kilometrage) {
+                        const lastKm = parseInt(data.kilometrage);
+                        kilometrageInput.value = lastKm;
+                        // Si le champ kilométrage après existe, le définir comme étant le kilométrage avant + 1
+                        if (kilometrageApresInput) {
+                            kilometrageApresInput.value = lastKm + 1;
+                        }
+                        validateKilometrage();
+                    }
+                });
+        }
+        
+        // Écouter les changements de véhicule
+        vehiculeSelect.addEventListener('change', function() {
+            if (this.value) {
+                getLastKilometrage(this.value);
+            }
+        });
+        
+        // Validation en temps réel du kilométrage
+        function validateKilometrage() {
+            if (!kilometrageApresInput) return;
+            
+            const kmAvant = parseInt(kilometrageInput.value) || 0;
+            const kmApres = parseInt(kilometrageApresInput.value) || 0;
+            
+            if (kmApres <= kmAvant) {
+                kilometrageApresInput.setCustomValidity('Le kilométrage après doit être supérieur au kilométrage avant');
+                submitButton.disabled = true;
+            } else {
+                kilometrageApresInput.setCustomValidity('');
+                submitButton.disabled = false;
+            }
+        }
+        
+        kilometrageInput.addEventListener('input', validateKilometrage);
+        if (kilometrageApresInput) {
+            kilometrageApresInput.addEventListener('input', validateKilometrage);
+        }
+        
+        // Validation lors de la soumission
+        form.addEventListener('submit', function(event) {
+            if (!kilometrageApresInput) return;
+            
+            const kmAvant = parseInt(kilometrageInput.value) || 0;
+            const kmApres = parseInt(kilometrageApresInput.value) || 0;
+            
+            if (kmApres <= kmAvant) {
+                event.preventDefault();
+                alert('Le kilométrage après doit être supérieur au kilométrage avant.');
+                kilometrageApresInput.focus();
+            }
+        });
+        
+        // Si un véhicule est déjà sélectionné, récupérer son dernier kilométrage
+        if (vehiculeSelect.value) {
+            getLastKilometrage(vehiculeSelect.value);
+        }
+    });
+</script>
+{% endblock %}

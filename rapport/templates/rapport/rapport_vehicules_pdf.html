@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Véhicules - MINEXX</title>
+    <style>
+        @page {
+            size: landscape;
+            margin: 1cm 1.5cm 1.5cm 1.5cm;
+        }
+        
+        /* Reset et mise en page de base */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 10pt;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        /* En-tête du document */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .header-right {
+            text-align: right;
+        }
+        
+        .logo {
+            max-height: 40px;
+            margin-right: 10px;
+        }
+        
+        h1 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+            font-size: 18pt;
+            font-weight: 600;
+        }
+        
+        .document-info {
+            font-size: 8.5pt;
+            color: #666;
+            margin: 8px 0 12px 0;
+        }
+        
+        /* Tableau principal */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 8.5pt;
+            table-layout: auto;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+        
+        .data-table th {
+            background-color: #f8f9fa;
+            color: #333;
+            text-align: left;
+            padding: 6px 8px;
+            font-weight: 600;
+            border-bottom: 1px solid #dee2e6;
+            text-transform: uppercase;
+            font-size: 8pt;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        
+        .data-table td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+            white-space: nowrap;
+            word-wrap: break-word;
+            font-size: 8.5pt;
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .data-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        /* Colonnes spécifiques */
+        .text-right {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: #2c3e50;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        /* Pied de page */
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+            font-size: 8pt;
+            color: #6c757d;
+            text-align: center;
+        }
+        
+        /* Totaux */
+        .total-row {
+            background-color: #f8f9fa !important;
+            font-weight: 600;
+        }
+        
+        .total-row td {
+            border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            padding: 4px 8px;
+            background-color: #f8f9fa;
+            font-size: 8.5pt;
+        }
+        
+        /* Mise en page spécifique */
+        .page-container {
+            padding: 5px 30px 15px 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .document-title {
+            font-size: 13pt;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .document-subtitle {
+            font-size: 9pt;
+            color: #6c757d;
+            margin: 0;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- En-tête avec logo et informations -->
+        <div class="header">
+            <div class="header-left">
+                {% if logo_base64 %}
+                <img src="data:image/png;base64,{{ logo_base64 }}" alt="Logo MINEXX" class="logo">
+                {% endif %}
+            </div>
+            <div class="header-right">
+                <div class="document-title">RAPPORT VÉHICULES</div>
+                <div class="document-subtitle">Synthèse des activités et coûts</div>
+                {% if stats_vehicules.0.vehicule.etablissement %}
+                <div class="document-info">
+                    <strong>Département :</strong> {{ stats_vehicules.0.vehicule.etablissement.nom }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Informations du document -->
+        <div class="document-info">
+            <div><strong>Période :</strong> 
+                {% if date_debut %}{{ date_debut|date:"d/m/Y" }}{% else %}Début{% endif %} 
+                au 
+                {% if date_fin %}{{ date_fin|date:"d/m/Y" }}{% else %}Aujourd'hui{% endif %}
+                <span style="margin: 0 10px;">|</span>
+                <strong>Généré le :</strong> {{ date_generation }}
+                <span style="margin: 0 10px;">|</span>
+                <strong>Par :</strong> {{ user.get_full_name|default:user.username }}
+            </div>
+        </div>
+        
+        <!-- Tableau des données -->
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Véhicule</th>
+                    <th>Immatriculation</th>
+                    <th>Châssis</th>
+                    <th>Moteur</th>
+                    <th>Carte rose</th>
+                    <th>Km début</th>
+                    <th>Km actuels</th>
+                    <th>Pneus</th>
+                    <th>Distance parcourue (courses)</th>
+                    <th>Distance estimée (km)</th>
+                    <th>Alerte</th>
+                    <th>Entretiens</th>
+                    <th>Budget total</th>
+                    <th>Carburant (L)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in stats_vehicules %}
+                <tr>
+                    <td><strong>{{ stat.vehicule.marque }} {{ stat.vehicule.modele }}</strong></td>
+                    <td style="font-family: 'Courier New', monospace; color: #495057;">{{ stat.vehicule.immatriculation }}</td>
+                    <td>{{ stat.vehicule.numero_chassis|default:"—" }}</td>
+                    <td>{{ stat.vehicule.numero_moteur|default:"—" }}</td>
+                    <td>{{ stat.vehicule.numero_carte_rose|default:"—" }}</td>
+                    <td class="text-right">{{ stat.vehicule.kilometrage_debut|default:"—" }}</td>
+                    <td class="text-right">{{ stat.vehicule.kilometrage_actuel|floatformat:0|default:'0' }}</td>
+                    <td style="font-size:8px;">{{ stat.vehicule.pneus_resume|default:"—" }}</td>
+                    <td>{{ stat.distance_parcourue_courses|floatformat:2 }}</td>
+                    <td>{% if stat.distance_estimee_km is not None %}{{ stat.distance_estimee_km|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td>{% if stat.alerte_incoherence %}<span style="color:red;font-weight:bold;">⚠️ Incohérence</span>{% endif %}</td>
+                    <td>{{ stat.nb_entretiens }}</td>
+                    <td class="text-right">{{ stat.budget_total|floatformat:2|default:'0.00' }}</td>
+                    <td class="text-right">{{ stat.total_litres|floatformat:1|default:'0' }}</td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Ligne des totaux -->
+                <tr class="total-row">
+                    <td colspan="8"><strong>TOTAUX</strong></td>
+                    <td class="text-right"><strong>{{ total_distance_parcourue_courses|floatformat:2|default:'0.00' }}</strong></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-center"><strong>{{ total_entretiens|default:'0' }}</strong></td>
+                    <td class="text-right"><strong>${{ total_budget|floatformat:0|default:'0' }}</strong></td>
+                    <td class="text-right"><strong>{{ total_consommation|floatformat:1|default:'0.0' }} L</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Pied de page -->
+        <div class="footer">
+            MINEXX - Gestion de Parc Automobile | Document généré le {{ date_generation }} | Page 1/1
+        </div>
+    </div>
+</body>
+</html>

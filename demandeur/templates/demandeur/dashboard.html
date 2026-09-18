@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord - Demandeur de missions{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-clipboard-list me-2"></i>Tableau de bord - Demandeur de missions</h1>
+            <div class="d-flex gap-2">
+                <a href="{% url 'demandeur:nouvelle_demande' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Nouvelle demande
+                </a>
+                <a href="{% url 'chauffeur:rapport_demandeur' %}" class="btn btn-info">
+                    <i class="fas fa-chart-bar me-2"></i>Mon rapport
+                </a>
+
+                <div class="btn-group ms-2">
+                    <a href="{% url 'demandeur:export_courses_jour_pdf' %}" class="btn btn-outline-danger" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Exporter les courses du jour en PDF">
+                        <i class="fas fa-file-pdf me-1"></i>PDF du jour
+                    </a>
+                    <a href="{% url 'demandeur:export_courses_jour_excel' %}" class="btn btn-outline-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Exporter les courses du jour en Excel">
+                        <i class="fas fa-file-excel me-1"></i>Excel du jour
+                    </a>
+                </div>
+                <form method="post" action="{% url 'demandeur:notifier_chauffeurs' %}" class="d-inline ms-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning position-relative" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Notifier tous les chauffeurs (interne et email)">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" id="notif-spinner" role="status" aria-hidden="true"></span>
+                        <i class="fas fa-bell fa-shake me-2"></i>Notifier tous les chauffeurs
+                    </button>
+                </form>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
+                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                        new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                    // Spinner notification
+                    const notifBtn = document.querySelector('form[action=\"{% url 'demandeur:notifier_chauffeurs' %}\"] button');
+                    if (notifBtn) {
+                        notifBtn.addEventListener('click', function() {
+                            document.getElementById('notif-spinner').classList.remove('d-none');
+                        });
+                    }
+                });
+                </script>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header module-demandeur text-white">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Total demandes</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.total }}</h3>
+                <p>Demandes de missions</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>En attente</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.en_attente }}</h3>
+                <p>Demandes en attente</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Validées</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.validees }}</h3>
+                <p>Demandes validées</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-times-circle me-2"></i>Refusées</h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="display-4">{{ stats.refusees }}</h3>
+                <p>Demandes refusées</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres de recherche -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="statut" class="form-label">Statut</label>
+                        <select name="statut" id="statut" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            <option value="en_attente" {% if request.GET.statut == 'en_attente' %}selected{% endif %}>En attente</option>
+                            <option value="validee" {% if request.GET.statut == 'validee' %}selected{% endif %}>Validée</option>
+                            <option value="refusee" {% if request.GET.statut == 'refusee' %}selected{% endif %}>Refusée</option>
+                            <option value="en_cours" {% if request.GET.statut == 'en_cours' %}selected{% endif %}>En cours</option>
+                            <option value="terminee" {% if request.GET.statut == 'terminee' %}selected{% endif %}>Terminée</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_debut" class="form-label">Date début</label>
+                        <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ request.GET.date_debut }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_fin" class="form-label">Date fin</label>
+                        <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ request.GET.date_fin }}">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-2"></i>Filtrer
+                        </button>
+                        <a href="{% url 'demandeur:dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-2"></i>Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des demandes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Mes demandes de missions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-end mb-3">
+                    <div class="btn-group">
+                        <a href="{% url 'demandeur:demandes_pdf' %}?{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}{% endif %}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf me-1"></i>Exporter PDF
+                        </a>
+                        <a href="{% url 'demandeur:demandes_excel' %}?{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}{% endif %}" class="btn btn-success">
+                            <i class="fas fa-file-excel me-1"></i>Exporter Excel
+                        </a>
+                    </div>
+                </div>
+                {% if demandes_page %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date demande</th>
+                                <th>Point d'embarquement</th>
+                                <th>Destination</th>
+                                <th>Statut</th>
+                                <th>Priorité</th>
+                                <th>Chauffeur</th>
+                                <th>Véhicule</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for demande in demandes_page %}
+                            <tr>
+                                <td>{{ demande.id }}</td>
+                                <td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td>
+                                <td>{{ demande.point_embarquement }}</td>
+                                <td>{{ demande.destination }}</td>
+                                <td>
+                                    {% if demande.statut == 'en_attente' %}
+                                    <span class="badge bg-warning">En attente</span>
+                                    {% elif demande.statut == 'validee' %}
+                                    <span class="badge bg-success">Validée</span>
+                                    {% elif demande.statut == 'refusee' %}
+                                    <span class="badge bg-danger">Refusée</span>
+                                    {% elif demande.statut == 'en_cours' %}
+                                    <span class="badge bg-primary">En cours</span>
+                                    {% elif demande.statut == 'terminee' %}
+                                    <span class="badge bg-secondary">Terminée</span>
+                                    {% else %}
+                                    <span class="badge bg-dark">{{ demande.get_statut_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if demande.priorite == 'urgence' %}
+                                    <span class="badge" style="background-color:#ffcccc;color:#a94442;">Urgence</span>
+                                    {% elif demande.priorite == 'haute_urgence' %}
+                                    <span class="badge" style="background-color:#ffe5b4;color:#b36b00;">Haute urgence</span>
+                                    {% else %}
+                                    <span class="badge" style="background-color:#cce5ff;color:#004085;">Important</span>
+                                    {% endif %}
+                                </td>
+                                <td>{% if demande.chauffeur %}{{ demande.chauffeur.get_full_name|default:demande.chauffeur.username }}{% else %}Non assigné{% endif %}</td>
+                                <td>{{ demande.vehicule|default:"Non assigné" }}</td>
+                                <td>
+                                    <a href="{% url 'demandeur:detail_demande' demande.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if demande.statut == 'en_attente' %}
+                                    <a href="{% url 'demandeur:modifier_demande' demande.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'demandeur:annuler_demande' demande.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?')">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Pagination des demandes">
+                        <ul class="pagination">
+                            {% if demandes_page.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Première">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ demandes_page.previous_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Précédente">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for num_page in demandes_page.paginator.page_range %}
+                                {% if demandes_page.number == num_page %}
+                                    <li class="page-item active" aria-current="page">
+                                        <span class="page-link">{{ num_page }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num_page }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}">{{ num_page }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if demandes_page.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ demandes_page.next_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Suivante">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ demandes_page.paginator.num_pages }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.date_debut %}&date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}&date_fin={{ request.GET.date_fin }}{% endif %}" aria-label="Dernière">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% else %}
+                <p class="text-center">Aucune demande de mission trouvée.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div aria-live="polite" aria-atomic="true" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    {% for message in messages %}
+    <div class="toast align-items-center text-bg-{{ message.tags }} border-0 show mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+        toastElList.forEach(function (toastEl) {
+            new bootstrap.Toast(toastEl).show();
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

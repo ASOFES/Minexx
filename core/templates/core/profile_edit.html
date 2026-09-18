@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Modifier le profil" %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mb-5">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-edit me-2"></i>{% trans "Modifier le profil" %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.last_name.id_for_label }}">{% trans "Nom" %}</label>
+                            {{ form.last_name }}
+                            {{ form.last_name.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.first_name.id_for_label }}">{% trans "Prénom" %}</label>
+                            {{ form.first_name }}
+                            {{ form.first_name.errors }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.email.id_for_label }}">{% trans "Email" %}</label>
+                        {{ form.email }}
+                        {{ form.email.errors }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.telephone.id_for_label }}">{% trans "Téléphone" %}</label>
+                        {{ form.telephone }}
+                        {{ form.telephone.errors }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.adresse.id_for_label }}">{% trans "Adresse" %}</label>
+                        {{ form.adresse }}
+                        {{ form.adresse.errors }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.photo.id_for_label }}">{% trans "Photo" %}</label>
+                        {{ form.photo }}
+                        {{ form.photo.errors }}
+                    </div>
+                    <div class="d-flex justify-content-between flex-wrap gap-2 pb-4">
+                        <a href="{% url 'profile' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>{% trans "Enregistrer" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

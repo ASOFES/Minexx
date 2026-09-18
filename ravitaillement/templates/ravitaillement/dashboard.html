@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Ravitaillement{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Dashboard Ravitaillement</h1>
+    <div class="mb-3">
+        <a href="{% url 'ravitaillement:ajouter_ravitaillement' %}" class="btn btn-primary me-2">Nouveau ravitaillement</a>
+        <a href="{% url 'ravitaillement:exporter_ravitaillements_pdf' %}" class="btn btn-danger me-2">Export PDF</a>
+        <a href="{% url 'ravitaillement:exporter_ravitaillements_excel' %}" class="btn btn-success">Export Excel</a>
+    </div>
+    <h3>Derniers ravitaillements</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Véhicule</th>
+                <th>Chauffeur</th>
+                <th>Quantité (L)</th>
+                <th>Montant</th>
+                <th>Station</th>
+                <th>Commentaire</th>
+                <th>Kilométrage</th>
+                <th>Anomalie</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in ravitaillements_recents %}
+            <tr>
+                <td>{{ r.date_ravitaillement|date:"d/m/Y H:i" }}</td>
+                <td>{{ r.vehicule.immatriculation }}</td>
+                <td>{% if r.chauffeur %}{{ r.chauffeur.get_full_name|default:r.chauffeur.username }}{% else %}-{% endif %}</td>
+                <td>{{ r.litres }}</td>
+                <td>{{ r.cout_total }} $</td>
+                <td>{{ r.station }}</td>
+                <td>{{ r.commentaire|default:'-' }}</td>
+                <td>{{ r.kilometrage_apres|default:'-' }} km</td>
+                <td>
+                    <a href="#" class="btn btn-warning btn-sm">Signaler</a>
+                </td>
+                <td>
+                    <a href="{% url 'ravitaillement:detail_ravitaillement' r.id %}" class="btn btn-sm btn-outline-primary">Voir</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="text-center">Aucun ravitaillement récent.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

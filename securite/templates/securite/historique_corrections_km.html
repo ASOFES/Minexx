@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Historique des corrections de kilométrage{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-history me-2"></i>Historique des corrections de kilométrage</h2>
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label for="vehicule" class="form-label">Véhicule</label>
+            <select name="vehicule" id="vehicule" class="form-select">
+                <option value="">Tous</option>
+                {% for v in vehicules %}
+                    <option value="{{ v.id }}" {% if vehicule_id|default:'' == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }} - {{ v.marque }} {{ v.modele }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="chauffeur" class="form-label">Chauffeur</label>
+            <select name="chauffeur" id="chauffeur" class="form-select">
+                <option value="">Tous</option>
+                {% for c in chauffeurs %}
+                    <option value="{{ c.id }}" {% if chauffeur_id|default:'' == c.id|stringformat:'s' %}selected{% endif %}>{{ c.get_full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2"><i class="fas fa-search me-2"></i>Filtrer</button>
+            <a href="?" class="btn btn-outline-secondary"><i class="fas fa-redo me-2"></i>Réinitialiser</a>
+        </div>
+    </form>
+    <div class="mb-3 d-flex justify-content-end">
+        <a href="{% url 'securite:historique_corrections_km_pdf' %}?vehicule={{ vehicule_id }}&chauffeur={{ chauffeur_id }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}" class="btn btn-danger me-2"><i class="fas fa-file-pdf me-1"></i>Exporter PDF</a>
+        <a href="{% url 'securite:historique_corrections_km_excel' %}?vehicule={{ vehicule_id }}&chauffeur={{ chauffeur_id }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Exporter Excel</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Véhicule</th>
+                    <th>Chauffeur</th>
+                    <th>Valeur avant</th>
+                    <th>Valeur après</th>
+                    <th>Motif</th>
+                    <th>Auteur</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for corr in corrections %}
+                <tr>
+                    <td>{{ corr.date_correction|date:'d/m/Y H:i' }}</td>
+                    <td>{{ corr.vehicule.immatriculation }}</td>
+                    <td>{% if corr.chauffeur %}{{ corr.chauffeur.get_full_name }}{% else %}<span class="text-muted">Non renseigné</span>{% endif %}</td>
+                    <td>{{ corr.valeur_avant }}</td>
+                    <td>{{ corr.valeur_apres }}</td>
+                    <td>{% if corr.motif %}{{ corr.motif }}{% else %}<span class="text-muted">Aucun</span>{% endif %}</td>
+                    <td>{% if corr.auteur %}{{ corr.auteur.get_full_name }}{% else %}<span class="text-muted">Non renseigné</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center">Aucune correction trouvée.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="d-flex justify-content-center">
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                {% if corrections.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ corrections.previous_page_number }}&vehicule={{ vehicule_id }}&chauffeur={{ chauffeur_id }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}">Précédent</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">Page {{ corrections.number }} / {{ corrections.paginator.num_pages }}</span></li>
+                {% if corrections.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ corrections.next_page_number }}&vehicule={{ vehicule_id }}&chauffeur={{ chauffeur_id }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}">Suivant</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %} 

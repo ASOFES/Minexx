@@ -1,0 +1,221 @@
+
+Ecoutes , à mon avis il faut le faire séparément, c'est à dire le chauffeur créer doit avoir sa propre application qui n'a que son interface , le demandeur de missions ,le dispatcheur,  la sécurité, et le chauffeur. il doivent être séparer de l'application mère. mais reliés seulement par du fait il a envoyé sa requête et cette requête atteint le concerné. comme le service de messagerie le font. mais centralisé comme étant une information par l'application mère de l'administrateur. L'application mère n'aura qu'à ajouter le véhicule, ajouter les utilisateurs, et le reste en mode lecture.
+
+Tu me fais un projet de gestion de véhicule . je dois avoir un admin, qui gère les entrés ou les ajouts de tous les utilisateurs. il ajoute les admin comme lui, le chauffeur, la sécurité, le consultant, demandeur de missions, le dispatcheur.
+
+Dans la gestion de véhicule, on a les entretiens du véhicules, le suivi de véhicules , les ravitaillement , . l'idée de projet est de gère tout le mouvement via cette application.
+
+* le module SECURITE: son rôles est de mettre dans son interface le champs suivant (check List : parebrise avant et arrière , rétroviseur gauche et droite, clignotant, feu arrière gauche et droit , feux de position gauche et droite , le kilométrage de sorti, la date de sorti automatisée, et après le soir ou plus tard , le même check List mais après course le kilométrage de retours pour automatiser la distance parcourue.
+PERMETTANT DE RECONSTRUIRE la distance parcourue de chaque véhicule.
+
+* Module DEMANDEUR DE MISSIONS:  qui, sur son interface, il doit avoir le champ suivant: son identification, lieux d'embarquement, destination, motif, date et heure de la demande. il doit voir son historique, ou un rapport journalier. après avoir renseigné les champs, il valide sa course. 
+quand la demande est valide, il attend sa notification et aussi via son le statut de la course provenant de Dispatcher qui reçoit toutes le demandes de courses. il peut accepter, refuser ou mettre en attente. le Dispatcher quand il accepte la course c'est à dire, il assigne la course à un chauffeur et attribue le véhicule sur la liste déroulante de véhicule qui ont été enregistrés par l'administrateur aussi le chauffeur.
+le choix de véhicule, c'est via l'immatriculation.
+
+* Module DISPATCH: reprend juste le formulaire reçu de demandeur de missions, il assigne le chauffeur, le véhicule puis il valide sa date et heure sont complétées automatiquement
+
+alors, quand la course est validée, elle apparait dans l'interface du chauffeur assigné.
+
+* Module CHAUFFEUR voit le demandeur de la course, donc le même formulaire de demandeur et le chauffeur doit seulement renseigner le kilométrage de départ pour la première validation et après la course, il signale le kilométrage de fin course pour avoir la distance parcourue qui doit être automatique quand il y a la deuxième validation qui clôture cette course.
+alors au fur et en mesure il a des course, et il a également son historique et la distance total de la journée. Attention, le kilométrage de départ ne doit pas être inférieur au kilométrage après cette course. 
+le dispatcher ainsi que l'administrateur, ont la possibilité d'extraire le rapport de tout le chauffeur de la journée ou du mois par l'option tri date, jour, mois ou année. 
+
+* Module ENTRETIENS: on a le formulaire qui a les champs (immatriculation une liste déroulante, garage , date de l'entretien , statut, motif, le coût d'entretien, historique de cette immatriculation pour son entretien
+* Module RAVITAILLEMENT: immatriculation, kilométrage avant , kilométrage après, nombre de litres, calcule de consommation. Historique sur le ravitaillement de cette immatriculation 
+
+* Module de l'ADMINISTRATEUR: qui ajoute les utilisateurs(chauffeur, dispatch, véhicule, sécurité, demandeur des courses, consultant)
+
+  - le chauffeur ne verra que sont formulaire ainsi que sont historique pas d'autres options ou modules
+  - Dispatch, il assigne la course ou la refuse, ou en attente. il peut voir tout les autres modules, sans pour autant faire la    
+    modification
+  - Sécurité rien que sa formulaire
+  - Demandeur de missions également son formulaire
+  - le consultant ne doit faire que la statistique, lire pas écrire
+
+Voilà le champs à compléter lors d'ajout d'un nouveau véhicule: 
+    - Modèle, - marque, - numéros de châssis, - couleur, - immatriculation, - image du véhicule,- date d'expiration Assurance, - Date expiration control technique, - date d'expiration vignette, - Date d'expiration autorisation de stationnement
+
+* Module de rapport: qui comporte le rapport général des activité de chaque module aussi la distance parcourue chaque véhicule par tri jour, mois , année… imprimer , Recherche...
+
+J'ai besoin d'une très bonne application via sa présentation de l'interface moderne, avec le bouton ou menu flottant.
+
+cet après  on doit avoir la validation sans oublier la liste déroulante d'immatriculation à sélectionner avant le check List . on intervient maintenant aussi le tour de demandeur de missions qui lui demande sa course en la laissant au dispatch avec comme champs date automatiser , point d'embarquement, destination , motif puis valider. une fois valider , la  demande apparait chez le dispatch avec l'identifiant enregistré par l'admin suivi de sa commande et quant au dispatch, il valide , refuse ou mets en attente. et quand la course est valider, c'est à dire le dispatche assigne le chauffeur sur la liste déroulante, aussi le véhicule puis la valide directement le chauffeur reçois aussi la course avec l'identifiant du demandeur, point de départ, destination puis lui le chauffeur entre le kilométrage  de départ valide en attendant le dernier kilométrage après course pour valider la fin course et cette cumule de de distance parcouru s'accumule pour un rapport journalier . 
+chaque utilisateur doit avoir un identifiant . Dans le suivi de  véhicule, on doit avoir ( l'immatriculation , date , distance parcourt et cette distance n'est rien d'autre que les renseignement que le chauffeur insère dans l'application. dans la rubrique entretien , il faut immatriculation, le prestataire, le coût, motif . on doit avoir l'historique de chaque évènement regrouper par le menu et bouton . si cela possible donne-moi la plus belle interface que tu as dans ta  connaissance. 
+ajouter véhicule doit prendre le champs (immatriculation, modèle , marque, couleur; n° de châssis, le document de bord (date d'expiration assurance, date de vignette , date de contrôle technique, date d'autorisation de stationnement. et sache que dans l'entretien , tout le coût de  dépenses doivent faire objet de cumule, ainsi de suite dans la gestions des entretien, le suivie de véhicule aussi
+cette application doit travailler aussi en ligne sur un hébergement gratuit 
+
+le kilométrage de sorti doit être inférieur au kilométrage de retour.
+s'il te plait allez y progressivement ou pas à pas en utilisant surtout la commande cmd pour l'ensemble de projet
+
+* Module information où , nous avons le renseignement imprimable, en pdf, excel sur un événement quelconque. Exemple: véhicule immatriculé 9396av05  doit donner la date d'enregistrement , le nom de celui qui a passé les écritures, et reproduire toutes les informations du véhicules enregistré
+
+* Module suivi véhicule où on doit voir la distance parcourue  par heure, par date, par mois d'une immatriculation sur la liste déroulante 
+NB : il nous faut tous ces modules dans le projet: 
+
+* le module SECURITE: 
+* Module DEMANDEUR DE MISSIONS: 
+* Module DISPATCH:
+* Module CHAUFFEUR 
+
+* Module ENTRETIENS: on a le formulaire qui a les champs (immatriculation une liste déroulante, garage , date de l'entretien , statut, motif, le coût d'entretien, historique de cette immatriculation pour son entretien
+
+* Module RAVITAILLEMENT: immatriculation, kilométrage avant , kilométrage après, nombre de litres, calcule de consommation. Historique sur le ravitaillement de cette immatriculation 
+
+* Module de l'ADMINISTRATEUR:
+
+* Module de rapport:
+* Module information où , nous avons le renseignement imprimable, en pdf, excel sur un événement quelconque. Exemple: véhicule immatriculé 9396av05  doit donner la date d'enregistrement , le nom de celui qui a passé les écritures, et réproduire toutes les informations du véhicules enregistré
+
+* Module suivi véhicule où on doit voir la distance parcourue  par heure, par date, par mois d'une immatriculation sur la liste déroulante
+  
+Cahier des Charges Professionnel pour le Projet de Gestion de Véhicules
+1. Introduction
+Ce projet de gestion de véhicules vise à créer une application web destinée à la gestion et au suivi des véhicules, des chauffeurs, des demandes de course, des entretiens et des ravitaillements. L’application comprendra plusieurs modules distincts pour chaque type d'utilisateur (chauffeur, sécurité, demandeur de missions, dispatcher), ainsi qu'une application mère centralisée gérée par l'administrateur. Chaque action dans l'application sera tracée avec le nom de l'utilisateur, la date et l'heure de l'action, assurant ainsi une transparence et une traçabilité complètes.
+
+2. Objectifs du Projet
+L’objectif principal de ce projet est de développer une application de gestion de véhicules avec les caractéristiques suivantes :
+
+Séparation des modules : Chaque utilisateur (chauffeur, sécurité, demandeur de missions, dispatcher) aura un module dédié avec une interface personnalisée.
+
+Traçabilité complète : Chaque action dans l'application (ajout de véhicule, modification, demande de course, etc.) sera associée à un utilisateur, une date et une heure.
+
+Gestion centralisée : L’application mère (gérée par l'administrateur) centralisera toutes les données provenant des autres modules et permettra de générer des rapports détaillés.
+
+Suivi des véhicules : Suivi des distances parcourues par véhicule et par chauffeur, avec la possibilité de générer des rapports par période (jour, mois, année).
+
+Gestion des entretiens et ravitaillements : Enregistrement des entretiens effectués sur les véhicules et des ravitaillements en carburant, avec la possibilité de générer des rapports détaillant les coûts et les consommations.
+
+Rapports dynamiques : L'administrateur pourra générer des rapports filtrés par date, véhicule, chauffeur, etc.
+
+3. Architecture de l'Application
+L’architecture de l’application sera composée de deux grandes parties :
+
+Modules séparés (Sécurité, Chauffeur, Demandeur de missions, Dispatcher) : Chaque module aura son propre espace et interface utilisateur.
+
+Application mère (Admin) : L'administrateur aura un accès complet à l'ensemble des données de l'application et pourra effectuer des actions comme l'ajout de véhicules, la gestion des utilisateurs, et la création de rapports.
+
+Modules et responsabilités :
+Module Sécurité : Remplir la checklist avant et après la course, valider les informations sur le véhicule, et envoyer les données à l’application mère.
+
+Module Chauffeur : Renseigner le kilométrage de départ et de fin de chaque course, et envoyer ces informations à l’application mère.
+
+Module Demandeur de missions : Soumettre les demandes de course, qui seront traitées par le dispatcher.
+
+Module Dispatcher : Recevoir les demandes de course, affecter un chauffeur et un véhicule, et valider la course.
+
+Application Mère (Admin) :
+Gestion des véhicules : L’administrateur peut ajouter de nouveaux véhicules, avec des informations comme l’immatriculation, le modèle, et les dates d'expiration des documents.
+
+Gestion des utilisateurs : L’administrateur peut ajouter, modifier ou supprimer des utilisateurs, et leur attribuer des rôles (chauffeur, sécurité, dispatcher, demandeur de missions).
+
+Suivi des courses et des véhicules : Suivi des trajets effectués, des kilométrages, des distances parcourues, et des coûts d'entretien.
+
+Rapports : Génération de rapports détaillés sur les entretiens, les distances parcourues, et les coûts de carburant.
+
+4. Fonctionnalités Principales
+Traçabilité des actions :
+Chaque action (ajout, modification, validation) effectuée par un utilisateur dans l’application sera associée à :
+
+Nom de l'utilisateur (utilisateur qui effectue l’action),
+
+Date de l’action,
+
+Heure de l’action.
+
+Cette traçabilité permettra d'assurer un suivi détaillé de chaque opération dans le système, garantissant ainsi une transparence totale.
+
+Gestion des Modules :
+Module Sécurité :
+
+Avant et après chaque course, un agent de sécurité valide une checklist contenant des informations sur l’état du véhicule et les kilométrages.
+
+Les informations sont envoyées à l’application mère avec un enregistrement automatique de la date et de l'heure.
+
+Module Chauffeur :
+
+Le chauffeur valide le kilométrage de départ avant la course et le kilométrage de fin après la course.
+
+L’heure est automatiquement enregistrée après chaque validation.
+
+Module Demandeur de missions :
+
+Le demandeur soumet des demandes de course avec les informations nécessaires (embarquement, destination, etc.).
+
+Les demandes sont envoyées au dispatcher, qui les valide et assigne un chauffeur et un véhicule.
+
+Module Dispatcher :
+
+Le dispatcher reçoit les demandes de course et assigne un chauffeur et un véhicule.
+
+L’état de la course passe de "en attente" à "validée" une fois la validation effectuée.
+
+Application Mère (Admin) :
+Ajout de véhicules et gestion des utilisateurs :
+
+L’administrateur peut gérer les véhicules et les utilisateurs, en ajoutant de nouveaux véhicules, et en modifiant ou supprimant des utilisateurs.
+
+Suivi de la distance parcourue par véhicule :
+
+L’administrateur peut consulter la distance totale parcourue par chaque véhicule pendant une période donnée (jour, mois, année).
+
+Entretien des véhicules et ravitaillements :
+
+L’administrateur peut enregistrer les informations liées aux entretiens et aux ravitaillements de chaque véhicule, y compris les coûts associés.
+
+Rapports dynamiques :
+
+L’administrateur peut générer des rapports dynamiques sur les entretiens, les ravitaillements, les distances parcourues, et la consommation de carburant.
+
+5. Modèle de Données et Traçabilité
+Les modèles seront conçus pour inclure des champs spécifiques pour enregistrer l’utilisateur, la date et l’heure de chaque action.
+
+Exemple pour le modèle Course :
+
+python
+Copier
+class Course(models.Model):
+    vehicule = models.ForeignKey(Vehicule, on_delete=models.SET_NULL, null=True)
+    chauffeur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='chauffeur')
+    statut = models.CharField(max_length=10, choices=STATUS_CHOICES, default='en_attente')
+    kilometrage_depart = models.IntegerField(null=True, blank=True)
+    kilometrage_arrivee = models.IntegerField(null=True, blank=True)
+    distance_parcourue = models.IntegerField(null=True, blank=True)  # Calculée automatiquement
+    date_depart = models.DateTimeField(auto_now_add=True)
+    heure_depart = models.DateTimeField(auto_now_add=True)  # Enregistrée automatiquement
+    utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # Nom de l'utilisateur
+    heure_arrivee = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Calcul de la distance parcourue et prise de l'heure de fin
+        if self.kilometrage_arrivee and not self.heure_arrivee:
+            self.heure_arrivee = timezone.now()
+            self.distance_parcourue = self.kilometrage_arrivee - self.kilometrage_depart
+        super().save(*args, **kwargs)
+6. Processus de Validation
+Demande de mission :
+
+Le Demandeur de mission : soumet une demande de course.
+
+Le Dispatcher affecte un chauffeur et un véhicule à cette demande.
+
+Le chauffeur valide les kilométrages de départ et de fin et les informations sont envoyées à l'application mère.
+
+Chaque étape sera tracée avec la date, l'heure, et l'identité de l'utilisateur.
+
+Suivi des actions :
+
+L’administrateur pourra suivre l’historique des actions effectuées, en ayant accès aux informations sur qui a effectué chaque action, quand, et quelle modification a été réalisée.
+
+7. Conclusion
+Ce projet permet de mettre en place une solution complète et professionnelle de gestion de véhicules. Grâce à la traçabilité et à la séparation des modules, l’application garantit une gestion claire et efficace des chauffeurs, des véhicules, des courses, des entretiens, et des ravitaillements. L'administrateur pourra également générer des rapports détaillés sur toutes les activités et surveiller l'état des véhicules et des chauffeurs à tout moment.
+
+Prochaines étapes
+Phase 1 : Création des modèles de données (Véhicules, Courses, Utilisateurs, etc.).
+
+Phase 2 : Développement des vues pour l’enregistrement des courses, des kilomètres, des entretiens et des ravitaillements.
+
+Phase 3 : Mise en place de l'API pour la communication entre les modules.
+
+Phase 4 : Création des rapports dynamiques et mise en place de l'interface pour l'administrateur.
+
+Phase 5 : Tests et déploiement de l'application en ligne.

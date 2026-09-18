@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titre }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+        }
+        .page-number:after {
+            content: counter(page);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 9pt;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px 0 0 0;
+        }
+        .content {
+            margin: 0;
+            padding: 0;
+        }
+        .page-break {
+            page-break-after: always;
+            break-after: page;
+        }
+        .header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2c3e50;
+        }
+        .header h1 {
+            margin: 5px 0;
+            font-size: 18pt;
+            color: #2c3e50;
+        }
+        .header .subtitle {
+            font-size: 10pt;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .checklist-container {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        .checklist-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .checklist-header h2 {
+            margin: 0;
+            font-size: 14pt;
+        }
+        .checklist-details {
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        .detail-item {
+            width: 50%;
+            float: left;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+            padding: 0 5px;
+        }
+        .detail-item {
+            margin-bottom: 8px;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+        .detail-value {
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            min-height: 20px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-ok {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-nok {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .section-title {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+            text-transform: uppercase;
+            font-size: 10pt;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 8pt;
+            color: #95a5a6;
+            text-align: center;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .summary-box { 
+            background: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            padding: 10px; 
+            margin: 15px 0; 
+            font-size: 10pt;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+    <div class="header">
+        <table width="100%" style="margin-bottom: 20px;">
+            <tr>
+                <td style="width: 20%; text-align: left;">
+                    {% if logo_data_uri %}
+                        <img src="{{ logo_data_uri }}" alt="Logo" style="max-height: 60px;">
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">
+                    <h1>Checklists de Sécurité</h1>
+                    <div class="subtitle">Export PDF - {{ now|date:"d/m/Y H:i" }}</div>
+                </td>
+                <td style="width: 20%; text-align: right; font-size: 8pt;">
+                    Généré par: {{ request.user.get_full_name }}<br>
+                    {{ request.user.etablissement.nom }}<br>
+                    {{ request.user.etablissement.ville }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {% for c in checklists %}
+        {% if not forloop.first %}<div class="page-break"></div>{% endif %}
+        <div class="checklist-container">
+            <div class="checklist-header">
+            <h2>Checklist #{{ c.id }} - {{ c.vehicule }} - {{ c.type_check|title }}</h2>
+            <div style="font-size: 10pt; margin-top: 5px;">
+                Date: {{ c.date_controle|date:"d/m/Y H:i" }} | 
+                Contrôleur: {{ c.controleur }}
+            </div>
+        </div>
+
+        <div class="checklist-details">
+            <div class="detail-item">
+                <div class="detail-label">Lieu de contrôle</div>
+                <div class="detail-value">{{ c.lieu_controle|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Statut</div>
+                <div class="detail-value">
+                    <span class="status-badge {% if c.statut == 'OK' %}status-ok{% else %}status-nok{% endif %}">
+                        {{ c.statut }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Kilométrage</div>
+                <div class="detail-value">{{ c.kilometrage|default:"-" }} km</div>
+            </div>
+            
+            {% if c.distance_parcourue %}
+            <div class="detail-item">
+                <div class="detail-label">Distance parcourue</div>
+                <div class="detail-value">{{ c.distance_parcourue }} km</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <h3 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px;">
+            État du véhicule
+        </h3>
+        
+        <div class="checklist-details">
+            <div class="detail-item">
+                <div class="detail-label">Phares avant</div>
+                <div class="detail-value">{{ c.phares_avant|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Phares arrière</div>
+                <div class="detail-value">{{ c.phares_arriere|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Clignotants</div>
+                <div class="detail-value">{{ c.clignotants|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">État des pneus</div>
+                <div class="detail-value">{{ c.etat_pneus|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Carrosserie</div>
+                <div class="detail-value">{{ c.carrosserie|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Tableau de bord</div>
+                <div class="detail-value">{{ c.tableau_bord|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Freins</div>
+                <div class="detail-value">{{ c.freins|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Ceintures de sécurité</div>
+                <div class="detail-value">{{ c.ceintures|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Propreté intérieure</div>
+                <div class="detail-value">{{ c.proprete|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Carte grise</div>
+                <div class="detail-value">{{ c.carte_grise|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Assurance</div>
+                <div class="detail-value">{{ c.assurance|default:"-" }}</div>
+            </div>
+            
+            <div class="detail-item">
+                <div class="detail-label">Triangle de sécurité</div>
+                <div class="detail-value">{{ c.triangle|default:"-" }}</div>
+            </div>
+        </div>
+        
+        {% if c.changements %}
+        <div style="margin-top: 15px;">
+            <div class="detail-label">Changements constatés</div>
+            <div class="detail-value" style="min-height: auto;">{{ c.changements }}</div>
+        </div>
+        {% endif %}
+        
+        {% if c.commentaires %}
+        <div style="margin-top: 15px;">
+            <div class="detail-label">Commentaires</div>
+            <div class="detail-value" style="min-height: auto; white-space: pre-line;">{{ c.commentaires }}</div>
+        </div>
+        {% endif %}
+            </div> <!-- Fin checklist-container -->
+        {% endfor %}
+    </div> <!-- Fin content -->
+</body>
+</html>

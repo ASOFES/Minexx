@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if ravitaillement %}
+                            <i class="fas fa-edit me-2"></i>{{ title }}
+                        {% else %}
+                            <i class="fas fa-plus me-2"></i>{{ title }}
+                        {% endif %}
+                    </h5>
+                    <div>
+                        <a href="{% url 'ravitaillement:liste_ravitaillements' %}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-list me-1"></i>Liste des ravitaillements
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" novalidate id="ravitaillementForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.vehicule.id_for_label }}" class="form-label">{{ form.vehicule.label }}*</label>
+                                    {{ form.vehicule }}
+                                    {% if form.vehicule.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.vehicule.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="id_nom_station" class="form-label">Nom de la station de ravitaillement*</label>
+                                    <input type="text" name="nom_station" id="id_nom_station" class="form-control" required>
+                                </div>
+                                
+                                <!-- La date de ravitaillement sera automatiquement ajoutée lors de la création -->
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.kilometrage_avant.id_for_label }}" class="form-label">{{ form.kilometrage_avant.label }}*</label>
+                                    {{ form.kilometrage_avant }}
+                                    {% if form.kilometrage_avant.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.kilometrage_avant.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.kilometrage_apres.id_for_label }}" class="form-label">{{ form.kilometrage_apres.label }}*</label>
+                                    {{ form.kilometrage_apres }}
+                                    {% if form.kilometrage_apres.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.kilometrage_apres.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Champ Chauffeur -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.chauffeur.id_for_label }}" class="form-label">{{ form.chauffeur.label }}</label>
+                                    {{ form.chauffeur }}
+                                    {% if form.chauffeur.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.chauffeur.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.litres.id_for_label }}" class="form-label">{{ form.litres.label }}*</label>
+                                    {{ form.litres }}
+                                    {% if form.litres.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.litres.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.cout_unitaire.id_for_label }}" class="form-label">{{ form.cout_unitaire.label }}*</label>
+                                    {{ form.cout_unitaire }}
+                                    {% if form.cout_unitaire.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.cout_unitaire.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="cout_total_calcule" class="form-label">Coût total estimé ($)</label>
+                                    <input type="text" id="cout_total_calcule" class="form-control" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.commentaires.id_for_label }}" class="form-label">{{ form.commentaires.label }}</label>
+                            {{ form.commentaires }}
+                            {% if form.commentaires.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.commentaires.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label">{{ form.image.label }}</label>
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.image.errors }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Formats acceptés: JPG, PNG, GIF. Taille maximale: 5 MB.</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% if ravitaillement %}{% url 'ravitaillement:detail_ravitaillement' ravitaillement.id %}{% else %}{% url 'ravitaillement:liste_ravitaillements' %}{% endif %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les sélecteurs avec Select2 pour une meilleure expérience utilisateur
+        if (typeof $.fn.select2 !== 'undefined') {
+            // Initialisation du sélecteur de véhicule
+            $('#id_vehicule').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Sélectionnez un véhicule',
+                allowClear: true
+            });
+            
+            // Initialisation du sélecteur de chauffeur
+            $('#id_chauffeur').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Sélectionnez un chauffeur',
+                allowClear: true
+            });
+        }
+        
+        // Calculer automatiquement le coût total
+        const litresInput = document.getElementById('id_litres');
+        const coutUnitaireInput = document.getElementById('id_cout_unitaire');
+        const coutTotalInput = document.getElementById('cout_total_calcule');
+        const vehiculeSelect = document.getElementById('id_vehicule');
+        const kmAvantInput = document.getElementById('id_kilometrage_avant');
+        const kmApresInput = document.getElementById('id_kilometrage_apres');
+        const form = document.getElementById('ravitaillementForm');
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        // Désactiver le bouton d'enregistrement par défaut pour éviter la soumission avant que le kilométrage ne soit défini
+        submitButton.disabled = true;
+
+        // Fonction pour récupérer le dernier kilométrage
+        function getLastKilometrage(vehiculeId) {
+            if (!vehiculeId) {
+                // Si aucun véhicule n'est sélectionné, réinitialiser ou laisser les champs vides pour une nouvelle entrée
+                const isNewRavitaillement = {% if ravitaillement %}false{% else %}true{% endif %};
+                if (isNewRavitaillement) {
+                    kmAvantInput.value = '0.00';
+                    kmApresInput.value = '1.00';
+                }
+                validateKilometrage();
+                validateForm(); // Valider le formulaire après la réinitialisation
+                return;
+            }
+
+            submitButton.disabled = true; // Désactiver pendant le chargement
+
+            fetch(`{% url 'ravitaillement:get_vehicule_kilometrage' %}?vehicule_id=${vehiculeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.kilometrage !== undefined) {
+                        const lastKm = parseFloat(data.kilometrage);
+                        
+                        // Toujours mettre à jour le kilométrage avant avec la dernière valeur connue du véhicule
+                        kmAvantInput.value = lastKm.toFixed(2); 
+
+                        // Déterminer si c'est une nouvelle entrée ou une modification
+                        const isNewRavitaillement = {% if ravitaillement %}false{% else %}true{% endif %};
+
+                        // Logique pour kmApres :
+                        if (isNewRavitaillement) { 
+                            // Pour les NOUVELLES entrées : si kmAvant est 0, suggérer 1.00; sinon, suggérer kmAvant + 1
+                            if (lastKm === 0) {
+                                kmApresInput.value = '1.00';
+                            } else {
+                                kmApresInput.value = (lastKm + 1).toFixed(2);
+                            }
+                        } else {
+                            // Pour les entrées EXISTANTES :
+                            // Ne suggérer une valeur pour kmApres que si elle est vide ou incohérente (inférieure ou égale à kmAvant suggéré)
+                            const currentKmApres = parseFloat(kmApresInput.value);
+                            if (isNaN(currentKmApres) || currentKmApres <= lastKm) {
+                                kmApresInput.value = (lastKm + 1).toFixed(2);
+                            }
+                            // Sinon, laisser la valeur existante qui est probablement correcte et supérieure à kmAvant.
+                        }
+                    } else {
+                        // Si l'API ne retourne pas de kilométrage valide ou si le succès est faux, initialiser pour les nouvelles entrées
+                        const isNewRavitaillement = {% if ravitaillement %}false{% else %}true{% endif %};
+                        if (isNewRavitaillement) {
+                            kmAvantInput.value = '0.00';
+                            kmApresInput.value = '1.00';
+                        }
+                        console.error('API returned no valid kilometrage or success was false:', data);
+                    }
+                    validateKilometrage(); // Valider après la définition des valeurs
+                    validateForm(); // Valider le formulaire après la mise à jour des kilométrages
+                }).catch(error => {
+                    console.error('Error fetching last kilometrage:', error);
+                    // En cas d'erreur, initialiser quand même pour les nouvelles entrées et valider le formulaire
+                    const isNewRavitaillement = {% if ravitaillement %}false{% else %}true{% endif %};
+                    if (isNewRavitaillement) {
+                        kmAvantInput.value = '0.00';
+                        kmApresInput.value = '1.00';
+                    }
+                    validateKilometrage();
+                    validateForm(); // Valider le formulaire même en cas d'erreur
+                });
+        }
+        
+        // Écouter les changements de véhicule
+        vehiculeSelect.addEventListener('change', function() {
+            getLastKilometrage(this.value);
+        });
+
+        // Validation des kilomètres
+        function validateKilometrage() {
+            const kmAvant = parseFloat(kmAvantInput.value);
+            const kmApres = parseFloat(kmApresInput.value);
+            const distanceParcourue = kmApres - kmAvant;
+            const minDistance = 0; // La distance parcourue ne peut pas être négative
+
+            if (isNaN(kmAvant) || isNaN(kmApres)) {
+                kmApresInput.setCustomValidity("Les valeurs de kilométrage ne sont pas valides.");
+                return;
+            }
+
+            if (distanceParcourue < minDistance) {
+                kmApresInput.setCustomValidity("Le kilométrage après doit être supérieur ou égal au kilométrage avant.");
+            } else {
+                kmApresInput.setCustomValidity("");
+            }
+            validateForm(); // Toujours appeler la validation générale du formulaire
+        }
+
+        kmAvantInput.addEventListener('input', validateKilometrage);
+        kmApresInput.addEventListener('input', validateKilometrage);
+
+        // Fonction pour calculer le coût total
+        function calculateCoutTotal() {
+            const litres = parseFloat(litresInput.value) || 0;
+            const coutUnitaire = parseFloat(coutUnitaireInput.value) || 0;
+            const coutTotal = litres * coutUnitaire;
+            coutTotalInput.value = coutTotal.toFixed(2); // Afficher avec deux décimales
+            validateForm();
+        }
+
+        litresInput.addEventListener('input', calculateCoutTotal);
+        coutUnitaireInput.addEventListener('input', calculateCoutTotal);
+
+        // Validation générale du formulaire avant soumission
+        function validateForm() {
+            let isValid = true;
+
+            // Vérifier les champs obligatoires (ajustez selon vos besoins)
+            if (vehiculeSelect.value === '') {
+                isValid = false;
+            }
+            if (litresInput.value === '' || parseFloat(litresInput.value) <= 0) {
+                isValid = false;
+            }
+            if (coutUnitaireInput.value === '' || parseFloat(coutUnitaireInput.value) <= 0) {
+                isValid = false;
+            }
+
+            // Vérifier la validation du kilométrage via le CustomValidity
+            if (kmApresInput.checkValidity() === false) {
+                isValid = false;
+            }
+            
+            submitButton.disabled = !isValid;
+        }
+
+        // Appeler le calcul initial au chargement de la page
+        calculateCoutTotal();
+        // Appeler la récupération du kilométrage initial si un véhicule est déjà sélectionné (ex: lors d'une édition ou retour après erreur)
+        const isNewRavitaillement = {% if ravitaillement %}false{% else %}true{% endif %};
+        if (vehiculeSelect.value && !isNewRavitaillement) {
+            // Si c'est une modification, ne pas toucher au kilométrage avant initial
+            // mais s'assurer que le champ est valide et que le formulaire est activé.
+            validateKilometrage();
+            validateForm();
+        } else if (vehiculeSelect.value && isNewRavitaillement) {
+            // Pour une nouvelle entrée avec un véhicule sélectionné
+            getLastKilometrage(vehiculeSelect.value);
+        } else {
+            // Si aucun véhicule sélectionné et nouvelle entrée, initialiser à 0 et valider
+            if (isNewRavitaillement) {
+                kmAvantInput.value = '0.00';
+                kmApresInput.value = '1.00';
+            }
+            validateKilometrage(); // Cela appellera validateForm()
+        }
+    });
+</script>
+{% endblock %}

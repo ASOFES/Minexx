@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+{% block title %}Rapport des Missions{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-chart-line me-2"></i>Rapport des Missions</h1>
+        <div>
+            <a href="{% url 'rapport:missions_advanced' %}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-1"></i>Vue avancée
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label for="date_debut" class="form-label">Date début</label>
+                    <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_fin" class="form-label">Date fin</label>
+                    <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="statut" class="form-label">Statut</label>
+                    <select name="statut" id="statut" class="form-select">
+                        <option value="all">Tous</option>
+                        {% for code, label in statut_choices %}
+                        <option value="{{ code }}" {% if selected_statut == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="chauffeur" class="form-label">Chauffeur</label>
+                    <select name="chauffeur" id="chauffeur" class="form-select">
+                        <option value="">Tous</option>
+                        {% for c in chauffeurs %}
+                        <option value="{{ c.id }}" {% if selected_chauffeur == c.id|stringformat:'s' %}selected{% endif %}>{{ c.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="vehicule" class="form-label">Véhicule</label>
+                    <select name="vehicule" id="vehicule" class="form-select">
+                        <option value="">Tous</option>
+                        {% for v in vehicules %}
+                        <option value="{{ v.id }}" {% if selected_vehicule == v.id|stringformat:'s' %}selected{% endif %}>{{ v.immatriculation }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="demandeur" class="form-label">Demandeur</label>
+                    <select name="demandeur" id="demandeur" class="form-select">
+                        <option value="">Tous</option>
+                        {% for d in demandeurs %}
+                        <option value="{{ d.id }}" {% if selected_demandeur == d.id|stringformat:'s' %}selected{% endif %}>{{ d.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Filtrer</button>
+                    <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}export=pdf" class="btn btn-outline-danger ms-2"><i class="fas fa-file-pdf me-1"></i>Exporter PDF</a>
+                    <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}export=excel" class="btn btn-outline-success ms-2"><i class="fas fa-file-excel me-1"></i>Exporter Excel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques Globales -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Score moyen</h6>
+                    <h2 class="card-title mb-0 text-primary">{{ score_moyen }}/100</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Missions</h6>
+                    <h2 class="card-title mb-0">{{ total_missions }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Distance Totale</h6>
+                    <h2 class="card-title mb-0">{{ total_distance|floatformat:2 }} km</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Durée Totale</h6>
+                    <h2 class="card-title mb-0">{{ total_duree|default:"—" }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Coût Total (estimé)</h6>
+                    <h2 class="card-title mb-0">{{ total_cout|floatformat:2 }} $</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Coût/km (estimé)</h6>
+                    <h2 class="card-title mb-0">{{ moyennes.cout_km|floatformat:2 }} $/km</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste détaillée des missions avec scoring -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Liste détaillée des missions avec scoring</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Chauffeur</th>
+                            <th>Véhicule</th>
+                            <th>Destination</th>
+                            <th>Score</th>
+                            <th>Classification</th>
+                            <th>Distance</th>
+                            <th>Durée</th>
+                            <th>Statut</th>
+                            <th>Coût</th>
+                            <th>Recommandations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td>{{ course.date_depart|date:"d/m/Y H:i" }}</td>
+                            <td>{% if course.chauffeur %}{{ course.chauffeur.get_full_name }}{% else %}—{% endif %}</td>
+                            <td>{% if course.vehicule %}{{ course.vehicule.immatriculation }}{% else %}—{% endif %}</td>
+                            <td>{% if course.destination %}{{ course.destination }}{% else %}—{% endif %}</td>
+                            <td>
+                                <div class="text-center">
+                                    <h5 class="mb-1">{{ course.score_total }}/100</h5>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar {% if course.score_total >= 85 %}bg-success{% elif course.score_total >= 70 %}bg-primary{% elif course.score_total >= 55 %}bg-warning{% elif course.score_total >= 40 %}bg-danger{% else %}bg-dark{% endif %}" 
+                                             style="width: {{ course.score_total }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge {{ course.badge_class }} fs-6">{{ course.classification }}</span>
+                            </td>
+                            <td>{% if course.distance_parcourue %}{{ course.distance_parcourue|floatformat:2 }} km{% else %}—{% endif %}</td>
+                            <td>{% if course.duree_heures %}{{ course.duree_heures }}h{% else %}—{% endif %}</td>
+                            <td>
+                                <span class="badge {% if course.statut == 'terminee' %}bg-success{% elif course.statut == 'en_cours' %}bg-warning{% elif course.statut == 'validee' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ course.get_statut_display }}
+                                </span>
+                            </td>
+                            <td>{% if course.cout_total %}{{ course.cout_total|floatformat:2 }} $ {% else %}—{% endif %}</td>
+                            <td>
+                                {% if course.recommandations %}
+                                <ul class="list-unstyled mb-0">
+                                    {% for rec in course.recommandations %}
+                                    <li><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>{{ rec }}</small></li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <small class="text-success"><i class="fas fa-check-circle me-1"></i>Aucune recommandation</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="11" class="text-center">Aucune mission disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Moyennes -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Distance Moyenne</h6>
+                    <h2 class="card-title mb-0">{{ moyennes.distance_moyenne|floatformat:2 }} km</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Durée Moyenne</h6>
+                    <h2 class="card-title mb-0">{{ moyennes.duree_moyenne|default:"—" }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Coût Moyen</h6>
+                    <h2 class="card-title mb-0">{{ moyennes.cout_moyen|floatformat:2 }} $</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Coût par km</h6>
+                    <h2 class="card-title mb-0">{{ moyennes.cout_km|floatformat:2 }} $/km</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par Statut -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Statistiques par Statut</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Statut</th>
+                            <th>Nombre</th>
+                            <th>Distance</th>
+                            <th>Durée</th>
+                            <th>Coût</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for statut, stats in stats_par_statut.items %}
+                        <tr>
+                            <td>{{ stats.label }}</td>
+                            <td>{{ stats.count }}</td>
+                            <td>{{ stats.distance|floatformat:2|default:"—" }} km</td>
+                            <td>{% if stats.duree %}{{ stats.duree }}{% else %}—{% endif %}</td>
+                            <td>{% if stats.cout %}{{ stats.cout|floatformat:2 }} $ {% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Destinations avec scores -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-map-marker-alt me-2"></i>Top 5 Destinations</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Destination</th>
+                            <th>Nombre de missions</th>
+                            <th>Distance totale</th>
+                            <th>Coût total</th>
+                            <th>Score moyen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dest in top_destinations %}
+                        <tr>
+                            <td>{{ dest.destination }}</td>
+                            <td>{{ dest.count }}</td>
+                            <td>{% if dest.total_distance %}{{ dest.total_distance|floatformat:2 }} km{% else %}—{% endif %}</td>
+                            <td>{% if dest.total_cout %}{{ dest.total_cout|floatformat:2 }} $ {% else %}—{% endif %}</td>
+                            <td>{{ dest.score_moyen }}/100</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">Aucune destination disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par Véhicule -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-car me-2"></i>Statistiques par Véhicule</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Véhicule</th>
+                            <th>Missions</th>
+                            <th>Distance</th>
+                            <th>Coût</th>
+                            <th>Consommation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_vehicules %}
+                        <tr>
+                            <td>{{ stat.vehicule__immatriculation }}</td>
+                            <td>{{ stat.count }}</td>
+                            <td>{% if stat.total_distance %}{{ stat.total_distance|floatformat:2 }} km{% else %}—{% endif %}</td>
+                            <td>{% if stat.total_cout %}{{ stat.total_cout|floatformat:2 }} $ {% else %}—{% endif %}</td>
+                            <td>{% if stat.conso_moyenne is not None %}{{ stat.conso_moyenne|floatformat:2 }} L/100km{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">Aucun véhicule disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par Chauffeur -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-user-tie me-2"></i>Statistiques par Chauffeur</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Chauffeur</th>
+                            <th>Total Missions</th>
+                            <th>Terminées</th>
+                            <th>Distance</th>
+                            <th>Coût</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_chauffeurs %}
+                        <tr>
+                            <td>{% if stat.chauffeur__first_name or stat.chauffeur__last_name %}{{ stat.chauffeur__first_name|default:'' }} {{ stat.chauffeur__last_name|default:'' }}{% else %}—{% endif %}</td>
+                            <td>{{ stat.count }}</td>
+                            <td>{{ stat.missions_terminees }}</td>
+                            <td>{% if stat.total_distance %}{{ stat.total_distance|floatformat:2 }} km{% else %}—{% endif %}</td>
+                            <td>{% if stat.total_cout %}{{ stat.total_cout|floatformat:2 }} $ {% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">Aucun chauffeur disponible.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Détails du scoring -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Détails du système de scoring missions</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <h6 class="text-primary">Ponctualité (30%)</h6>
+                    <p class="small">Basé sur le respect des horaires et la vitesse moyenne (60-80 km/h = excellent)</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-success">Efficacité (25%)</h6>
+                    <p class="small">Basé sur la distance parcourue et l'optimisation des trajets</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-warning">Rentabilité (25%)</h6>
+                    <p class="small">Basé sur le coût par km et la valeur de la mission</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-info">Qualité (20%)</h6>
+                    <p class="small">Basé sur la satisfaction client et la qualité du service</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
