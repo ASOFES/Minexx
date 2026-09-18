@@ -3,6 +3,21 @@ from core.models import Course
 from django.utils import timezone
 import datetime
 
+COORD_KEYS = (
+    'embarquement_latitude', 'embarquement_longitude',
+    'destination_latitude', 'destination_longitude',
+)
+
+
+def _round_coord_str(raw):
+    if raw in (None, ''):
+        return raw
+    try:
+        return f"{round(float(raw), 7):.7f}"
+    except (TypeError, ValueError):
+        return raw
+
+
 class DemandeForm(forms.ModelForm):
     """Formulaire pour la création et la modification des demandes de mission"""
     date_souhaitee = forms.DateTimeField(
@@ -48,10 +63,18 @@ class DemandeForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        # Arrondir les coords avant validation DecimalField (max 7 décimales)
+        if args:
+            data = args[0]
+            if hasattr(data, 'copy'):
+                data = data.copy()
+                for key in COORD_KEYS:
+                    if key in data:
+                        data[key] = _round_coord_str(data.get(key))
+                args = (data,) + args[1:]
         super(DemandeForm, self).__init__(*args, **kwargs)
-        # Ajouter des classes Bootstrap aux champs du formulaire
         for name, field in self.fields.items():
-            if name.startswith('embarquement_') or name.startswith('destination_') and name.endswith('tude'):
+            if name.startswith('embarquement_') or (name.startswith('destination_') and name.endswith('tude')):
                 continue
             field.widget.attrs['class'] = 'form-control'
         self.fields['rayon_arrivee_metres'].required = False
@@ -64,22 +87,24 @@ class DemandeForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        # Géocoder automatiquement si adresse fournie sans coords
-        from gps.geocode import geocode_first
+        from gps.geocode import geocode_first, round_coord
         if cleaned.get('point_embarquement') and (
             cleaned.get('embarquement_latitude') is None or cleaned.get('embarquement_longitude') is None
         ):
             geo = geocode_first(cleaned['point_embarquement'])
             if geo:
-                cleaned['embarquement_latitude'] = geo['latitude']
-                cleaned['embarquement_longitude'] = geo['longitude']
+                cleaned['embarquement_latitude'] = round_coord(geo['latitude'])
+                cleaned['embarquement_longitude'] = round_coord(geo['longitude'])
         if cleaned.get('destination') and (
             cleaned.get('destination_latitude') is None or cleaned.get('destination_longitude') is None
         ):
             geo = geocode_first(cleaned['destination'])
             if geo:
-                cleaned['destination_latitude'] = geo['latitude']
-                cleaned['destination_longitude'] = geo['longitude']
+                cleaned['destination_latitude'] = round_coord(geo['latitude'])
+                cleaned['destination_longitude'] = round_coord(geo['longitude'])
+        for key in COORD_KEYS:
+            if cleaned.get(key) is not None:
+                cleaned[key] = round_coord(cleaned[key])
         if not cleaned.get('rayon_arrivee_metres'):
             cleaned['rayon_arrivee_metres'] = 150
         return cleaned
@@ -89,11 +114,9 @@ class DemandeForm(forms.ModelForm):
         date_souhaitee = self.cleaned_data.get('date_souhaitee')
         now = timezone.now()
         
-        # Vérifier que la date n'est pas dans le passé
         if date_souhaitee < now:
             raise forms.ValidationError("La date souhaitée ne peut pas être dans le passé.")
         
-        # Vérifier que la date n'est pas trop loin dans le futur (max 30 jours)
         max_date = now + datetime.timedelta(days=30)
         if date_souhaitee > max_date:
             raise forms.ValidationError("La date souhaitée ne peut pas être à plus de 30 jours dans le futur.")

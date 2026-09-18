@@ -10,6 +10,13 @@ NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 USER_AGENT = 'MinexxFleetGPS/1.0 (contact: totoasofes22@gmail.com)'
 
 
+def round_coord(value, ndigits: int = 7):
+    """Arrondit une coordonnée au format DecimalField(decimal_places=7)."""
+    if value is None or value == '':
+        return None
+    return round(float(value), ndigits)
+
+
 def geocode_address(query: str, country_codes: str = 'cd', limit: int = 5):
     """
     Retourne une liste de résultats {display_name, latitude, longitude}.
@@ -40,8 +47,8 @@ def geocode_address(query: str, country_codes: str = 'cd', limit: int = 5):
         try:
             results.append({
                 'display_name': item.get('display_name') or q,
-                'latitude': float(item['lat']),
-                'longitude': float(item['lon']),
+                'latitude': round_coord(item['lat']),
+                'longitude': round_coord(item['lon']),
             })
         except (KeyError, TypeError, ValueError):
             continue
