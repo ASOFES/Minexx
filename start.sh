@@ -34,7 +34,10 @@ if [ ! -d "staticfiles" ]; then
 fi
 
 # Dossier média pour photos / documents uploadés
-mkdir -p media/images_vehicules media/documents_vehicules
+mkdir -p media/images_vehicules media/documents_vehicules media/reparations
+
+# Fuseau horaire applicatif (Lubumbashi UTC+2)
+export TZ="${TZ:-Africa/Lubumbashi}"
 
 # Créer un superutilisateur uniquement si les variables d'environnement sont fournies
 echo "👤 Vérification du superutilisateur..."

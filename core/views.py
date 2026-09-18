@@ -10,7 +10,7 @@ import os
 from .models import Vehicule, Course, ActionTraceur, Utilisateur, Etablissement, ApplicationControl, Message
 from .forms import UtilisateurCreationForm, UtilisateurChangeForm, ApplicationControlForm, AdminPasswordForm, EtablissementForm, ProfileSelfEditForm
 from .vehicule_forms import VehiculeForm, VehiculeChangeEtablissementForm, VehiculeAccessoireFormSet
-from .utils import render_to_pdf, get_latest_vehicle_kilometrage, export_to_excel
+from .utils import render_to_pdf, get_latest_vehicle_kilometrage, export_to_excel, format_local_datetime
 from entretien.models import Entretien
 from ravitaillement.models import Ravitaillement
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
@@ -1354,7 +1354,7 @@ def send_message(request):
         return JsonResponse({
             'success': True, 
             'message_id': message.id,
-            'timestamp': message.timestamp.isoformat()
+            'timestamp': format_local_datetime(message.timestamp, '%Y-%m-%dT%H:%M:%S')
         })
         
     except Exception as e:
@@ -1403,7 +1403,7 @@ def get_messages(request):
             'sender': sender_name,
             'recipient': recipient_name,
             'content': m.content,
-            'timestamp': m.timestamp.strftime('%Y-%m-%d %H:%M'),
+            'timestamp': format_local_datetime(m.timestamp),
             'is_read': m.is_read,
             'sent_by_me': sent_by_me,
             'read_status': read_status,
@@ -1478,7 +1478,7 @@ def get_unread_messages_status(request):
             'sender': sender_name,
             'content': content_full[:60] + ('...' if len(content_full) > 60 else ''),
             'content_full': content_full[:280],
-            'timestamp': last_msg.timestamp.strftime('%Y-%m-%d %H:%M'),
+            'timestamp': format_local_datetime(last_msg.timestamp),
             'is_system': bool(last_msg.is_system_message),
             'urgent': is_urgent,
         }

@@ -6,7 +6,7 @@ Conventions :
 - Demandes : date_demande.
 - Carburant : date_ravitaillement ; L/100km = litres (avec Δkm>0) / somme(Δkm) * 100.
 - Entretien : date_entretien.
-- Coût/km = (carburant + entretien) / distance_missions — jamais un forfait fictif.
+- Coût/km = (carburant + entretien + réparations confirmées) / distance_missions — jamais un forfait fictif.
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from django.db.models import Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
 
 from core.models import Course, Vehicule
-from entretien.models import Entretien
+from entretien.models import Entretien, ReparationMecanique
 from ravitaillement.models import Ravitaillement
 
 
@@ -120,26 +120,34 @@ def rav_distance_and_litres(ravitaillements: Iterable) -> tuple[float, float, fl
 
 
 def vehicle_expenses(vehicule_id, date_debut=None, date_fin=None) -> dict:
-    """Carburant + entretien (terminés) pour un véhicule sur la période."""
+    """Carburant + entretien (terminés) + réparations confirmées pour un véhicule sur la période."""
     ravs = Ravitaillement.objects.filter(vehicule_id=vehicule_id)
     ents = Entretien.objects.filter(vehicule_id=vehicule_id, statut='termine')
+    reps = ReparationMecanique.objects.filter(
+        vehicule_id=vehicule_id, statut='repare', devis_confirme__isnull=False
+    )
     ravs = filter_datetime_date(ravs, 'date_ravitaillement', date_debut, date_fin)
     ents = filter_date_range(ents, 'date_entretien', date_debut, date_fin)
+    reps = reps.annotate(date_comptable=Coalesce('date_reparation', 'date_signalement'))
+    reps = filter_date_range(reps, 'date_comptable', date_debut, date_fin)
 
     rav_agg = ravs.aggregate(
         total=Coalesce(Sum('cout_total'), Decimal('0')),
         litres=Coalesce(Sum('litres'), Decimal('0')),
     )
     ent_agg = ents.aggregate(total=Coalesce(Sum('cout'), Decimal('0')))
+    rep_agg = reps.aggregate(total=Coalesce(Sum('devis_confirme'), Decimal('0')))
 
     dist, litres_valid, _ = rav_distance_and_litres(ravs)
     carburant = safe_float(rav_agg['total'])
     entretien = safe_float(ent_agg['total'])
+    reparations = safe_float(rep_agg['total'])
     litres = safe_float(rav_agg['litres'])
     return {
         'depenses_carburant': carburant,
         'depenses_entretien': entretien,
-        'cout_total': carburant + entretien,
+        'depenses_reparations': reparations,
+        'cout_total': carburant + entretien + reparations,
         'litres_consommes': litres,
         'litres_pour_conso': litres_valid,
         'distance_rav': dist,
@@ -230,6 +238,7 @@ def build_chauffeur_evaluations(courses: QuerySet, date_debut=None, date_fin=Non
 
         depenses_carburant = 0.0
         depenses_entretien = 0.0
+        depenses_reparations = 0.0
         litres_consommes = 0.0
         vehicule_label = {'immatriculation': 'Plusieurs / N/A', 'marque': '', 'modele': ''}
 
@@ -249,9 +258,10 @@ def build_chauffeur_evaluations(courses: QuerySet, date_debut=None, date_fin=Non
             share = (dist_ch / dist_all) if dist_all > 0 else (1.0 if dist_ch > 0 else 0.0)
             depenses_carburant += exp['depenses_carburant'] * share
             depenses_entretien += exp['depenses_entretien'] * share
+            depenses_reparations += exp.get('depenses_reparations', 0) * share
             litres_consommes += exp['litres_consommes'] * share
 
-        cout_total = depenses_carburant + depenses_entretien
+        cout_total = depenses_carburant + depenses_entretien + depenses_reparations
         distance_totale = safe_float(row['distance_totale'])
         conso_moyenne = l_per_100km(litres_consommes, distance_totale)
         cout_km = cost_per_km(cout_total, distance_totale)
@@ -327,6 +337,7 @@ def build_chauffeur_evaluations(courses: QuerySet, date_debut=None, date_fin=Non
             'missions_par_jour': missions_par_jour,
             'depenses_carburant': round(depenses_carburant, 2),
             'depenses_entretien': round(depenses_entretien, 2),
+            'depenses_reparations': round(depenses_reparations, 2),
             'cout_total': round(cout_total, 2),
             'litres_consommes': round(litres_consommes, 2),
             'cout_km': round(cout_km, 4),

@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
-{% block title %}Rapport Dépenses Carburant & Entretien{% endblock %}
+{% block title %}Rapport Dépenses Carburant, Entretien & Réparations{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4"><i class="fas fa-dollar-sign me-2"></i>Rapport Dépenses Carburant & Entretien</h1>
+    <h1 class="mb-4"><i class="fas fa-dollar-sign me-2"></i>Rapport Dépenses Carburant, Entretien & Réparations</h1>
     <form method="get" class="row g-3 mb-3">
         <div class="col-md-3">
             <label for="vehicule" class="form-label">Véhicule</label>
@@ -29,14 +29,43 @@
         <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}format=pdf" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i>Exporter PDF</a>
         <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{k}}={{v|urlencode}}&{% endif %}{% endfor %}format=excel" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i>Exporter Excel</a>
     </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-2">
+            <div class="border rounded p-3 text-center bg-light h-100">
+                <div class="text-muted small">Carburant</div>
+                <div class="fs-4 fw-bold">{{ total_carburant|floatformat:2 }} $</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="border rounded p-3 text-center bg-light h-100">
+                <div class="text-muted small">Entretiens</div>
+                <div class="fs-4 fw-bold">{{ total_entretien|floatformat:2 }} $</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="border rounded p-3 text-center bg-light h-100">
+                <div class="text-muted small">Réparations (confirmées)</div>
+                <div class="fs-4 fw-bold text-success">{{ total_reparations|floatformat:2 }} $</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="border rounded p-3 text-center bg-primary text-white h-100">
+                <div class="small opacity-75">Total général</div>
+                <div class="fs-4 fw-bold">{{ total_general|floatformat:2 }} $</div>
+            </div>
+        </div>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-light">
                 <tr>
                     <th>Immatriculation</th>
                     <th>Marque/Modèle</th>
-                    <th>Dépenses carburant ($)</th>
-                    <th>Dépenses entretien ($)</th>
+                    <th>Carburant ($)</th>
+                    <th>Entretien ($)</th>
+                    <th>Réparations ($)</th>
                     <th>Coût total ($)</th>
                 </tr>
             </thead>
@@ -47,22 +76,51 @@
                     <td>{{ item.marque_modele }}</td>
                     <td>{{ item.cout_carburant|floatformat:2 }}</td>
                     <td>{{ item.cout_entretien|floatformat:2 }}</td>
-                    <td>{{ item.cout_total|floatformat:2 }}</td>
+                    <td>{{ item.cout_reparations|floatformat:2 }}</td>
+                    <td class="fw-semibold">{{ item.cout_total|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center">Aucune dépense trouvée.</td></tr>
+                <tr><td colspan="6" class="text-center">Aucune dépense trouvée.</td></tr>
                 {% endfor %}
             </tbody>
             <tfoot>
                 <tr class="table-secondary fw-bold">
-                    <td class="text-end">TOTAL</td>
-                    <td></td>
+                    <td colspan="2" class="text-end">TOTAL</td>
                     <td>{{ total_carburant|floatformat:2 }}</td>
                     <td>{{ total_entretien|floatformat:2 }}</td>
+                    <td>{{ total_reparations|floatformat:2 }}</td>
                     <td>{{ total_general|floatformat:2 }}</td>
                 </tr>
             </tfoot>
         </table>
     </div>
+
+    {% if reparations %}
+    <h5 class="mt-4 mb-3"><i class="fas fa-wrench me-2"></i>Réparations confirmées (détail)</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Véhicule</th>
+                    <th>Problème</th>
+                    <th>Devis provisoire</th>
+                    <th>Devis confirmé</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reparations %}
+                <tr>
+                    <td>{{ r.date_reparation|date:"d/m/Y" }}</td>
+                    <td>{{ r.vehicule.immatriculation }}</td>
+                    <td>{{ r.titre }}</td>
+                    <td>{{ r.devis_provisoire|floatformat:2 }} $</td>
+                    <td class="text-success fw-semibold">{{ r.devis_confirme|floatformat:2 }} $</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 </div>
-{% endblock %} 
+{% endblock %}

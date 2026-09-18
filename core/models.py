@@ -520,4 +520,4 @@ class Message(models.Model):
         ordering = ['timestamp']
 
     def __str__(self):
-        return f"De {self.sender} à {self.recipient} le {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+        return f"De {self.sender} à {self.recipient} le {timezone.localtime(self.timestamp).strftime('%Y-%m-%d %H:%M')}"

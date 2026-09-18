@@ -98,14 +98,14 @@
         <img src="{{ logo_data_uri }}" alt="Logo MINEXX" class="logo">
         {% endif %}
         <div class="title">Rapport des Dépenses</div>
-        <div class="subtitle">Carburant & Entretien - MINEXX</div>
+        <div class="subtitle">Carburant, Entretien & Réparations - MINEXX</div>
         <div class="subtitle">Généré le {{ date_generation }}</div>
     </div>
 
     <!-- Statistiques Globales -->
     <div class="section">
         <div class="section-title">Résumé des Dépenses</div>
-        <div class="stats-grid">
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
             <div class="stat-card">
                 <div class="stat-value">{{ total_carburant|floatformat:2 }} $</div>
                 <div class="stat-label">Total Carburant</div>
@@ -113,6 +113,10 @@
             <div class="stat-card">
                 <div class="stat-value">{{ total_entretien|floatformat:2 }} $</div>
                 <div class="stat-label">Total Entretien</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_reparations|floatformat:2 }} $</div>
+                <div class="stat-label">Total Réparations</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{{ total_general|floatformat:2 }} $</div>
@@ -132,6 +136,7 @@
                     <th>Marque/Modèle</th>
                     <th>Carburant ($)</th>
                     <th>Entretien ($)</th>
+                    <th>Réparations ($)</th>
                     <th>Total ($)</th>
                 </tr>
             </thead>
@@ -142,7 +147,37 @@
                     <td>{{ item.marque_modele }}</td>
                     <td>{{ item.cout_carburant|floatformat:2 }}</td>
                     <td>{{ item.cout_entretien|floatformat:2 }}</td>
+                    <td>{{ item.cout_reparations|floatformat:2 }}</td>
                     <td>{{ item.cout_total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Détail des Réparations confirmées -->
+    {% if reparations %}
+    <div class="section">
+        <div class="section-title">Détail des Réparations (devis confirmés)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Véhicule</th>
+                    <th>Problème</th>
+                    <th>Provisoire ($)</th>
+                    <th>Confirmé ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reparations %}
+                <tr>
+                    <td>{{ r.date_reparation|date:"d/m/Y"|default:r.date_signalement|date:"d/m/Y" }}</td>
+                    <td>{{ r.vehicule.immatriculation }}</td>
+                    <td>{{ r.titre }}</td>
+                    <td>{{ r.devis_provisoire|floatformat:2 }}</td>
+                    <td>{{ r.devis_confirme|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -168,7 +203,7 @@
             <tbody>
                 {% for entretien in entretiens %}
                 <tr>
-                    <td>{{ entretien.date_creation|date:"d/m/Y" }}</td>
+                    <td>{{ entretien.date_entretien|date:"d/m/Y" }}</td>
                     <td>{{ entretien.vehicule.immatriculation }}</td>
                     <td>{{ entretien.get_type_entretien_display }}</td>
                     <td>{{ entretien.garage|default:"-" }}</td>
@@ -203,7 +238,7 @@
                     <td>{{ ravitaillement.vehicule.immatriculation }}</td>
                     <td>{{ ravitaillement.nom_station|default:"-" }}</td>
                     <td>{{ ravitaillement.litres }}</td>
-                    <td>{{ ravitaillement.prix_litre|floatformat:2 }}</td>
+                    <td>{{ ravitaillement.cout_unitaire|floatformat:2 }}</td>
                     <td>{{ ravitaillement.cout_total|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}

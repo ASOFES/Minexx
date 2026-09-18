@@ -19,6 +19,15 @@ from entretien.models import Entretien
 from securite.models import CheckListSecurite
 
 
+def format_local_datetime(dt, fmt='%Y-%m-%d %H:%M'):
+    """Affiche une datetime en fuseau TIME_ZONE (Africa/Lubumbashi), pas en UTC brut."""
+    if not dt:
+        return ''
+    if timezone.is_aware(dt):
+        dt = timezone.localtime(dt)
+    return dt.strftime(fmt)
+
+
 def link_callback(uri, rel):
     """
     Convert HTML URIs to absolute system paths so xhtml2pdf can access those resources

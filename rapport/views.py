@@ -30,7 +30,7 @@ from openpyxl.styles import Font, Alignment, PatternFill
 # Models
 from core.models import Vehicule, Course, Utilisateur
 from ravitaillement.models import Ravitaillement
-from entretien.models import Entretien
+from entretien.models import Entretien, ReparationMecanique
 from core.models import HistoriqueKilometrage
 
 logger = logging.getLogger(__name__)
@@ -1510,14 +1510,14 @@ def rapport_demandeurs(request):
 @login_required
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def rapport_depenses_carburant_entretien(request):
-    """Rapport combiné sur les dépenses carburant et entretien."""
+    """Rapport combiné : carburant + entretien + réparations mécaniques confirmées."""
     from decimal import ROUND_HALF_UP
+    from django.db.models.functions import Coalesce
     
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
     vehicule_id = request.GET.get('vehicule')
     
-    # Fonction pour formater les montants en dollars avec 2 décimales
     def format_currency(amount):
         if amount is None:
             return Decimal('0.00')
@@ -1525,9 +1525,9 @@ def rapport_depenses_carburant_entretien(request):
             amount = Decimal(str(amount))
         return amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
-    # Données carburant
-    ravitaillements = Ravitaillement.objects.all()
-    if not request.user.is_superuser:
+    # Carburant — tous les ravitaillements (cout_total)
+    ravitaillements = Ravitaillement.objects.select_related('vehicule').all()
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
         ravitaillements = ravitaillements.filter(vehicule__etablissement=request.user.etablissement)
     if date_debut:
         ravitaillements = ravitaillements.filter(date_ravitaillement__date__gte=date_debut)
@@ -1538,9 +1538,9 @@ def rapport_depenses_carburant_entretien(request):
     
     total_carburant = format_currency(ravitaillements.aggregate(Sum('cout_total'))['cout_total__sum'])
     
-    # Données entretien — seules les dépenses d'entretiens terminés
-    entretiens = Entretien.objects.filter(statut='termine')
-    if not request.user.is_superuser:
+    # Entretiens — uniquement statut terminé (cout)
+    entretiens = Entretien.objects.select_related('vehicule').filter(statut='termine')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
         entretiens = entretiens.filter(vehicule__etablissement=request.user.etablissement)
     if date_debut:
         entretiens = entretiens.filter(date_entretien__gte=date_debut)
@@ -1550,46 +1550,75 @@ def rapport_depenses_carburant_entretien(request):
         entretiens = entretiens.filter(vehicule_id=vehicule_id)
     
     total_entretien = format_currency(entretiens.aggregate(Sum('cout'))['cout__sum'])
+
+    # Réparations — uniquement réparé + devis confirmé (bilan comptable)
+    reparations = (
+        ReparationMecanique.objects.select_related('vehicule')
+        .filter(statut='repare', devis_confirme__isnull=False)
+        .annotate(date_comptable=Coalesce('date_reparation', 'date_signalement'))
+    )
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        reparations = reparations.filter(vehicule__etablissement=request.user.etablissement)
+    if date_debut:
+        reparations = reparations.filter(date_comptable__gte=date_debut)
+    if date_fin:
+        reparations = reparations.filter(date_comptable__lte=date_fin)
+    if vehicule_id:
+        reparations = reparations.filter(vehicule_id=vehicule_id)
+
+    total_reparations = format_currency(reparations.aggregate(Sum('devis_confirme'))['devis_confirme__sum'])
     
-    # Calcul du total général
-    total_general = total_carburant + total_entretien
+    total_general = total_carburant + total_entretien + total_reparations
     
-    # Préparation des statistiques par véhicule
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        vehicules_qs = Vehicule.objects.filter(etablissement=request.user.etablissement)
+    else:
+        vehicules_qs = Vehicule.objects.all()
+    vehicules_filtre = vehicules_qs
+    if vehicule_id:
+        vehicules_filtre = vehicules_filtre.filter(pk=vehicule_id)
+    
     stats_vehicules = []
-    vehicules = Vehicule.objects.filter(etablissement=request.user.etablissement) if not request.user.is_superuser else Vehicule.objects.all()
+    for vehicule in vehicules_filtre.order_by('immatriculation'):
+        cout_carburant = format_currency(
+            ravitaillements.filter(vehicule=vehicule).aggregate(Sum('cout_total'))['cout_total__sum']
+        )
+        cout_entretien = format_currency(
+            entretiens.filter(vehicule=vehicule).aggregate(Sum('cout'))['cout__sum']
+        )
+        cout_reparations = format_currency(
+            reparations.filter(vehicule=vehicule).aggregate(Sum('devis_confirme'))['devis_confirme__sum']
+        )
+        cout_total = cout_carburant + cout_entretien + cout_reparations
+        # Afficher les véhicules avec au moins une dépense, ou le véhicule filtré
+        if cout_total > 0 or vehicule_id:
+            stats_vehicules.append({
+                'immatriculation': vehicule.immatriculation,
+                'marque_modele': f"{vehicule.marque} {vehicule.modele}".strip(),
+                'cout_carburant': cout_carburant,
+                'cout_entretien': cout_entretien,
+                'cout_reparations': cout_reparations,
+                'cout_total': cout_total,
+            })
     
-    for vehicule in vehicules:
-        ravs_vehicule = ravitaillements.filter(vehicule=vehicule)
-        entretiens_vehicule = entretiens.filter(vehicule=vehicule)
-        
-        cout_carburant = format_currency(ravs_vehicule.aggregate(Sum('cout_total'))['cout_total__sum'])
-        cout_entretien = format_currency(entretiens_vehicule.aggregate(Sum('cout'))['cout__sum'])
-        cout_total = cout_carburant + cout_entretien
-        
-        stats_vehicules.append({
-            'immatriculation': vehicule.immatriculation,
-            'marque_modele': f"{vehicule.marque} {vehicule.modele}",
-            'cout_carburant': cout_carburant,
-            'cout_entretien': cout_entretien,
-            'cout_total': cout_total,
-        })
-    
-    # Tri par coût total décroissant
     stats_vehicules.sort(key=lambda x: x['cout_total'], reverse=True)
     
-    # Préparation du contexte
     context = {
         'total_carburant': total_carburant,
         'total_entretien': total_entretien,
-        'total_general': total_general,  # Ajout du total général manquant
-        'depenses_par_vehicule': stats_vehicules,  # Pour correspondre au template
-        'vehicules': vehicules,
+        'total_reparations': total_reparations,
+        'total_general': total_general,
+        'depenses_par_vehicule': stats_vehicules,
+        'vehicules': vehicules_qs.order_by('immatriculation'),
         'date_debut': date_debut,
         'date_fin': date_fin,
         'selected_vehicule': vehicule_id,
+        # Détails pour PDF / page
+        'ravitaillements': ravitaillements.order_by('-date_ravitaillement')[:100],
+        'entretiens': entretiens.order_by('-date_entretien')[:100],
+        'reparations': reparations.order_by('-date_comptable')[:100],
     }
     
-    # Gestion de l'export
     export_format = request.GET.get('export') or request.GET.get('format')
     if export_format == 'pdf':
         return generate_pdf_rapport_depenses(request, context)
@@ -1765,73 +1794,63 @@ def generate_excel_rapport_depenses(request, context):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="rapport_depenses.xlsx"'
     
-    # Création du classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Dépenses"
     
-    # Styles
     header_fill = PatternFill(start_color='0d6efd', end_color='0d6efd', fill_type='solid')
     header_font = Font(color='FFFFFF', bold=True)
     header_alignment = Alignment(horizontal='center', vertical='center')
     number_format = '0.00'
     
-    # En-tête
-    ws['A1'] = "Rapport des Dépenses Carburant & Entretien"
-    ws.merge_cells('A1:E1')
+    ws['A1'] = "Rapport des Dépenses Carburant, Entretien & Réparations"
+    ws.merge_cells('A1:F1')
     ws['A1'].font = Font(size=14, bold=True)
     ws['A1'].alignment = Alignment(horizontal='center')
     
-    # Période
     date_debut = context.get('date_debut', 'début')
     date_fin = context.get('date_fin', "aujourd'hui")
     ws['A2'] = f"Période: du {date_debut} au {date_fin}"
-    ws.merge_cells('A2:E2')
+    ws.merge_cells('A2:F2')
     ws['A2'].font = Font(size=10)
     ws['A2'].alignment = Alignment(horizontal='center')
     
-    # Ligne vide
     ws.append([])
     
-    # En-têtes du tableau des totaux
-    ws.append(['Total Carburant ($)', 'Total Entretien ($)', 'Total Général ($)'])
-    for col in ['A', 'B', 'C']:
+    ws.append(['Total Carburant ($)', 'Total Entretien ($)', 'Total Réparations ($)', 'Total Général ($)'])
+    for col in ['A', 'B', 'C', 'D']:
         ws[f'{col}4'].fill = header_fill
         ws[f'{col}4'].font = header_font
         ws[f'{col}4'].alignment = header_alignment
     
-    # Données des totaux
     ws.append([
         float(context['total_carburant']),
         float(context['total_entretien']),
-        float(context['total_general'])
+        float(context.get('total_reparations') or 0),
+        float(context['total_general']),
     ])
     
-    # Formatage des nombres dans le tableau des totaux
-    for col in ['A', 'B', 'C']:
-        ws.column_dimensions[col].width = 20
+    for col in ['A', 'B', 'C', 'D']:
+        ws.column_dimensions[col].width = 22
         ws[f'{col}5'].number_format = number_format
     
-    # Ligne vide
     ws.append([])
     
-    # En-têtes du tableau détaillé
     if context['depenses_par_vehicule']:
         ws.append([
-            'Immatriculation', 
-            'Marque/Modèle', 
-            'Carburant ($)', 
-            'Entretien ($)', 
-            'Total ($)'
+            'Immatriculation',
+            'Marque/Modèle',
+            'Carburant ($)',
+            'Entretien ($)',
+            'Réparations ($)',
+            'Total ($)',
         ])
         
-        # Style des en-têtes
-        for col in ['A', 'B', 'C', 'D', 'E']:
+        for col in ['A', 'B', 'C', 'D', 'E', 'F']:
             ws[f'{col}7'].fill = header_fill
             ws[f'{col}7'].font = header_font
             ws[f'{col}7'].alignment = header_alignment
         
-        # Données détaillées
         row_num = 8
         for item in context['depenses_par_vehicule']:
             ws.append([
@@ -1839,28 +1858,26 @@ def generate_excel_rapport_depenses(request, context):
                 item['marque_modele'],
                 float(item['cout_carburant']),
                 float(item['cout_entretien']),
-                float(item['cout_total'])
+                float(item.get('cout_reparations') or 0),
+                float(item['cout_total']),
             ])
             
-            # Formatage des nombres
-            for col in ['C', 'D', 'E']:
+            for col in ['C', 'D', 'E', 'F']:
                 ws[f'{col}{row_num}'].number_format = number_format
             
-            # Alternance des couleurs de ligne
             if row_num % 2 == 0:
-                for col in ['A', 'B', 'C', 'D', 'E']:
+                for col in ['A', 'B', 'C', 'D', 'E', 'F']:
                     ws[f'{col}{row_num}'].fill = PatternFill(start_color='f8f9fa', end_color='f8f9fa', fill_type='solid')
             
             row_num += 1
         
-        # Ajustement de la largeur des colonnes
-        ws.column_dimensions['A'].width = 15  # Immatriculation
-        ws.column_dimensions['B'].width = 25  # Marque/Modèle
-        ws.column_dimensions['C'].width = 15  # Carburant
-        ws.column_dimensions['D'].width = 15  # Entretien
-        ws.column_dimensions['E'].width = 15  # Total
+        ws.column_dimensions['A'].width = 15
+        ws.column_dimensions['B'].width = 25
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 15
+        ws.column_dimensions['E'].width = 16
+        ws.column_dimensions['F'].width = 15
     
-    # Sauvegarde du classeur
     wb.save(response)
     return response
 

@@ -5,6 +5,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV DEBUG=False
 ENV DJANGO_SETTINGS_MODULE=gestion_vehicules.settings
+ENV TZ=Africa/Lubumbashi
 # SECRET_KEY doit être fournie à l'exécution (jamais codée en dur dans l'image)
 
 # Définir le répertoire de travail
@@ -15,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     g++ \
+    tzdata \
+    && ln -snf /usr/share/zoneinfo/Africa/Lubumbashi /etc/localtime \
+    && echo Africa/Lubumbashi > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier et installer les dépendances Python

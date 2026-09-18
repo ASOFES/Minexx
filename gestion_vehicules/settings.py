@@ -229,7 +229,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'fr-fr'
 
-TIME_ZONE = 'Africa/Lubumbashi'  # Lubumbashi est à UTC+2, 1 heure en avance par rapport à Kinshasa
+TIME_ZONE = os.environ.get('TZ', 'Africa/Lubumbashi')  # Lubumbashi = UTC+2
 
 USE_I18N = True
 
