@@ -58,10 +58,11 @@ window.MinexxGPSReplay = (function () {
     if (typeof positions === 'string') {
       try { positions = JSON.parse(positions); } catch (e) { positions = []; }
     }
-    map = L.map(options.mapId || 'gps-replay-map').setView([0, 20], 4);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+    map = L.map(options.mapId || 'gps-replay-map').setView([-11.66, 27.48], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
 
     const scrub = document.getElementById('gps-scrubber');

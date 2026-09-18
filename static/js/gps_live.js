@@ -13,10 +13,12 @@ window.MinexxGPSLive = (function () {
 
   function ensureMap() {
     if (map) return;
-    map = L.map('gps-live-map').setView([0.0, 20.0], 4);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+    // Carto (pas tile.openstreetmap.org — bloqué 403 hors usage conforme)
+    map = L.map('gps-live-map').setView([-11.66, 27.48], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
   }
 
