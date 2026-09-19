@@ -34,7 +34,14 @@ if [ ! -d "staticfiles" ]; then
 fi
 
 # Dossier média pour photos / documents uploadés
-mkdir -p media/images_vehicules media/documents_vehicules media/reparations
+# Sur Railway: créer un Volume monté sur /data/media et définir MEDIA_ROOT=/data/media
+MEDIA_DIR="${MEDIA_ROOT:-media}"
+mkdir -p "$MEDIA_DIR/images_vehicules" \
+         "$MEDIA_DIR/documents_vehicules" \
+         "$MEDIA_DIR/documents_vehicules/carte_rose" \
+         "$MEDIA_DIR/photos_profil" \
+         "$MEDIA_DIR/reparations"
+echo "📁 MEDIA_ROOT effectif: $MEDIA_DIR"
 
 # Fuseau horaire applicatif (Lubumbashi UTC+2)
 export TZ="${TZ:-Africa/Lubumbashi}"

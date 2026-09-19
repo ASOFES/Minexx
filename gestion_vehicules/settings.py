@@ -249,9 +249,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Modèle utilisateur personnalisé
 AUTH_USER_MODEL = 'core.Utilisateur'
 
-# Configuration des médias
+# Configuration des médias (persistant si MEDIA_ROOT pointe vers un volume Railway)
+# Ex. Railway Volume monté sur /data/media → variable MEDIA_ROOT=/data/media
+_media_root = os.environ.get('MEDIA_ROOT', '').strip()
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path(_media_root) if _media_root else (BASE_DIR / 'media')
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Configuration des fichiers statiques
 STATIC_URL = '/static/'
@@ -398,21 +401,27 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-# === Stockage des médias sur Amazon S3 ===
-# Désactivation du stockage S3 pour Render (on utilise le disque persistant)
-# if not DEBUG:
-#     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-#     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-#     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-#     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-#     AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'eu-west-1')  # Ã  adapter selon ta rÃ©gion
-#     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-#     AWS_S3_FILE_OVERWRITE = False
-#     AWS_DEFAULT_ACL = None
-#     AWS_S3_OBJECT_PARAMETERS = {
-#         'CacheControl': 'max-age=86400',
-#     }
-#     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+# === Stockage médias persistant (optionnel) ===
+# Railway Volume: MEDIA_ROOT=/data/media (recommandé)
+# OU S3/R2: USE_S3=True + AWS_* (django-storages)
+USE_S3 = os.getenv('USE_S3', 'False').lower() in ('1', 'true', 'yes')
+if USE_S3 and os.getenv('AWS_STORAGE_BUCKET_NAME'):
+    try:
+        INSTALLED_APPS = list(INSTALLED_APPS) + ['storages']
+        DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+        AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+        AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+        AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'auto')
+        AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL')  # ex. Cloudflare R2
+        AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN')
+        AWS_S3_FILE_OVERWRITE = False
+        AWS_DEFAULT_ACL = None
+        AWS_QUERYSTRING_AUTH = True
+        if AWS_S3_CUSTOM_DOMAIN:
+            MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    except Exception as e:
+        print(f"S3 media storage non active: {e}")
 
 USE_GCS = os.getenv('USE_GCS', 'False') == 'True'
 

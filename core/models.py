@@ -164,7 +164,17 @@ class Vehicule(models.Model):
     createur = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL, null=True, related_name='vehicules_crees')
     kilometrage_dernier_entretien = models.PositiveIntegerField(default=0, help_text="Kilométrage du dernier entretien effectué")
     kilometrage_actuel = models.PositiveIntegerField(null=True, blank=True, help_text="Kilométrage actuel du véhicule (centralisé)")
-    
+
+    @property
+    def image_disponible(self):
+        """True si le fichier image existe réellement sur le stockage."""
+        if not self.image:
+            return False
+        try:
+            return self.image.storage.exists(self.image.name)
+        except Exception:
+            return False
+
     def __str__(self):
         label = f"{self.marque} {self.modele}".strip() or "À compléter"
         return f"{self.immatriculation} - {label}"
