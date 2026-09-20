@@ -242,8 +242,8 @@ class Vehicule(models.Model):
         return actuel - dernier >= 4500
         
     def est_bloque_par_securite(self):
-        """True si incident ouvert ou dernière checklist non conforme."""
-        if self.incidents_securite.filter(statut='ouvert').exists():
+        """True si incident ouvert/en traitement ou dernière checklist non conforme."""
+        if self.incidents_securite.filter(statut__in=['ouvert', 'en_cours']).exists():
             return True
         derniere = self.check_lists.order_by('-date_controle').first()
         return bool(derniere and derniere.statut == 'non_conforme')

@@ -41,6 +41,16 @@
                 </div>
                 <div class="col-md-4">
                     <div class="border rounded p-3 bg-light">
+                        {% if reparation.numero_dossier %}
+                        <p class="mb-2">
+                            <strong>N° dossier :</strong>
+                            {% if reparation.incident_id %}
+                            <a href="{% url 'securite:detail_incident' reparation.incident_id %}">{{ reparation.numero_dossier }}</a>
+                            {% else %}
+                            {{ reparation.numero_dossier }}
+                            {% endif %}
+                        </p>
+                        {% endif %}
                         <p class="mb-2">
                             Statut :
                             {% if reparation.statut == 'en_attente' %}

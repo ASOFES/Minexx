@@ -157,11 +157,12 @@ class ReparationMecaniqueForm(forms.ModelForm):
     class Meta:
         model = ReparationMecanique
         fields = [
-            'vehicule', 'titre', 'description', 'garage', 'statut',
+            'vehicule', 'incident', 'titre', 'description', 'garage', 'statut',
             'devis_provisoire', 'date_signalement', 'commentaires',
         ]
         widgets = {
             'vehicule': forms.Select(attrs={'class': 'form-select'}),
+            'incident': forms.Select(attrs={'class': 'form-select'}),
             'titre': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ex: Freins avant usés, fuite radiateur…',
@@ -203,6 +204,16 @@ class ReparationMecaniqueForm(forms.ModelForm):
         self.fields['devis_provisoire'].help_text = (
             "Calculé automatiquement à partir du détail du devis (pièces, main-d'œuvre…)."
         )
+        from securite.models import IncidentSecurite
+        incidents_qs = IncidentSecurite.objects.filter(
+            statut__in=['ouvert', 'en_cours', 'traite']
+        ).select_related('vehicule').order_by('-date_signalement')
+        if user and not user.is_superuser and getattr(user, 'etablissement', None):
+            incidents_qs = incidents_qs.filter(vehicule__etablissement=user.etablissement)
+        self.fields['incident'].queryset = incidents_qs
+        self.fields['incident'].required = False
+        self.fields['incident'].label = "Dossier incident (n° dossier)"
+        self.fields['incident'].empty_label = "— Aucun (création hors incident) —"
         if not self.instance.pk:
             self.fields['statut'].choices = [
                 ('en_attente', 'En attente de réparation'),
@@ -218,6 +229,10 @@ class ReparationMecaniqueForm(forms.ModelForm):
         instance = super().save(commit=False)
         if self.createur:
             instance.createur = self.createur
+        if instance.incident_id:
+            instance.numero_dossier = instance.incident.numero_dossier or instance.numero_dossier
+            if not instance.vehicule_id:
+                instance.vehicule = instance.incident.vehicule
         if commit:
             instance.save()
         return instance

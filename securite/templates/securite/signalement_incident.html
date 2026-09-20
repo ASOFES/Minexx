@@ -1,30 +1,73 @@
 {% extends 'base.html' %}
-{% block title %}Signaler un incident{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-lg-7">
+        <div class="col-lg-8">
             <div class="card shadow">
-                <div class="card-header bg-danger text-white d-flex justify-content-between">
-                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Signaler un incident / accident</h5>
-                    <a href="{% url 'rapport:incidents' %}" class="btn btn-outline-light btn-sm">Rapport</a>
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>{{ title }}</h5>
+                    <div>
+                        {% if incident %}
+                        <a href="{% url 'securite:detail_incident' incident.id %}" class="btn btn-outline-light btn-sm">Dossier</a>
+                        {% endif %}
+                        <a href="{% url 'rapport:incidents' %}" class="btn btn-outline-light btn-sm">Rapport</a>
+                    </div>
                 </div>
                 <div class="card-body">
+                    {% if incident %}
+                    <div class="alert alert-secondary py-2 mb-3">
+                        <strong>N° dossier :</strong> {{ incident.numero_dossier }}
+                        <span class="ms-2 badge {% if incident.statut == 'ouvert' %}bg-danger{% elif incident.statut == 'en_cours' %}bg-info text-dark{% elif incident.statut == 'traite' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                            {{ incident.get_statut_display }}
+                        </span>
+                    </div>
+                    {% endif %}
                     <form method="post" enctype="multipart/form-data" novalidate>
                         {% csrf_token %}
                         {{ form.non_field_errors }}
                         <div class="row g-3">
                             {% for field in form %}
                             <div class="col-12">
-                                <label class="form-label">{{ field.label }}</label>
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                                 {{ field }}
                                 {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                             </div>
                             {% endfor %}
+                            <div class="col-12">
+                                <label class="form-label" for="id_photos">Photos (plusieurs possibles)</label>
+                                <input type="file" name="photos" id="id_photos" class="form-control" accept="image/*" multiple>
+                                <small class="text-muted">JPG, PNG — vous pouvez sélectionner plusieurs fichiers.</small>
+                            </div>
                         </div>
+
+                        {% if photos %}
+                        <div class="mt-4">
+                            <h6 class="mb-2">Photos actuelles</h6>
+                            <div class="row g-2">
+                                {% for p in photos %}
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded p-1 text-center">
+                                        <a href="{{ p.image.url }}" target="_blank">
+                                            <img src="{{ p.image.url }}" alt="Photo" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
+                                        </a>
+                                        <div class="form-check mt-1 text-start">
+                                            <input class="form-check-input" type="checkbox" name="supprimer_photos" value="{{ p.id }}" id="del_photo_{{ p.id }}">
+                                            <label class="form-check-label small text-danger" for="del_photo_{{ p.id }}">Supprimer</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a href="{% url 'rapport:incidents' %}" class="btn btn-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane me-1"></i>Signaler</button>
+                            <a href="{% if incident %}{% url 'securite:detail_incident' incident.id %}{% else %}{% url 'rapport:incidents' %}{% endif %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-{% if mode == 'edit' %}save{% else %}paper-plane{% endif %} me-1"></i>
+                                {% if mode == 'edit' %}Enregistrer{% else %}Signaler{% endif %}
+                            </button>
                         </div>
                     </form>
                 </div>

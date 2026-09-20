@@ -914,6 +914,16 @@ def _save_devis_formset(reparation, formset, champ='provisoire'):
 @login_required
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def creer_reparation(request):
+    from securite.models import IncidentSecurite
+
+    incident_lie = None
+    incident_id = request.GET.get('incident') or request.POST.get('incident')
+    if incident_id:
+        incident_qs = IncidentSecurite.objects.select_related('vehicule')
+        if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+            incident_qs = incident_qs.filter(vehicule__etablissement=request.user.etablissement)
+        incident_lie = incident_qs.filter(pk=incident_id).first()
+
     if request.method == 'POST':
         form = ReparationMecaniqueForm(request.POST, createur=request.user, user=request.user)
         formset = _devis_formset(request)
@@ -923,16 +933,24 @@ def creer_reparation(request):
                 reparation.devis_provisoire = 0
             reparation.save()
             total = _save_devis_formset(reparation, formset, champ='provisoire')
+            dossier = reparation.numero_dossier or '—'
             messages.success(
                 request,
                 f"Problème signalé pour {reparation.vehicule.immatriculation} — "
-                f"devis provisoire {total or reparation.devis_provisoire} $ "
+                f"dossier {dossier} — devis provisoire {total or reparation.devis_provisoire} $ "
                 f"({reparation.lignes_devis.count()} ligne(s))."
             )
             return redirect('entretien:detail_reparation', reparation_id=reparation.id)
     else:
         initial = {}
-        if request.GET.get('vehicule'):
+        if incident_lie:
+            initial = {
+                'incident': incident_lie.pk,
+                'vehicule': incident_lie.vehicule_id,
+                'titre': (incident_lie.description or '')[:200] or incident_lie.get_type_incident_display(),
+                'description': incident_lie.description,
+            }
+        elif request.GET.get('vehicule'):
             initial['vehicule'] = request.GET.get('vehicule')
         form = ReparationMecaniqueForm(createur=request.user, user=request.user, initial=initial)
         formset = _devis_formset(request)
@@ -942,6 +960,7 @@ def creer_reparation(request):
         'formset': formset,
         'title': 'Signaler un problème mécanique',
         'mode': 'create',
+        'incident_lie': incident_lie,
     })
 
 

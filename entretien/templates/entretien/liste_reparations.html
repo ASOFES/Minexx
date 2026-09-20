@@ -62,6 +62,7 @@
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
+                            <th>N° dossier</th>
                             <th>Véhicule</th>
                             <th>Problème</th>
                             <th>Statut</th>
@@ -74,6 +75,15 @@
                     <tbody>
                         {% for r in reparations %}
                         <tr>
+                            <td>
+                                {% if r.numero_dossier %}
+                                    {% if r.incident_id %}
+                                    <a href="{% url 'securite:detail_incident' r.incident_id %}">{{ r.numero_dossier }}</a>
+                                    {% else %}
+                                    {{ r.numero_dossier }}
+                                    {% endif %}
+                                {% else %}—{% endif %}
+                            </td>
                             <td><strong>{{ r.vehicule.immatriculation }}</strong></td>
                             <td>{{ r.titre }}</td>
                             <td>
@@ -100,7 +110,7 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="7" class="text-center text-muted py-4">Aucune réparation enregistrée.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">Aucune réparation enregistrée.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

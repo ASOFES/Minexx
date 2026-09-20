@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Dossier {{ incident.numero_dossier }}{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Dossier {{ incident.numero_dossier }}</h5>
+                <small class="opacity-75">{{ incident.get_type_incident_display }} — {{ incident.vehicule.immatriculation }}</small>
+            </div>
+            <div class="d-flex flex-wrap gap-1">
+                <a href="{% url 'rapport:incidents' %}" class="btn btn-outline-light btn-sm">Liste</a>
+                {% if incident.statut != 'clos' %}
+                <a href="{% url 'securite:modifier_incident' incident.id %}" class="btn btn-warning btn-sm">Modifier</a>
+                <a href="{% url 'entretien:creer_reparation' %}?incident={{ incident.id }}" class="btn btn-light btn-sm text-dark">
+                    <i class="fas fa-wrench me-1"></i>Créer devis / réparation
+                </a>
+                {% endif %}
+                {% if incident.statut != 'traite' and incident.statut != 'clos' %}
+                <form method="post" action="{% url 'securite:marquer_incident_traite' incident.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Marquer ce dossier comme traité ?');">
+                        Marquer comme traité
+                    </button>
+                </form>
+                {% endif %}
+                {% if incident.statut != 'clos' %}
+                <form method="post" action="{% url 'securite:cloturer_incident' incident.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-dark btn-sm" onclick="return confirm('Clôturer définitivement ce dossier ?');">
+                        Clôturer
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <p class="mb-1 text-muted">Véhicule</p>
+                    <h4>
+                        <a href="{% url 'vehicule_detail' incident.vehicule.id %}">{{ incident.vehicule.immatriculation }}</a>
+                        <small class="text-muted">{{ incident.vehicule.marque }} {{ incident.vehicule.modele }}</small>
+                    </h4>
+                    <p class="mt-3 mb-1 text-muted">Description</p>
+                    <p style="white-space: pre-wrap;">{{ incident.description }}</p>
+                    {% if incident.commentaires %}
+                    <p class="mb-1 text-muted">Commentaires</p>
+                    <p style="white-space: pre-wrap;">{{ incident.commentaires }}</p>
+                    {% endif %}
+
+                    <h6 class="mt-4 mb-2">Photos</h6>
+                    {% if photos or incident.photo %}
+                    <div class="row g-2">
+                        {% for p in photos %}
+                        <div class="col-6 col-md-4">
+                            <a href="{{ p.image.url }}" target="_blank">
+                                <img src="{{ p.image.url }}" class="img-fluid rounded border" alt="Photo incident" style="max-height:180px;object-fit:cover;width:100%;">
+                            </a>
+                        </div>
+                        {% empty %}
+                        {% if incident.photo %}
+                        <div class="col-6 col-md-4">
+                            <a href="{{ incident.photo.url }}" target="_blank">
+                                <img src="{{ incident.photo.url }}" class="img-fluid rounded border" alt="Photo" style="max-height:180px;object-fit:cover;width:100%;">
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">Aucune photo jointe.</p>
+                    {% endif %}
+                </div>
+                <div class="col-lg-5">
+                    <div class="border rounded p-3 bg-light">
+                        <p class="mb-2"><strong>N° dossier :</strong> {{ incident.numero_dossier }}</p>
+                        <p class="mb-2">
+                            Statut :
+                            {% if incident.statut == 'ouvert' %}
+                            <span class="badge bg-danger">{{ incident.get_statut_display }}</span>
+                            {% elif incident.statut == 'en_cours' %}
+                            <span class="badge bg-info text-dark">{{ incident.get_statut_display }}</span>
+                            {% elif incident.statut == 'traite' %}
+                            <span class="badge bg-warning text-dark">{{ incident.get_statut_display }}</span>
+                            {% else %}
+                            <span class="badge bg-success">{{ incident.get_statut_display }}</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-2"><strong>Type :</strong> {{ incident.get_type_incident_display }}</p>
+                        <p class="mb-2"><strong>Signalé le :</strong> {{ incident.date_signalement|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-2"><strong>Agent :</strong> {% if incident.agent %}{{ incident.agent.get_full_name|default:incident.agent.username }}{% else %}—{% endif %}</p>
+                        {% if incident.date_traitement %}
+                        <p class="mb-2"><strong>Traité le :</strong> {{ incident.date_traitement|date:"d/m/Y H:i" }}
+                            {% if incident.traite_par %} ({{ incident.traite_par.get_full_name|default:incident.traite_par.username }}){% endif %}
+                        </p>
+                        {% endif %}
+                        {% if incident.date_cloture %}
+                        <p class="mb-0"><strong>Clôturé le :</strong> {{ incident.date_cloture|date:"d/m/Y H:i" }}
+                            {% if incident.clos_par %} ({{ incident.clos_par.get_full_name|default:incident.clos_par.username }}){% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <h6 class="mt-4 mb-2">Devis / réparations liés</h6>
+                    {% if reparations %}
+                    <div class="list-group">
+                        {% for r in reparations %}
+                        <a href="{% url 'entretien:detail_reparation' r.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ r.titre }}</strong>
+                                <span class="badge bg-secondary">{{ r.get_statut_display }}</span>
+                            </div>
+                            <small class="text-muted">Devis prov. {{ r.devis_provisoire }} $
+                                {% if r.devis_confirme %} — Confirmé {{ r.devis_confirme }} ${% endif %}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small">Aucun devis / réparation lié pour l’instant.
+                        {% if incident.statut != 'clos' %}
+                        <a href="{% url 'entretien:creer_reparation' %}?incident={{ incident.id }}">Créer maintenant</a>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

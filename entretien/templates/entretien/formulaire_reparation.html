@@ -19,11 +19,25 @@
                     <div class="alert alert-info py-2">
                         Décrivez le problème et construisez le <strong>devis</strong> ligne par ligne
                         (pièces, main-d'œuvre…). Le total alimente le devis provisoire et le rapport budget.
+                        {% if incident_lie %}
+                        <br><strong>Dossier incident :</strong>
+                        <a href="{% url 'securite:detail_incident' incident_lie.id %}">{{ incident_lie.numero_dossier }}</a>
+                        {% elif reparation and reparation.numero_dossier %}
+                        <br><strong>N° dossier :</strong> {{ reparation.numero_dossier }}
+                        {% endif %}
                     </div>
                     <form method="post" novalidate id="form-reparation">
                         {% csrf_token %}
                         {{ form.non_field_errors }}
                         <div class="row">
+                            {% if form.incident %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label" for="{{ form.incident.id_for_label }}">{{ form.incident.label }}</label>
+                                {{ form.incident }}
+                                <small class="text-muted">Lie cette réparation au n° de dossier incident pour le suivi de statut.</small>
+                                {% for e in form.incident.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                            </div>
+                            {% endif %}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label" for="{{ form.vehicule.id_for_label }}">{{ form.vehicule.label }} *</label>
                                 {{ form.vehicule }}

@@ -17,7 +17,7 @@
         <div class="col-md-3">
             <div class="card border-0 bg-danger text-white text-center py-3">
                 <div class="fs-4 fw-bold">{{ stats.ouverts }}</div>
-                <small>Ouverts</small>
+                <small>Ouverts / en traitement</small>
             </div>
         </div>
         <div class="col-md-3">
@@ -90,19 +90,20 @@
         <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>#</th>
+                    <th>N° dossier</th>
                     <th>Date</th>
                     <th>Véhicule</th>
                     <th>Type</th>
                     <th>Statut</th>
                     <th>Agent</th>
                     <th>Description</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for i in incidents %}
                 <tr>
-                    <td>{{ i.id }}</td>
+                    <td><a href="{% url 'securite:detail_incident' i.id %}" class="fw-semibold text-decoration-none">{{ i.numero_dossier|default:i.id }}</a></td>
                     <td>{{ i.date_signalement|date:"d/m/Y H:i" }}</td>
                     <td>{{ i.vehicule.immatriculation }}</td>
                     <td>
@@ -117,6 +118,8 @@
                     <td>
                         {% if i.statut == 'ouvert' %}
                         <span class="badge bg-danger">{{ i.get_statut_display }}</span>
+                        {% elif i.statut == 'en_cours' %}
+                        <span class="badge bg-info text-dark">{{ i.get_statut_display }}</span>
                         {% elif i.statut == 'traite' %}
                         <span class="badge bg-warning text-dark">{{ i.get_statut_display }}</span>
                         {% else %}
@@ -125,9 +128,15 @@
                     </td>
                     <td>{% if i.agent %}{{ i.agent.get_full_name|default:i.agent.username }}{% else %}—{% endif %}</td>
                     <td><small>{{ i.description|truncatechars:80 }}</small></td>
+                    <td class="text-nowrap">
+                        <a href="{% url 'securite:detail_incident' i.id %}" class="btn btn-sm btn-outline-primary" title="Voir">Voir</a>
+                        {% if i.statut != 'clos' %}
+                        <a href="{% url 'securite:modifier_incident' i.id %}" class="btn btn-sm btn-outline-warning" title="Modifier">Modif.</a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="text-center text-muted py-4">Aucun incident / accident trouvé.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-4">Aucun incident / accident trouvé.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

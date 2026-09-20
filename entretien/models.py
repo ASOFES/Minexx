@@ -165,6 +165,19 @@ class ReparationMecanique(models.Model):
     )
 
     vehicule = models.ForeignKey(Vehicule, on_delete=models.CASCADE, related_name='reparations_mecaniques')
+    incident = models.ForeignKey(
+        'securite.IncidentSecurite',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reparations',
+        verbose_name="Dossier incident",
+        help_text="Lien vers le rapport d'incident (n° de dossier)",
+    )
+    numero_dossier = models.CharField(
+        max_length=32, blank=True, default='', db_index=True,
+        verbose_name="N° de dossier",
+        help_text="Recopié depuis l'incident pour suivi devis / réparation",
+    )
     titre = models.CharField(max_length=200, verbose_name="Problème (résumé)")
     description = models.TextField(verbose_name="Description du problème")
     garage = models.CharField(max_length=255, blank=True, default='', verbose_name="Garage / Prestataire")
@@ -259,6 +272,8 @@ class ReparationMecanique(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        if self.incident_id and not self.numero_dossier:
+            self.numero_dossier = self.incident.numero_dossier or ''
         if self.statut == 'repare' and not self.date_reparation:
             self.date_reparation = timezone.localdate()
         if self.statut == 'en_cours' and not self.date_debut_reparation:
@@ -269,11 +284,14 @@ class ReparationMecanique(models.Model):
                 utilisateur=self.createur,
                 action="Création réparation mécanique" if is_new else "Modification réparation mécanique",
                 details=(
+                    f"Dossier: {self.numero_dossier or '—'}, "
                     f"Véhicule: {self.vehicule.immatriculation}, Problème: {self.titre}, "
                     f"Statut: {self.get_statut_display()}, "
                     f"Devis prov.: {self.devis_provisoire}, Confirmé: {self.devis_confirme or '—'}"
                 ),
             )
+        if self.incident_id:
+            self.incident.synchroniser_statut_depuis_reparations()
 
     @classmethod
     def cout_confirme_par_vehicule(cls, vehicule):

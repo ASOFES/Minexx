@@ -1,162 +1,161 @@
 """
-Utilitaires pour l'export PDF utilisant des alternatives compatibles Python 3.13
+Utilitaires pour l'export PDF.
+Priorité : pdfkit + wkhtmltopdf si disponible, sinon xhtml2pdf.
 """
 
-# Nouvelles bibliothèques PDF compatibles Python 3.13
 import os
+import shutil
 import tempfile
-from pathlib import Path
-from django.conf import settings
+from io import BytesIO
+
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-import markdown
-import pdfkit
-from pathlib import Path
 
-# Configuration globale pour wkhtmltopdf
-WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+
+def _candidate_wkhtmltopdf_paths():
+    """Chemins possibles selon l'OS / la config."""
+    env_path = os.environ.get('WKHTMLTOPDF_CMD') or os.environ.get('WKHTMLTOPDF_PATH')
+    if env_path:
+        yield env_path
+
+    which = shutil.which('wkhtmltopdf')
+    if which:
+        yield which
+
+    yield r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    yield r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    yield '/usr/local/bin/wkhtmltopdf'
+    yield '/usr/bin/wkhtmltopdf'
+    yield '/bin/wkhtmltopdf'
+
+
+def find_wkhtmltopdf():
+    """Retourne le chemin absolu de wkhtmltopdf, ou None."""
+    for path in _candidate_wkhtmltopdf_paths():
+        if path and os.path.isfile(path):
+            return path
+    return None
+
+
+WKHTMLTOPDF_PATH = find_wkhtmltopdf()
+
+
+def _pdfkit_config():
+    import pdfkit
+    path = find_wkhtmltopdf()
+    if not path:
+        return None
+    return pdfkit.configuration(wkhtmltopdf=path)
+
+
+def _pdfkit_options():
+    return {
+        'page-size': 'A4',
+        'margin-top': '0.75in',
+        'margin-right': '0.75in',
+        'margin-bottom': '0.75in',
+        'margin-left': '0.75in',
+        'encoding': 'UTF-8',
+        'no-outline': None,
+        'enable-local-file-access': None,
+        'disable-smart-shrinking': None,
+        'image-quality': 100,
+        'image-dpi': 300,
+        'javascript-delay': 1000,
+        'no-stop-slow-scripts': None,
+    }
+
+
+def _http_pdf_response(pdf_content, filename=None):
+    response = HttpResponse(pdf_content, content_type='application/pdf')
+    name = filename or 'export.pdf'
+    response['Content-Disposition'] = f'attachment; filename="{name}"'
+    return response
+
+
+def _generate_with_pdfkit(html_content):
+    import pdfkit
+
+    config = _pdfkit_config()
+    if not config:
+        raise FileNotFoundError('wkhtmltopdf introuvable')
+
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+        temp_path = temp_file.name
+
+    try:
+        pdfkit.from_string(
+            html_content,
+            temp_path,
+            options=_pdfkit_options(),
+            configuration=config,
+        )
+        with open(temp_path, 'rb') as pdf_file:
+            return pdf_file.read()
+    finally:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
+def _generate_with_xhtml2pdf(html_content):
+    from xhtml2pdf import pisa
+
+    result = BytesIO()
+    pdf = pisa.CreatePDF(html_content, dest=result, encoding='utf-8')
+    if pdf.err:
+        raise RuntimeError('xhtml2pdf a renvoyé une erreur de rendu')
+    return result.getvalue()
+
+
+def html_bytes_to_pdf(html_content):
+    """
+    Convertit du HTML en bytes PDF.
+    Utilise pdfkit si wkhtmltopdf est présent, sinon xhtml2pdf.
+    """
+    if find_wkhtmltopdf():
+        try:
+            return _generate_with_pdfkit(html_content)
+        except Exception:
+            # Repli si pdfkit échoue malgré la présence du binaire
+            pass
+    return _generate_with_xhtml2pdf(html_content)
+
 
 class PDFExportError(Exception):
     """Exception personnalisée pour les erreurs d'export PDF"""
     pass
 
+
 def render_to_pdf(template_name, context, filename=None):
     """
-    Génère un PDF à partir d'un template Django en utilisant pdfkit
-    avec gestion optimisée des images et fichiers statiques
-    
-    Args:
-        template_name: Nom du template à utiliser
-        context: Contexte pour le template
-        filename: Nom du fichier PDF (optionnel)
-    
-    Returns:
-        HttpResponse avec le PDF en attachement
+    Génère un PDF à partir d'un template Django.
     """
     try:
-        # Rendre le template en HTML
         html_content = render_to_string(template_name, context)
-        
-        # Prétraiter le HTML pour optimiser les images
         html_content = preprocess_html_for_pdf(html_content)
-        
-        # Créer un fichier temporaire pour le PDF
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
-            temp_path = temp_file.name
-        
-        # Configuration pdfkit optimisée pour Render
-        options = {
-            'page-size': 'A4',
-            'margin-top': '0.75in',
-            'margin-right': '0.75in',
-            'margin-bottom': '0.75in',
-            'margin-left': '0.75in',
-            'encoding': 'UTF-8',
-            'no-outline': None,
-            'enable-local-file-access': None,
-            'disable-smart-shrinking': None,
-            'image-quality': 100,
-            'image-dpi': 300,
-            'javascript-delay': 1000,
-            'no-stop-slow-scripts': None,
-        }
-        
-        # Configuration du chemin vers wkhtmltopdf
-        config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
-        
-        # Générer le PDF
-        pdfkit.from_string(html_content, temp_path, options=options, configuration=config)
-        
-        # Lire le PDF généré
-        with open(temp_path, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-        
-        # Nettoyer le fichier temporaire
-        os.unlink(temp_path)
-        
-        # Créer la réponse HTTP
-        response = HttpResponse(pdf_content, content_type='application/pdf')
-        if filename:
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        else:
-            response['Content-Disposition'] = 'attachment; filename="export.pdf"'
-        
-        return response
-        
+        pdf_content = html_bytes_to_pdf(html_content)
+        return _http_pdf_response(pdf_content, filename)
     except Exception as e:
-        # En cas d'erreur, retourner un message d'erreur
         error_message = f"Erreur lors de la génération du PDF: {str(e)}"
-        return HttpResponse(error_message, content_type='text/plain', status=500)
+        return HttpResponse(error_message, content_type='text/plain; charset=utf-8', status=500)
+
 
 def html_to_pdf(html_content, filename=None):
-    """
-    Convertit du HTML en PDF
-    
-    Args:
-        html_content: Contenu HTML à convertir
-        filename: Nom du fichier PDF (optionnel)
-    
-    Returns:
-        HttpResponse avec le PDF en attachement
-    """
+    """Convertit du HTML en PDF (HttpResponse)."""
     try:
-        # Créer un fichier temporaire pour le PDF
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
-            temp_path = temp_file.name
-        
-        # Configuration pdfkit
-        options = {
-            'page-size': 'A4',
-            'margin-top': '0.75in',
-            'margin-right': '0.75in',
-            'margin-bottom': '0.75in',
-            'margin-left': '0.75in',
-            'encoding': 'UTF-8',
-            'no-outline': None,
-        }
-        
-        # Configuration du chemin vers wkhtmltopdf
-        config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
-        
-        # Générer le PDF
-        pdfkit.from_string(html_content, temp_path, options=options, configuration=config)
-        
-        # Lire le PDF généré
-        with open(temp_path, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-        
-        # Nettoyer le fichier temporaire
-        os.unlink(temp_path)
-        
-        # Créer la réponse HTTP
-        response = HttpResponse(pdf_content, content_type='application/pdf')
-        if filename:
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        else:
-            response['Content-Disposition'] = 'attachment; filename="export.pdf"'
-        
-        return response
-        
+        pdf_content = html_bytes_to_pdf(html_content)
+        return _http_pdf_response(pdf_content, filename)
     except Exception as e:
         error_message = f"Erreur lors de la conversion HTML vers PDF: {str(e)}"
-        return HttpResponse(error_message, content_type='text/plain', status=500)
+        return HttpResponse(error_message, content_type='text/plain; charset=utf-8', status=500)
+
 
 def markdown_to_pdf(markdown_content, filename=None):
-    """
-    Convertit du Markdown en PDF
-    
-    Args:
-        markdown_content: Contenu Markdown à convertir
-        filename: Nom du fichier PDF (optionnel)
-    
-    Returns:
-        HttpResponse avec le PDF en attachement
-    """
+    """Convertit du Markdown en PDF."""
     try:
-        # Convertir Markdown en HTML
+        import markdown
+
         html_content = markdown.markdown(markdown_content)
-        
-        # Ajouter du CSS de base
         html_with_css = f"""
         <!DOCTYPE html>
         <html>
@@ -175,106 +174,70 @@ def markdown_to_pdf(markdown_content, filename=None):
         </body>
         </html>
         """
-        
-        # Convertir en PDF
         return html_to_pdf(html_with_css, filename)
-        
     except Exception as e:
         error_message = f"Erreur lors de la conversion Markdown vers PDF: {str(e)}"
-        return HttpResponse(error_message, content_type='text/plain', status=500)
+        return HttpResponse(error_message, content_type='text/plain; charset=utf-8', status=500)
+
 
 def is_pdf_available():
-    """
-    Vérifie si la génération PDF est disponible
-    
-    Returns:
-        bool: True si PDF disponible, False sinon
-    """
+    """True si au moins un moteur PDF est utilisable."""
+    if find_wkhtmltopdf():
+        try:
+            import pdfkit  # noqa: F401
+            return True
+        except ImportError:
+            pass
     try:
-        import pdfkit
+        from xhtml2pdf import pisa  # noqa: F401
         return True
     except ImportError:
         return False
 
+
 def preprocess_html_for_pdf(html_content):
-    """
-    Prétraite le HTML pour optimiser la génération PDF avec pdfkit
-    
-    Args:
-        html_content: Contenu HTML brut
-    
-    Returns:
-        str: HTML prétraité optimisé pour PDF
-    """
+    """Prétraite le HTML pour optimiser la génération PDF."""
     try:
-        # Convertir les chemins relatifs des images en chemins absolus
         html_content = convert_image_paths(html_content)
-        
-        # Ajouter des styles CSS optimisés pour PDF
         html_content = add_pdf_optimized_css(html_content)
-        
         return html_content
-        
     except Exception as e:
         print(f"Erreur lors du prétraitement HTML: {e}")
         return html_content
 
+
 def convert_image_paths(html_content):
-    """
-    Convertit les chemins relatifs des images en chemins absolus
-    
-    Args:
-        html_content: Contenu HTML
-    
-    Returns:
-        str: HTML avec chemins d'images convertis
-    """
+    """Convertit les chemins relatifs des images en chemins absolus."""
     try:
         import re
         from django.contrib.staticfiles import finders
-        
-        # Pattern pour trouver les balises img avec src relatif
+
         img_pattern = r'<img[^>]+src=["\']([^"\']+)["\'][^>]*>'
-        
+
         def replace_img_src(match):
             img_tag = match.group(0)
             src_path = match.group(1)
-            
-            # Si c'est déjà un chemin absolu ou une URL, ne rien changer
-            if src_path.startswith(('http://', 'https://', 'data:', '/')):
+
+            if src_path.startswith(('http://', 'https://', 'data:', 'file:')):
                 return img_tag
-            
-            # Si c'est un chemin statique, le convertir en chemin absolu
+
             if src_path.startswith('static/'):
-                static_path = src_path.replace('static/', '')
+                static_path = src_path.replace('static/', '', 1)
                 absolute_path = finders.find(static_path)
                 if absolute_path:
-                    # Convertir en chemin de fichier local pour pdfkit
-                    return img_tag.replace(f'src="{src_path}"', f'src="file://{absolute_path}"')
-            
+                    return img_tag.replace(f'src="{src_path}"', f'src="file:///{absolute_path}"')
+
             return img_tag
-        
-        # Appliquer les remplacements
-        html_content = re.sub(img_pattern, replace_img_src, html_content)
-        
-        return html_content
-        
+
+        return re.sub(img_pattern, replace_img_src, html_content)
     except Exception as e:
         print(f"Erreur lors de la conversion des chemins d'images: {e}")
         return html_content
 
+
 def add_pdf_optimized_css(html_content):
-    """
-    Ajoute des styles CSS optimisés pour la génération PDF
-    
-    Args:
-        html_content: Contenu HTML
-    
-    Returns:
-        str: HTML avec CSS optimisé pour PDF
-    """
+    """Ajoute des styles CSS optimisés pour la génération PDF."""
     try:
-        # CSS optimisé pour PDF
         pdf_css = """
         <style>
             @page {
@@ -321,28 +284,19 @@ def add_pdf_optimized_css(html_content):
             h3 { font-size: 14px; }
         </style>
         """
-        
-        # Insérer le CSS dans le head du HTML
+
         if '<head>' in html_content:
-            html_content = html_content.replace('<head>', f'<head>{pdf_css}')
-        else:
-            # Si pas de head, l'ajouter au début
-            html_content = f'<html><head>{pdf_css}</head><body>{html_content}</body></html>'
-        
-        return html_content
-        
+            return html_content.replace('<head>', f'<head>{pdf_css}', 1)
+
+        return f'<html><head>{pdf_css}</head><body>{html_content}</body></html>'
     except Exception as e:
         print(f"Erreur lors de l'ajout du CSS PDF: {e}")
         return html_content
 
+
 def get_pdf_status_message():
-    """
-    Retourne un message sur le statut de la génération PDF
-    
-    Returns:
-        str: Message d'information
-    """
+    """Message sur le statut de la génération PDF."""
     if is_pdf_available():
-        return "Export PDF disponible"
-    else:
-        return "Export PDF non disponible - bibliothèques manquantes"
+        engine = 'wkhtmltopdf' if find_wkhtmltopdf() else 'xhtml2pdf'
+        return f"Export PDF disponible ({engine})"
+    return "Export PDF non disponible - bibliothèques manquantes"

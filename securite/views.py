@@ -86,7 +86,7 @@ def dashboard(request):
     # Statistiques des incidents
     incident_stats = {
         'total_incidents': IncidentSecurite.objects.count(),
-        'open_incidents': IncidentSecurite.objects.filter(statut='ouvert').count(),
+        'open_incidents': IncidentSecurite.objects.filter(statut__in=['ouvert', 'en_cours']).count(),
         'traite_incidents': IncidentSecurite.objects.filter(statut='traite').count(),
         'clos_incidents': IncidentSecurite.objects.filter(statut='clos').count(),
     }
@@ -107,7 +107,7 @@ def dashboard(request):
         last_checklist_statut=Subquery(latest_checklist.values('statut')[:1])
     ).filter(
         Q(last_checklist_statut='non_conforme') |
-        Q(incidents_securite__statut='ouvert')
+        Q(incidents_securite__statut__in=['ouvert', 'en_cours'])
     ).distinct()
     
     context = {
@@ -308,16 +308,136 @@ def signaler_incident(request):
         messages.error(request, "Vous n'avez pas les droits pour accéder à cette page.")
         return redirect('home')
     if request.method == 'POST':
-        form = IncidentSecuriteForm(request.POST, request.FILES)
+        form = IncidentSecuriteForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             incident = form.save(commit=False)
             incident.agent = request.user
             incident.save()
-            messages.success(request, "Incident signalé avec succès.")
-            return redirect('rapport:incidents')
+            _enregistrer_photos_incident(incident, request)
+            messages.success(
+                request,
+                f"Incident signalé — dossier {incident.numero_dossier}."
+            )
+            return redirect('securite:detail_incident', incident_id=incident.id)
     else:
-        form = IncidentSecuriteForm()
-    return render(request, 'securite/signalement_incident.html', {'form': form})
+        form = IncidentSecuriteForm(user=request.user)
+    return render(request, 'securite/signalement_incident.html', {
+        'form': form,
+        'title': "Signaler un incident / accident",
+        'mode': 'create',
+    })
+
+
+def _enregistrer_photos_incident(incident, request, clear_deleted=True):
+    """Enregistre les fichiers multi-upload + photo unique legacy."""
+    from .models import PhotoIncidentSecurite
+
+    for f in request.FILES.getlist('photos'):
+        if f:
+            PhotoIncidentSecurite.objects.create(incident=incident, image=f)
+
+    # Compat : ancien champ unique "photo"
+    legacy = request.FILES.get('photo')
+    if legacy:
+        PhotoIncidentSecurite.objects.create(incident=incident, image=legacy)
+        if not incident.photo:
+            incident.photo = legacy
+            incident.save(update_fields=['photo'])
+
+    if clear_deleted:
+        for photo_id in request.POST.getlist('supprimer_photos'):
+            try:
+                photo = incident.photos.get(pk=int(photo_id))
+            except (PhotoIncidentSecurite.DoesNotExist, ValueError, TypeError):
+                continue
+            if photo.image:
+                photo.image.delete(save=False)
+            photo.delete()
+
+
+def _incident_queryset(request):
+    qs = IncidentSecurite.objects.select_related('vehicule', 'agent', 'traite_par', 'clos_par').prefetch_related('photos', 'reparations')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        qs = qs.filter(vehicule__etablissement=request.user.etablissement)
+    return qs
+
+
+def _peut_gerer_incident(user):
+    return (
+        user.is_superuser
+        or getattr(user, 'role', None) in ('securite', 'admin', 'dispatch')
+    )
+
+
+@login_required
+def detail_incident(request, incident_id):
+    if not _peut_gerer_incident(request.user):
+        messages.error(request, "Vous n'avez pas les droits pour accéder à cette page.")
+        return redirect('home')
+    incident = get_object_or_404(_incident_queryset(request), pk=incident_id)
+    return render(request, 'securite/detail_incident.html', {
+        'incident': incident,
+        'photos': incident.photos.all(),
+        'reparations': incident.reparations.select_related('vehicule').all(),
+    })
+
+
+@login_required
+def modifier_incident(request, incident_id):
+    if not _peut_gerer_incident(request.user):
+        messages.error(request, "Vous n'avez pas les droits pour accéder à cette page.")
+        return redirect('home')
+    incident = get_object_or_404(_incident_queryset(request), pk=incident_id)
+    if incident.statut == 'clos':
+        messages.warning(request, "Ce dossier est clos. Réouverture impossible depuis le formulaire.")
+        return redirect('securite:detail_incident', incident_id=incident.id)
+
+    if request.method == 'POST':
+        form = IncidentSecuriteForm(request.POST, request.FILES, instance=incident, user=request.user)
+        if form.is_valid():
+            form.save()
+            _enregistrer_photos_incident(incident, request)
+            messages.success(request, f"Dossier {incident.numero_dossier} mis à jour.")
+            return redirect('securite:detail_incident', incident_id=incident.id)
+    else:
+        form = IncidentSecuriteForm(instance=incident, user=request.user)
+
+    return render(request, 'securite/signalement_incident.html', {
+        'form': form,
+        'incident': incident,
+        'photos': incident.photos.all(),
+        'title': f"Modifier l'incident {incident.numero_dossier}",
+        'mode': 'edit',
+    })
+
+
+@login_required
+def marquer_incident_traite(request, incident_id):
+    if not _peut_gerer_incident(request.user):
+        messages.error(request, "Vous n'avez pas les droits pour cette action.")
+        return redirect('home')
+    if request.method != 'POST':
+        return redirect('securite:detail_incident', incident_id=incident_id)
+    incident = get_object_or_404(_incident_queryset(request), pk=incident_id)
+    if incident.marquer_traite(utilisateur=request.user):
+        messages.success(request, f"Dossier {incident.numero_dossier} marqué comme traité.")
+    else:
+        messages.warning(request, "Impossible de marquer comme traité (dossier déjà clos).")
+    return redirect('securite:detail_incident', incident_id=incident.id)
+
+
+@login_required
+def cloturer_incident(request, incident_id):
+    if not _peut_gerer_incident(request.user):
+        messages.error(request, "Vous n'avez pas les droits pour cette action.")
+        return redirect('home')
+    if request.method != 'POST':
+        return redirect('securite:detail_incident', incident_id=incident_id)
+    incident = get_object_or_404(_incident_queryset(request), pk=incident_id)
+    incident.cloturer(utilisateur=request.user)
+    messages.success(request, f"Dossier {incident.numero_dossier} clôturé.")
+    return redirect('securite:detail_incident', incident_id=incident.id)
+
 
 @login_required
 def export_checklists_excel(request):

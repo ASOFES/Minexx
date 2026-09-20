@@ -214,11 +214,22 @@ class ChecklistSecuriteForm(forms.ModelForm):
 class IncidentSecuriteForm(forms.ModelForm):
     class Meta:
         model = IncidentSecurite
-        fields = ['vehicule', 'type_incident', 'description', 'photo', 'commentaires']
+        fields = ['vehicule', 'type_incident', 'description', 'commentaires']
         widgets = {
             'vehicule': forms.Select(attrs={'class': 'form-select'}),
             'type_incident': forms.Select(attrs={'class': 'form-select'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'photo': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'commentaires': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        qs = Vehicule.objects.all().order_by('immatriculation')
+        if user and not user.is_superuser and getattr(user, 'etablissement', None):
+            qs = qs.filter(etablissement=user.etablissement)
+        self.fields['vehicule'].queryset = qs
+        self.fields['vehicule'].label = "Véhicule"
+        self.fields['type_incident'].label = "Type d'incident"
+        self.fields['description'].label = "Description"
+        self.fields['commentaires'].label = "Commentaires"
