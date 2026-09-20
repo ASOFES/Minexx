@@ -11,13 +11,14 @@ ENV TZ=Africa/Lubumbashi
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Installer les dépendances système (+ wkhtmltopdf pour exports PDF)
+# Installer les dépendances système
+# Note: pas de wkhtmltopdf ici (souvent absent des images slim récentes) —
+# les PDF utilisent xhtml2pdf en repli (voir core/pdf_utils.py).
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     g++ \
     tzdata \
-    wkhtmltopdf \
     && ln -snf /usr/share/zoneinfo/Africa/Lubumbashi /etc/localtime \
     && echo Africa/Lubumbashi > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
