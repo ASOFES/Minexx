@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        @page { size: A4; margin: 1.5cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #2c3e50; }
+        .header { text-align: center; margin-bottom: 22px; padding-bottom: 12px; border-bottom: 1px solid #e0e6ed; }
+        .title { font-size: 20px; font-weight: 600; margin: 8px 0; text-transform: uppercase; }
+        .subtitle { font-size: 11px; color: #7f8c8d; }
+        .section { margin-bottom: 18px; border: 1px solid #e0e6ed; border-radius: 4px; overflow: hidden; }
+        .section-title { background: #f5f7fa; padding: 8px 12px; font-weight: 600; font-size: 13px; border-left: 4px solid #4a6ea9; text-transform: uppercase; }
+        .grid { width: 100%; border-collapse: collapse; }
+        .grid td { padding: 8px 12px; vertical-align: top; width: 50%; border-bottom: 1px dashed #e8edf2; }
+        .label { font-size: 10px; color: #5c6b7b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+        .value { font-size: 13px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #fff; }
+        .ok { background: #2ecc71; }
+        .warn { background: #f39c12; }
+        .info { background: #3498db; }
+        .muted { background: #95a5a6; }
+        .immat { background: #e3f2fd; color: #0d6efd; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+        .block { padding: 12px; white-space: pre-wrap; }
+        .footer { margin-top: 28px; text-align: center; font-size: 10px; color: #7f8c8d; border-top: 1px solid #e0e6ed; padding-top: 10px; }
+        .money { font-family: "Courier New", monospace; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="MINEXX" style="max-height:48px;margin-bottom:8px;">
+        {% endif %}
+        <div class="title">Fiche réparation mécanique</div>
+        <div class="subtitle">Généré le {{ date_export|date:"d/m/Y à H:i" }} par {{ user.get_full_name|default:user.username }}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Véhicule</div>
+        <table class="grid">
+            <tr>
+                <td>
+                    <div class="label">Immatriculation</div>
+                    <div class="value"><span class="immat">{{ reparation.vehicule.immatriculation }}</span></div>
+                </td>
+                <td>
+                    <div class="label">Marque / Modèle</div>
+                    <div class="value">{{ reparation.vehicule.marque }} {{ reparation.vehicule.modele }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="label">Châssis</div>
+                    <div class="value">{{ reparation.vehicule.numero_chassis|default:"—" }}</div>
+                </td>
+                <td>
+                    <div class="label">Établissement</div>
+                    <div class="value">{% if reparation.vehicule.etablissement %}{{ reparation.vehicule.etablissement.nom }}{% else %}—{% endif %}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Réparation</div>
+        <table class="grid">
+            <tr>
+                <td>
+                    <div class="label">Problème</div>
+                    <div class="value">{{ reparation.titre }}</div>
+                </td>
+                <td>
+                    <div class="label">Statut</div>
+                    <div class="value">
+                        <span class="badge
+                            {% if reparation.statut == 'repare' %}ok
+                            {% elif reparation.statut == 'en_cours' %}info
+                            {% elif reparation.statut == 'en_attente' %}warn
+                            {% else %}muted{% endif %}">{{ reparation.get_statut_display }}</span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="label">Garage / Prestataire</div>
+                    <div class="value">{{ reparation.garage|default:"—" }}</div>
+                </td>
+                <td>
+                    <div class="label">Date signalement</div>
+                    <div class="value">{{ reparation.date_signalement|date:"d/m/Y" }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="label">Début réparation</div>
+                    <div class="value">{{ reparation.date_debut_reparation|date:"d/m/Y"|default:"—" }}</div>
+                </td>
+                <td>
+                    <div class="label">Date terminée</div>
+                    <div class="value">{{ reparation.date_reparation|date:"d/m/Y"|default:"—" }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="label">Devis provisoire</div>
+                    <div class="value money">{{ reparation.devis_provisoire|floatformat:2 }} $</div>
+                </td>
+                <td>
+                    <div class="label">Devis confirmé</div>
+                    <div class="value money">{% if reparation.devis_confirme %}{{ reparation.devis_confirme|floatformat:2 }} ${% else %}—{% endif %}</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="label">Écart (confirmé − provisoire)</div>
+                    <div class="value money">{% if ecart is not None %}{{ ecart|floatformat:2 }} ${% else %}—{% endif %}</div>
+                </td>
+                <td>
+                    <div class="label">Confirmé par</div>
+                    <div class="value">{% if reparation.confirme_par %}{{ reparation.confirme_par.get_full_name|default:reparation.confirme_par.username }}{% else %}—{% endif %}</div>
+                </td>
+            </tr>
+        </table>
+        <div class="block">
+            <div class="label">Description</div>
+            <div class="value">{{ reparation.description }}</div>
+        </div>
+        {% if reparation.commentaires %}
+        <div class="block">
+            <div class="label">Commentaires</div>
+            <div class="value">{{ reparation.commentaires }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="footer">MINEXX — Fiche réparation #{{ reparation.id }}</div>
+</body>
+</html>

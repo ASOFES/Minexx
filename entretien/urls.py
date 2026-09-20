@@ -18,7 +18,11 @@ urlpatterns = [
     # Réparations mécaniques
     path('reparations/', views.liste_reparations, name='liste_reparations'),
     path('reparations/ajouter/', views.creer_reparation, name='creer_reparation'),
+    path('reparations/exporter-pdf/', views.exporter_reparations_pdf, name='exporter_reparations_pdf'),
+    path('reparations/exporter-excel/', views.exporter_reparations_excel, name='exporter_reparations_excel'),
     path('reparations/<int:reparation_id>/', views.detail_reparation, name='detail_reparation'),
+    path('reparations/<int:reparation_id>/exporter-pdf/', views.exporter_reparation_pdf, name='exporter_reparation_pdf'),
+    path('reparations/<int:reparation_id>/exporter-excel/', views.exporter_reparation_excel, name='exporter_reparation_excel'),
     path('reparations/<int:reparation_id>/modifier/', views.modifier_reparation, name='modifier_reparation'),
     path('reparations/<int:reparation_id>/confirmer/', views.confirmer_reparation, name='confirmer_reparation'),
     path('reparations/<int:reparation_id>/supprimer/', views.supprimer_reparation, name='supprimer_reparation'),

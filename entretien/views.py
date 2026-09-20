@@ -731,19 +731,22 @@ def get_vehicule_kilometrage(request):
 
 
 def _reparations_queryset(request):
-    qs = ReparationMecanique.objects.select_related('vehicule', 'vehicule__etablissement', 'createur')
+    qs = ReparationMecanique.objects.select_related(
+        'vehicule', 'vehicule__etablissement', 'createur', 'confirme_par'
+    )
     if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
         qs = qs.filter(vehicule__etablissement=request.user.etablissement)
     return qs
 
 
-@login_required
-@user_passes_test(is_admin_or_dispatch_or_superuser)
-def liste_reparations(request):
+def _filtered_reparations_queryset(request):
+    """Applique les filtres GET (liste / exports)."""
     queryset = _reparations_queryset(request)
     vehicule_id = request.GET.get('vehicule')
     statut = request.GET.get('statut')
     recherche = request.GET.get('recherche')
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
 
     if vehicule_id:
         queryset = queryset.filter(vehicule_id=vehicule_id)
@@ -756,6 +759,56 @@ def liste_reparations(request):
             | Q(vehicule__immatriculation__icontains=recherche)
             | Q(garage__icontains=recherche)
         )
+    if date_debut:
+        queryset = queryset.filter(date_signalement__gte=date_debut)
+    if date_fin:
+        queryset = queryset.filter(date_signalement__lte=date_fin)
+    return queryset.order_by('-date_signalement', '-id')
+
+
+def _reparation_export_rows(queryset):
+    data = []
+    total_provisoire = 0
+    total_confirme = 0
+    for r in queryset:
+        ecart = None
+        if r.devis_confirme is not None:
+            ecart = float(r.devis_confirme) - float(r.devis_provisoire or 0)
+            total_confirme += float(r.devis_confirme)
+        total_provisoire += float(r.devis_provisoire or 0)
+        data.append({
+            'ID': r.id,
+            'Véhicule': r.vehicule.immatriculation,
+            'Marque/Modèle': f"{r.vehicule.marque} {r.vehicule.modele}".strip(),
+            'Département': r.vehicule.etablissement.nom if r.vehicule.etablissement else '-',
+            'Problème': r.titre,
+            'Description': r.description or '',
+            'Garage': r.garage or '-',
+            'Statut': r.get_statut_display(),
+            'Devis provisoire ($)': float(r.devis_provisoire or 0),
+            'Devis confirmé ($)': float(r.devis_confirme) if r.devis_confirme is not None else '',
+            'Écart ($)': round(ecart, 2) if ecart is not None else '',
+            'Date signalement': r.date_signalement.strftime('%d/%m/%Y') if r.date_signalement else '',
+            'Début réparation': r.date_debut_reparation.strftime('%d/%m/%Y') if r.date_debut_reparation else '',
+            'Date terminée': r.date_reparation.strftime('%d/%m/%Y') if r.date_reparation else '',
+            'Créé par': (
+                r.createur.get_full_name() or r.createur.username
+            ) if r.createur else '',
+            'Confirmé par': (
+                r.confirme_par.get_full_name() or r.confirme_par.username
+            ) if r.confirme_par else '',
+            'Commentaires': r.commentaires or '',
+        })
+    return data, total_provisoire, total_confirme
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def liste_reparations(request):
+    queryset = _filtered_reparations_queryset(request)
+    vehicule_id = request.GET.get('vehicule')
+    statut = request.GET.get('statut')
+    recherche = request.GET.get('recherche')
 
     paginator = Paginator(queryset.order_by('-date_signalement', '-id'), 15)
     page = request.GET.get('page')
@@ -887,3 +940,99 @@ def supprimer_reparation(request, reparation_id):
     return render(request, 'entretien/confirmer_suppression_reparation.html', {
         'reparation': reparation,
     })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def exporter_reparations_pdf(request):
+    """Export PDF de la liste des réparations mécaniques (filtres GET respectés)."""
+    queryset = _filtered_reparations_queryset(request)
+    data, total_provisoire, total_confirme = _reparation_export_rows(queryset)
+    etablissement_nom = (
+        request.user.etablissement.nom
+        if not request.user.is_superuser and getattr(request.user, 'etablissement', None)
+        else 'Tous'
+    )
+    ActionTraceur.objects.create(
+        utilisateur=request.user,
+        action="Exportation PDF des réparations mécaniques",
+    )
+    return render_to_pdf(
+        'entretien/pdf/liste_reparations_pdf.html',
+        {
+            'title': 'Liste des Réparations mécaniques',
+            'date_export': timezone.now(),
+            'etablissement': etablissement_nom,
+            'total_provisoire': total_provisoire,
+            'total_confirme': total_confirme,
+            'reparations': queryset,
+            'user': request.user,
+        },
+        filename=f"liste_reparations_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf",
+    )
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def exporter_reparations_excel(request):
+    """Export Excel de la liste des réparations mécaniques."""
+    queryset = _filtered_reparations_queryset(request)
+    data, total_provisoire, total_confirme = _reparation_export_rows(queryset)
+    etablissement_nom = (
+        request.user.etablissement.nom
+        if not request.user.is_superuser and getattr(request.user, 'etablissement', None)
+        else 'Tous'
+    )
+    ActionTraceur.objects.create(
+        utilisateur=request.user,
+        action="Exportation Excel des réparations mécaniques",
+    )
+    titre = (
+        f"Réparations mécaniques — {etablissement_nom} "
+        f"(Provisoire: {total_provisoire:.2f} $ / Confirmé: {total_confirme:.2f} $)"
+    )
+    return export_to_excel(
+        titre,
+        data,
+        f"reparations_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx",
+    )
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def exporter_reparation_pdf(request, reparation_id):
+    """Export PDF du détail d'une réparation mécanique."""
+    reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
+    ActionTraceur.objects.create(
+        utilisateur=request.user,
+        action=f"Exportation PDF réparation mécanique #{reparation_id}",
+    )
+    response = render_to_pdf(
+        'entretien/pdf/reparation_detail_pdf.html',
+        {
+            'title': f"Réparation — {reparation.vehicule.immatriculation}",
+            'reparation': reparation,
+            'ecart': reparation.ecart_devis,
+            'date_export': timezone.now(),
+            'user': request.user,
+        },
+        filename=f"reparation_{reparation_id}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf",
+    )
+    return response
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def exporter_reparation_excel(request, reparation_id):
+    """Export Excel du détail d'une réparation mécanique."""
+    reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
+    data, _, _ = _reparation_export_rows([reparation])
+    ActionTraceur.objects.create(
+        utilisateur=request.user,
+        action=f"Exportation Excel réparation mécanique #{reparation_id}",
+    )
+    return export_to_excel(
+        f"Réparation mécanique — {reparation.vehicule.immatriculation}",
+        data,
+        f"reparation_{reparation_id}.xlsx",
+    )

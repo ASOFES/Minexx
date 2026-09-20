@@ -10,6 +10,12 @@
             <h5 class="mb-0"><i class="fas fa-wrench me-2"></i>{{ reparation.titre }}</h5>
             <div>
                 <a href="{% url 'entretien:liste_reparations' %}" class="btn btn-outline-light btn-sm">Liste</a>
+                <a href="{% url 'entretien:exporter_reparation_pdf' reparation.id %}" class="btn btn-danger btn-sm" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i>PDF
+                </a>
+                <a href="{% url 'entretien:exporter_reparation_excel' reparation.id %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </a>
                 {% if reparation.est_ouverte %}
                 <a href="{% url 'entretien:modifier_reparation' reparation.id %}" class="btn btn-warning btn-sm">Modifier</a>
                 <a href="{% url 'entretien:confirmer_reparation' reparation.id %}" class="btn btn-success btn-sm">

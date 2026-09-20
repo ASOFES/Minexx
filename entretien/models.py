@@ -188,6 +188,13 @@ class ReparationMecanique(models.Model):
             return self.devis_confirme
         return self.devis_provisoire
 
+    @property
+    def ecart_devis(self):
+        """Écart confirmé − provisoire (None si pas encore confirmé)."""
+        if self.devis_confirme is None or self.devis_provisoire is None:
+            return None
+        return self.devis_confirme - self.devis_provisoire
+
     def clean(self):
         if self.statut == 'repare' and self.devis_confirme is None:
             raise ValidationError({'devis_confirme': "Le devis confirmé est obligatoire pour marquer comme réparé."})
