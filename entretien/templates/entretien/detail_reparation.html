@@ -79,9 +79,48 @@
                     </div>
                 </div>
             </div>
+
+            <h5 class="mb-3"><i class="fas fa-file-invoice-dollar me-2"></i>Détail du devis</h5>
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Désignation</th>
+                            <th>Réf.</th>
+                            <th class="text-end">Qté</th>
+                            <th class="text-end">Prix u. ($)</th>
+                            <th class="text-end">Montant ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lignes_devis %}
+                        <tr>
+                            <td>{{ l.get_type_ligne_display }}</td>
+                            <td>{{ l.designation }}</td>
+                            <td>{{ l.reference|default:"—" }}</td>
+                            <td class="text-end">{{ l.quantite }}</td>
+                            <td class="text-end">{{ l.prix_unitaire|floatformat:2 }}</td>
+                            <td class="text-end">{{ l.montant|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted">Aucune ligne de devis. {% if reparation.est_ouverte %}<a href="{% url 'entretien:modifier_reparation' reparation.id %}">Ajouter un devis</a>{% endif %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if lignes_devis %}
+                    <tfoot>
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="5" class="text-end">Total devis</td>
+                            <td class="text-end">{{ total_lignes|floatformat:2 }} $</td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+
             {% if reparation.est_ouverte %}
             <div class="alert alert-warning mb-0">
-                En attente de clôture : utilisez <strong>Confirmer réparé</strong> pour saisir le devis réel et l’intégrer au bilan du véhicule.
+                En attente de clôture : utilisez <strong>Confirmer réparé</strong> pour valider le devis réel et l’intégrer au bilan / budget.
             </div>
             {% endif %}
         </div>

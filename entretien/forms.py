@@ -1,6 +1,7 @@
 from django import forms
+from django.forms import inlineformset_factory
 from django.utils import timezone
-from .models import Entretien, ReparationMecanique
+from .models import Entretien, ReparationMecanique, PieceRemplacee, LigneDevisReparation
 from core.models import Vehicule
 
 class EntretienForm(forms.ModelForm):
@@ -81,6 +82,71 @@ class EntretienForm(forms.ModelForm):
         return instance
 
 
+class PieceRemplaceeForm(forms.ModelForm):
+    class Meta:
+        model = PieceRemplacee
+        fields = ['nom', 'reference', 'quantite', 'prix_unitaire']
+        widgets = {
+            'nom': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Ex: Filtre à huile, plaquettes…',
+            }),
+            'reference': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Réf. (optionnel)',
+            }),
+            'quantite': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'min': '1',
+                'value': '1',
+            }),
+            'prix_unitaire': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['nom'].label = "Pièce"
+        self.fields['reference'].label = "Réf."
+        self.fields['quantite'].label = "Qté"
+        self.fields['prix_unitaire'].label = "Prix u. ($)"
+        self.fields['nom'].required = False
+        self.fields['prix_unitaire'].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        nom = (cleaned.get('nom') or '').strip()
+        prix = cleaned.get('prix_unitaire')
+        qte = cleaned.get('quantite')
+        if self.cleaned_data.get('DELETE'):
+            return cleaned
+        # Ligne vide = ignorée
+        if not nom and prix in (None, '') and (qte in (None, '', 1) or not self.has_changed()):
+            return cleaned
+        if nom and prix is None:
+            self.add_error('prix_unitaire', "Indiquez le prix unitaire.")
+        if prix is not None and not nom:
+            self.add_error('nom', "Indiquez le nom de la pièce.")
+        if nom and (qte is None or qte < 1):
+            cleaned['quantite'] = 1
+        return cleaned
+
+
+PieceRemplaceeFormSet = inlineformset_factory(
+    Entretien,
+    PieceRemplacee,
+    form=PieceRemplaceeForm,
+    extra=2,
+    can_delete=True,
+    min_num=0,
+    validate_min=False,
+)
+
+
 class ReparationMecaniqueForm(forms.ModelForm):
     """Signalement d'un problème mécanique + devis provisoire."""
     date_signalement = forms.DateField(
@@ -107,7 +173,13 @@ class ReparationMecaniqueForm(forms.ModelForm):
             }),
             'garage': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Garage / atelier'}),
             'statut': forms.Select(attrs={'class': 'form-select'}),
-            'devis_provisoire': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'devis_provisoire': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'id': 'id_devis_provisoire',
+                'readonly': 'readonly',
+            }),
             'commentaires': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
@@ -124,9 +196,13 @@ class ReparationMecaniqueForm(forms.ModelForm):
         self.fields['description'].label = "Description du problème"
         self.fields['garage'].label = "Garage / Prestataire"
         self.fields['statut'].label = "Statut"
-        self.fields['devis_provisoire'].label = "Devis provisoire ($)"
         self.fields['date_signalement'].label = "Date du signalement"
         self.fields['commentaires'].label = "Commentaires"
+        self.fields['devis_provisoire'].label = "Devis provisoire ($) — total des lignes"
+        self.fields['devis_provisoire'].required = False
+        self.fields['devis_provisoire'].help_text = (
+            "Calculé automatiquement à partir du détail du devis (pièces, main-d'œuvre…)."
+        )
         if not self.instance.pk:
             self.fields['statut'].choices = [
                 ('en_attente', 'En attente de réparation'),
@@ -147,6 +223,66 @@ class ReparationMecaniqueForm(forms.ModelForm):
         return instance
 
 
+class LigneDevisReparationForm(forms.ModelForm):
+    class Meta:
+        model = LigneDevisReparation
+        fields = ['type_ligne', 'designation', 'reference', 'quantite', 'prix_unitaire']
+        widgets = {
+            'type_ligne': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'designation': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Ex: Plaquettes avant, diagnostic…',
+            }),
+            'reference': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Réf.',
+            }),
+            'quantite': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm ligne-qte',
+                'min': '1',
+                'value': '1',
+            }),
+            'prix_unitaire': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm ligne-prix',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['designation'].required = False
+        self.fields['prix_unitaire'].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.cleaned_data.get('DELETE'):
+            return cleaned
+        designation = (cleaned.get('designation') or '').strip()
+        prix = cleaned.get('prix_unitaire')
+        if not designation and prix in (None, ''):
+            return cleaned
+        if designation and prix is None:
+            self.add_error('prix_unitaire', "Indiquez le prix unitaire.")
+        if prix is not None and not designation:
+            self.add_error('designation', "Indiquez la désignation.")
+        if designation and (cleaned.get('quantite') is None or cleaned.get('quantite') < 1):
+            cleaned['quantite'] = 1
+        return cleaned
+
+
+LigneDevisReparationFormSet = inlineformset_factory(
+    ReparationMecanique,
+    LigneDevisReparation,
+    form=LigneDevisReparationForm,
+    extra=3,
+    can_delete=True,
+    min_num=0,
+    validate_min=False,
+)
+
+
 class ConfirmerReparationForm(forms.ModelForm):
     """Clôture : devis confirmé + statut Réparé pour le bilan comptable."""
     date_reparation = forms.DateField(
@@ -159,7 +295,12 @@ class ConfirmerReparationForm(forms.ModelForm):
         model = ReparationMecanique
         fields = ['devis_confirme', 'date_reparation', 'piece_justificative', 'garage', 'commentaires']
         widgets = {
-            'devis_confirme': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'devis_confirme': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'id': 'id_devis_confirme',
+            }),
             'piece_justificative': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*,.pdf'}),
             'garage': forms.TextInput(attrs={'class': 'form-control'}),
             'commentaires': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -175,5 +316,6 @@ class ConfirmerReparationForm(forms.ModelForm):
         if self.instance and self.instance.devis_provisoire and not self.initial.get('devis_confirme'):
             self.fields['devis_confirme'].initial = self.instance.devis_provisoire
             self.fields['devis_confirme'].help_text = (
-                f"Devis provisoire : {self.instance.devis_provisoire} $ — ajustez au montant réel."
+                f"Devis provisoire : {self.instance.devis_provisoire} $ — ajustez au montant réel "
+                f"ou recalculez depuis les lignes du devis."
             )

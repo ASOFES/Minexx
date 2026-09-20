@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Pièces changées — Maintenance{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Pièces déjà remplacées</h5>
+            <div class="d-flex gap-1 flex-wrap">
+                <a href="{% url 'entretien:dashboard' %}" class="btn btn-outline-light btn-sm">Maintenance</a>
+                <a href="{% url 'entretien:exporter_pieces_pdf' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-danger btn-sm" target="_blank">PDF</a>
+                <a href="{% url 'entretien:exporter_pieces_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success btn-sm">Excel</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-4">
+                <div class="col-md-3">
+                    <select name="vehicule" class="form-select">
+                        <option value="">Tous les véhicules</option>
+                        {% for v in vehicules %}
+                        <option value="{{ v.id }}" {% if filtre_vehicule == v.id|stringformat:"s" %}selected{% endif %}>{{ v.immatriculation }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" name="recherche" class="form-control" placeholder="Nom / réf. pièce…" value="{{ recherche }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="date_debut" class="form-control" value="{{ date_debut }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="date_fin" class="form-control" value="{{ date_fin }}">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit"><i class="fas fa-search me-1"></i>Filtrer</button>
+                </div>
+            </form>
+
+            <h6 class="mb-2">Synthèse (combien de fois)</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Pièce</th>
+                            <th class="text-end">Nb interventions</th>
+                            <th class="text-end">Qté totale</th>
+                            <th class="text-end">Nb véhicules</th>
+                            <th class="text-end">Coût total ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in resume %}
+                        <tr>
+                            <td><strong>{{ r.libelle }}</strong></td>
+                            <td class="text-end">{{ r.nb_fois }}</td>
+                            <td class="text-end">{{ r.qte_totale }}</td>
+                            <td class="text-end">{{ r.nb_vehicules }}</td>
+                            <td class="text-end">{{ r.cout_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">Aucune pièce enregistrée. Ajoutez-les dans un entretien (Maintenance → Nouvel entretien).</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h6 class="mb-2">Détail des remplacements — total {{ total_cout|floatformat:2 }} $</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Véhicule</th>
+                            <th>Pièce</th>
+                            <th>Réf.</th>
+                            <th class="text-end">Qté</th>
+                            <th class="text-end">Prix u.</th>
+                            <th class="text-end">Montant</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in details %}
+                        <tr>
+                            <td>{{ p.entretien.date_entretien|date:"d/m/Y" }}</td>
+                            <td>{{ p.entretien.vehicule.immatriculation }}</td>
+                            <td>{{ p.nom }}</td>
+                            <td>{{ p.reference|default:"—" }}</td>
+                            <td class="text-end">{{ p.quantite }}</td>
+                            <td class="text-end">{{ p.prix_unitaire|floatformat:2 }}</td>
+                            <td class="text-end">{{ p.montant|floatformat:2 }}</td>
+                            <td><a href="{% url 'entretien:detail_entretien' p.entretien_id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted">Aucun détail</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

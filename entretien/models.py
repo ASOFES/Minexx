@@ -119,6 +119,39 @@ class Entretien(models.Model):
         super().clean()
 
 
+class PieceRemplacee(models.Model):
+    """Pièce remplacée lors d'un entretien (nom + quantité + prix)."""
+    entretien = models.ForeignKey(
+        Entretien, on_delete=models.CASCADE, related_name='pieces_remplacees',
+    )
+    nom = models.CharField(max_length=200, verbose_name="Nom de la pièce")
+    reference = models.CharField(max_length=100, blank=True, default='', verbose_name="Référence")
+    quantite = models.PositiveIntegerField(default=1, verbose_name="Quantité")
+    prix_unitaire = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Prix unitaire ($)",
+    )
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nom', 'id']
+        verbose_name = 'Pièce remplacée'
+        verbose_name_plural = 'Pièces remplacées'
+
+    def __str__(self):
+        return f"{self.nom} x{self.quantite} ({self.prix_unitaire} $)"
+
+    @property
+    def montant(self):
+        return (self.quantite or 0) * (self.prix_unitaire or 0)
+
+    def clean(self):
+        if self.quantite is not None and self.quantite < 1:
+            raise ValidationError({'quantite': "La quantité doit être au moins 1."})
+        if self.prix_unitaire is not None and self.prix_unitaire < 0:
+            raise ValidationError({'prix_unitaire': "Le prix ne peut pas être négatif."})
+        super().clean()
+
+
 class ReparationMecanique(models.Model):
     """
     Problème mécanique à régler.
@@ -195,6 +228,30 @@ class ReparationMecanique(models.Model):
             return None
         return self.devis_confirme - self.devis_provisoire
 
+    @property
+    def total_lignes_devis(self):
+        from django.db.models import Sum, F, DecimalField, ExpressionWrapper
+        agg = self.lignes_devis.aggregate(
+            t=Sum(
+                ExpressionWrapper(
+                    F('quantite') * F('prix_unitaire'),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            )
+        )['t']
+        return agg or 0
+
+    def recalculer_devis_depuis_lignes(self, champ='provisoire'):
+        """Recalcule devis_provisoire ou devis_confirme depuis les lignes du devis."""
+        total = self.total_lignes_devis
+        if champ == 'confirme':
+            self.devis_confirme = total
+            self.save(update_fields=['devis_confirme', 'date_modification'])
+        else:
+            self.devis_provisoire = total
+            self.save(update_fields=['devis_provisoire', 'date_modification'])
+        return total
+
     def clean(self):
         if self.statut == 'repare' and self.devis_confirme is None:
             raise ValidationError({'devis_confirme': "Le devis confirmé est obligatoire pour marquer comme réparé."})
@@ -235,3 +292,49 @@ class ReparationMecanique(models.Model):
             .aggregate(Sum('devis_provisoire'))['devis_provisoire__sum']
             or 0
         )
+
+
+class LigneDevisReparation(models.Model):
+    """
+    Ligne de devis liée à un signalement mécanique (pièce, main-d'œuvre, etc.).
+    Le total des lignes alimente le devis provisoire / confirmé.
+    """
+    TYPE_CHOICES = (
+        ('piece', 'Pièce'),
+        ('main_oeuvre', "Main-d'œuvre"),
+        ('frais', 'Frais / divers'),
+        ('autre', 'Autre'),
+    )
+
+    reparation = models.ForeignKey(
+        ReparationMecanique, on_delete=models.CASCADE, related_name='lignes_devis',
+    )
+    type_ligne = models.CharField(
+        max_length=20, choices=TYPE_CHOICES, default='piece', verbose_name="Type",
+    )
+    designation = models.CharField(max_length=255, verbose_name="Désignation")
+    reference = models.CharField(max_length=100, blank=True, default='', verbose_name="Référence")
+    quantite = models.PositiveIntegerField(default=1, verbose_name="Quantité")
+    prix_unitaire = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Prix unitaire ($)",
+    )
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+        verbose_name = 'Ligne de devis réparation'
+        verbose_name_plural = 'Lignes de devis réparation'
+
+    def __str__(self):
+        return f"{self.designation} x{self.quantite}"
+
+    @property
+    def montant(self):
+        return (self.quantite or 0) * (self.prix_unitaire or 0)
+
+    def clean(self):
+        if self.quantite is not None and self.quantite < 1:
+            raise ValidationError({'quantite': "La quantité doit être au moins 1."})
+        if self.prix_unitaire is not None and self.prix_unitaire < 0:
+            raise ValidationError({'prix_unitaire': "Le prix ne peut pas être négatif."})
+        super().clean()

@@ -262,6 +262,37 @@ Modèle: {{ entretien.vehicule.modele|default:"Non défini" }}
 
                     <!-- Section Motif et Commentaires -->
                     <div class="row mt-4">
+                        <div class="col-12 mb-4">
+                            <h4 class="card-subtitle mb-3 text-muted">
+                                <i class="fas fa-cogs me-2"></i>Pièces remplacées
+                            </h4>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Pièce</th>
+                                            <th>Réf.</th>
+                                            <th class="text-end">Qté</th>
+                                            <th class="text-end">Prix u. ($)</th>
+                                            <th class="text-end">Montant ($)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for p in pieces %}
+                                        <tr>
+                                            <td>{{ p.nom }}</td>
+                                            <td>{{ p.reference|default:"—" }}</td>
+                                            <td class="text-end">{{ p.quantite }}</td>
+                                            <td class="text-end">{{ p.prix_unitaire|floatformat:2 }}</td>
+                                            <td class="text-end">{{ p.montant|floatformat:2 }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">Aucune pièce enregistrée</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="mb-4">
                                 <h4 class="card-subtitle mb-3 text-muted">

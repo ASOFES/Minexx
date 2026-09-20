@@ -7,8 +7,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from core.models import Vehicule, ActionTraceur, Course
-from .models import Entretien, ReparationMecanique
-from .forms import EntretienForm, ReparationMecaniqueForm, ConfirmerReparationForm
+from .models import Entretien, ReparationMecanique, PieceRemplacee, LigneDevisReparation
+from .forms import (
+    EntretienForm, ReparationMecaniqueForm, ConfirmerReparationForm,
+    PieceRemplaceeFormSet, LigneDevisReparationFormSet,
+)
 from core.utils import render_to_pdf, export_to_excel
 from core.decorators import is_admin_or_dispatch_or_superuser
 from ravitaillement.models import Ravitaillement
@@ -168,28 +171,61 @@ def liste_entretiens(request):
     
     return render(request, 'entretien/liste_entretiens.html', context)
 
+def _pieces_formset(request, entretien=None):
+    """Formset pièces remplacées (POST ou instance)."""
+    if request.method == 'POST':
+        if entretien is not None and entretien.pk:
+            return PieceRemplaceeFormSet(request.POST, instance=entretien, prefix='pieces')
+        return PieceRemplaceeFormSet(request.POST, prefix='pieces')
+    if entretien is not None and entretien.pk:
+        return PieceRemplaceeFormSet(instance=entretien, prefix='pieces')
+    return PieceRemplaceeFormSet(prefix='pieces')
+
+
+def _save_pieces_formset(entretien, formset):
+    formset.instance = entretien
+    instances = formset.save(commit=False)
+    for obj in formset.deleted_objects:
+        obj.delete()
+    for obj in instances:
+        nom = (obj.nom or '').strip()
+        if not nom:
+            continue
+        obj.nom = nom
+        if not obj.quantite:
+            obj.quantite = 1
+        obj.entretien = entretien
+        obj.save()
+    formset.save_m2m()
+
+
 @login_required
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def creer_entretien(request):
     """Vue pour créer un nouvel entretien"""
     if request.method == 'POST':
-        form = EntretienForm(request.POST, request.FILES, createur=request.user)
-        if form.is_valid():
+        form = EntretienForm(request.POST, request.FILES, createur=request.user, user=request.user)
+        formset = _pieces_formset(request)
+        if form.is_valid() and formset.is_valid():
             entretien = form.save(commit=False)
-            entretien.etablissement = entretien.vehicule.etablissement
             
             # Vérifier que le kilométrage n'est pas inférieur au dernier kilométrage enregistré
             dernier_kilometrage = _get_latest_kilometrage_for_vehicule(entretien.vehicule)
             
             if entretien.kilometrage < dernier_kilometrage:
                 messages.error(request, f"Le kilométrage ({entretien.kilometrage} km) ne peut pas être inférieur au dernier kilométrage enregistré ({dernier_kilometrage} km).")
-                return render(request, 'entretien/formulaire_entretien.html', {'form': form, 'title': 'Nouvel entretien'})
+                return render(request, 'entretien/formulaire_entretien.html', {
+                    'form': form, 'formset': formset, 'title': 'Nouvel entretien',
+                })
             
             if entretien.kilometrage_apres and entretien.kilometrage_apres <= entretien.kilometrage:
                 messages.error(request, "Le kilométrage après doit être supérieur au kilométrage avant.")
-                return render(request, 'entretien/formulaire_entretien.html', {'form': form, 'title': 'Nouvel entretien'})
+                return render(request, 'entretien/formulaire_entretien.html', {
+                    'form': form, 'formset': formset, 'title': 'Nouvel entretien',
+                })
             
             entretien.save()
+            _save_pieces_formset(entretien, formset)
             # Seul un entretien TERMINÉ met à jour la référence de maintenance
             if entretien.statut == 'termine':
                 kilometrage_a_mettre_a_jour = (
@@ -220,10 +256,12 @@ def creer_entretien(request):
                 initial = {'vehicule': vehicule.id, 'kilometrage': kilometrage}
             except Exception:
                 pass
-        form = EntretienForm(createur=request.user, initial=initial)
+        form = EntretienForm(createur=request.user, user=request.user, initial=initial)
+        formset = _pieces_formset(request)
     
     return render(request, 'entretien/formulaire_entretien.html', {
         'form': form,
+        'formset': formset,
         'title': 'Nouvel entretien'
     })
 
@@ -281,6 +319,7 @@ def detail_entretien(request, entretien_id):
     
     context = {
         'entretien': entretien,
+        'pieces': entretien.pieces_remplacees.all(),
         'date_ancien_entretien': date_ancien_entretien,
         'kilometrage_ancien_entretien': kilometrage_ancien_entretien,
         'kilometrage_prevu_actuel': kilometrage_prevu_actuel,
@@ -298,23 +337,28 @@ def modifier_entretien(request, entretien_id):
     entretien = get_object_or_404(Entretien, id=entretien_id)
     
     if request.method == 'POST':
-        form = EntretienForm(request.POST, request.FILES, instance=entretien)
-        if form.is_valid():
+        form = EntretienForm(request.POST, request.FILES, instance=entretien, user=request.user)
+        formset = _pieces_formset(request, entretien)
+        if form.is_valid() and formset.is_valid():
             entretien = form.save(commit=False)
-            entretien.etablissement = entretien.vehicule.etablissement
             
             # Vérifier que le kilométrage n'est pas inférieur au dernier kilométrage enregistré
             dernier_kilometrage = _get_latest_kilometrage_for_vehicule(entretien.vehicule, exclude_entretien_id=entretien.id)
             
             if entretien.kilometrage < dernier_kilometrage:
                 messages.error(request, f"Le kilométrage ({entretien.kilometrage} km) ne peut pas être inférieur au dernier kilométrage enregistré ({dernier_kilometrage} km).")
-                return render(request, 'entretien/formulaire_entretien.html', {'form': form, 'entretien': entretien, 'title': 'Modifier entretien'})
+                return render(request, 'entretien/formulaire_entretien.html', {
+                    'form': form, 'formset': formset, 'entretien': entretien, 'title': 'Modifier entretien',
+                })
             
             if entretien.kilometrage_apres and entretien.kilometrage_apres <= entretien.kilometrage:
                 messages.error(request, "Le kilométrage après doit être supérieur au kilométrage avant.")
-                return render(request, 'entretien/formulaire_entretien.html', {'form': form, 'entretien': entretien, 'title': 'Modifier entretien'})
+                return render(request, 'entretien/formulaire_entretien.html', {
+                    'form': form, 'formset': formset, 'entretien': entretien, 'title': 'Modifier entretien',
+                })
 
             entretien.save()
+            _save_pieces_formset(entretien, formset)
 
             # Seul un entretien TERMINÉ met à jour la référence de maintenance
             if entretien.statut == 'termine':
@@ -349,10 +393,12 @@ def modifier_entretien(request, entretien_id):
                 initial['kilometrage'] = kilometrage
             except Exception:
                 pass
-        form = EntretienForm(instance=entretien, initial=initial)
+        form = EntretienForm(instance=entretien, initial=initial, user=request.user)
+        formset = _pieces_formset(request, entretien)
     
     return render(request, 'entretien/formulaire_entretien.html', {
         'form': form,
+        'formset': formset,
         'entretien': entretien,
         'title': 'Modifier entretien'
     })
@@ -833,16 +879,55 @@ def liste_reparations(request):
     })
 
 
+def _devis_formset(request, reparation=None):
+    if request.method == 'POST':
+        if reparation is not None and reparation.pk:
+            return LigneDevisReparationFormSet(request.POST, instance=reparation, prefix='devis')
+        return LigneDevisReparationFormSet(request.POST, prefix='devis')
+    if reparation is not None and reparation.pk:
+        return LigneDevisReparationFormSet(instance=reparation, prefix='devis')
+    return LigneDevisReparationFormSet(prefix='devis')
+
+
+def _save_devis_formset(reparation, formset, champ='provisoire'):
+    formset.instance = reparation
+    instances = formset.save(commit=False)
+    for obj in formset.deleted_objects:
+        obj.delete()
+    for obj in instances:
+        designation = (obj.designation or '').strip()
+        if not designation:
+            continue
+        obj.designation = designation
+        if not obj.quantite:
+            obj.quantite = 1
+        obj.reparation = reparation
+        obj.save()
+    formset.save_m2m()
+    total = reparation.recalculer_devis_depuis_lignes(champ=champ)
+    if champ == 'provisoire' and (reparation.devis_provisoire is None):
+        reparation.devis_provisoire = 0
+        reparation.save(update_fields=['devis_provisoire'])
+    return total
+
+
 @login_required
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def creer_reparation(request):
     if request.method == 'POST':
         form = ReparationMecaniqueForm(request.POST, createur=request.user, user=request.user)
-        if form.is_valid():
-            reparation = form.save()
+        formset = _devis_formset(request)
+        if form.is_valid() and formset.is_valid():
+            reparation = form.save(commit=False)
+            if reparation.devis_provisoire is None:
+                reparation.devis_provisoire = 0
+            reparation.save()
+            total = _save_devis_formset(reparation, formset, champ='provisoire')
             messages.success(
                 request,
-                f"Problème signalé pour {reparation.vehicule.immatriculation} — devis provisoire {reparation.devis_provisoire} $."
+                f"Problème signalé pour {reparation.vehicule.immatriculation} — "
+                f"devis provisoire {total or reparation.devis_provisoire} $ "
+                f"({reparation.lignes_devis.count()} ligne(s))."
             )
             return redirect('entretien:detail_reparation', reparation_id=reparation.id)
     else:
@@ -850,9 +935,11 @@ def creer_reparation(request):
         if request.GET.get('vehicule'):
             initial['vehicule'] = request.GET.get('vehicule')
         form = ReparationMecaniqueForm(createur=request.user, user=request.user, initial=initial)
+        formset = _devis_formset(request)
 
     return render(request, 'entretien/formulaire_reparation.html', {
         'form': form,
+        'formset': formset,
         'title': 'Signaler un problème mécanique',
         'mode': 'create',
     })
@@ -862,7 +949,11 @@ def creer_reparation(request):
 @user_passes_test(is_admin_or_dispatch_or_superuser)
 def detail_reparation(request, reparation_id):
     reparation = get_object_or_404(_reparations_queryset(request), pk=reparation_id)
-    return render(request, 'entretien/detail_reparation.html', {'reparation': reparation})
+    return render(request, 'entretien/detail_reparation.html', {
+        'reparation': reparation,
+        'lignes_devis': reparation.lignes_devis.all(),
+        'total_lignes': reparation.total_lignes_devis,
+    })
 
 
 @login_required
@@ -877,16 +968,20 @@ def modifier_reparation(request, reparation_id):
         form = ReparationMecaniqueForm(
             request.POST, instance=reparation, createur=request.user, user=request.user
         )
-        if form.is_valid():
+        formset = _devis_formset(request, reparation)
+        if form.is_valid() and formset.is_valid():
             form.save()
-            messages.success(request, "Réparation mise à jour.")
+            _save_devis_formset(reparation, formset, champ='provisoire')
+            messages.success(request, "Réparation et devis mis à jour.")
             return redirect('entretien:detail_reparation', reparation_id=reparation.id)
     else:
         form = ReparationMecaniqueForm(instance=reparation, createur=request.user, user=request.user)
+        formset = _devis_formset(request, reparation)
 
     return render(request, 'entretien/formulaire_reparation.html', {
         'form': form,
-        'title': 'Modifier la réparation',
+        'formset': formset,
+        'title': 'Modifier la réparation / devis',
         'reparation': reparation,
         'mode': 'edit',
     })
@@ -906,13 +1001,24 @@ def confirmer_reparation(request, reparation_id):
 
     if request.method == 'POST':
         form = ConfirmerReparationForm(request.POST, request.FILES, instance=reparation)
-        if form.is_valid():
+        formset = _devis_formset(request, reparation)
+        if form.is_valid() and formset.is_valid():
             obj = form.save(commit=False)
             obj.statut = 'repare'
             obj.confirme_par = request.user
             if not obj.date_reparation:
                 obj.date_reparation = timezone.localdate()
             obj.save()
+            total = _save_devis_formset(obj, formset, champ='confirme')
+            if total and not form.cleaned_data.get('devis_confirme'):
+                pass  # already set by recalculer
+            elif form.cleaned_data.get('devis_confirme') is not None and total == 0:
+                # keep manual confirm amount if no lines
+                obj.devis_confirme = form.cleaned_data['devis_confirme']
+                obj.save(update_fields=['devis_confirme'])
+            elif total:
+                # lines win
+                pass
             messages.success(
                 request,
                 f"Réparation clôturée — devis confirmé {obj.devis_confirme} $ enregistré pour le bilan."
@@ -920,9 +1026,11 @@ def confirmer_reparation(request, reparation_id):
             return redirect('entretien:detail_reparation', reparation_id=reparation.id)
     else:
         form = ConfirmerReparationForm(instance=reparation)
+        formset = _devis_formset(request, reparation)
 
     return render(request, 'entretien/confirmer_reparation.html', {
         'form': form,
+        'formset': formset,
         'reparation': reparation,
         'title': 'Confirmer la réparation (devis réel)',
     })
@@ -1012,6 +1120,8 @@ def exporter_reparation_pdf(request, reparation_id):
         {
             'title': f"Réparation — {reparation.vehicule.immatriculation}",
             'reparation': reparation,
+            'lignes_devis': reparation.lignes_devis.all(),
+            'total_lignes': reparation.total_lignes_devis,
             'ecart': reparation.ecart_devis,
             'date_export': timezone.now(),
             'user': request.user,
@@ -1035,4 +1145,132 @@ def exporter_reparation_excel(request, reparation_id):
         f"Réparation mécanique — {reparation.vehicule.immatriculation}",
         data,
         f"reparation_{reparation_id}.xlsx",
+    )
+
+
+def _pieces_filtered_qs(request):
+    qs = PieceRemplacee.objects.select_related(
+        'entretien', 'entretien__vehicule', 'entretien__vehicule__etablissement'
+    )
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        qs = qs.filter(entretien__vehicule__etablissement=request.user.etablissement)
+    vehicule_id = request.GET.get('vehicule')
+    recherche = request.GET.get('recherche')
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    if vehicule_id:
+        qs = qs.filter(entretien__vehicule_id=vehicule_id)
+    if recherche:
+        qs = qs.filter(
+            Q(nom__icontains=recherche)
+            | Q(reference__icontains=recherche)
+            | Q(entretien__vehicule__immatriculation__icontains=recherche)
+        )
+    if date_debut:
+        qs = qs.filter(entretien__date_entretien__gte=date_debut)
+    if date_fin:
+        qs = qs.filter(entretien__date_entretien__lte=date_fin)
+    return qs
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def rapport_pieces(request):
+    """Rapport Maintenance : pièces déjà remplacées et combien de fois."""
+    from django.db.models import Sum, Count, F, ExpressionWrapper, DecimalField
+    from django.db.models.functions import Lower, Trim
+
+    qs = _pieces_filtered_qs(request)
+    montant_expr = ExpressionWrapper(
+        F('quantite') * F('prix_unitaire'),
+        output_field=DecimalField(max_digits=14, decimal_places=2),
+    )
+    from django.db.models import Max
+    resume = (
+        qs.annotate(nom_norm=Lower(Trim('nom')), ligne_mt=montant_expr)
+        .values('nom_norm')
+        .annotate(
+            libelle=Max('nom'),
+            nb_fois=Count('id'),
+            qte_totale=Sum('quantite'),
+            cout_total=Sum('ligne_mt'),
+            nb_vehicules=Count('entretien__vehicule', distinct=True),
+        )
+        .order_by('-qte_totale', 'nom_norm')
+    )
+    details = qs.order_by('-entretien__date_entretien', 'nom')
+    total_cout = sum((p.montant for p in details), start=0) if details else 0
+    vehicules = Vehicule.objects.all().order_by('immatriculation')
+    if not request.user.is_superuser and getattr(request.user, 'etablissement', None):
+        vehicules = vehicules.filter(etablissement=request.user.etablissement)
+
+    return render(request, 'entretien/rapport_pieces.html', {
+        'resume': resume,
+        'details': details,
+        'total_cout': total_cout,
+        'vehicules': vehicules,
+        'filtre_vehicule': request.GET.get('vehicule') or '',
+        'recherche': request.GET.get('recherche') or '',
+        'date_debut': request.GET.get('date_debut') or '',
+        'date_fin': request.GET.get('date_fin') or '',
+    })
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def exporter_pieces_pdf(request):
+    from django.db.models import Sum, Count, F, ExpressionWrapper, DecimalField, Max
+    from django.db.models.functions import Lower, Trim
+
+    qs = _pieces_filtered_qs(request)
+    montant_expr = ExpressionWrapper(
+        F('quantite') * F('prix_unitaire'),
+        output_field=DecimalField(max_digits=14, decimal_places=2),
+    )
+    resume = (
+        qs.annotate(nom_norm=Lower(Trim('nom')), ligne_mt=montant_expr)
+        .values('nom_norm')
+        .annotate(
+            libelle=Max('nom'),
+            nb_fois=Count('id'),
+            qte_totale=Sum('quantite'),
+            cout_total=Sum('ligne_mt'),
+        )
+        .order_by('-qte_totale')
+    )
+    ActionTraceur.objects.create(utilisateur=request.user, action="Export PDF pièces changées")
+    return render_to_pdf(
+        'entretien/pdf/rapport_pieces_pdf.html',
+        {
+            'title': 'Rapport pièces changées',
+            'resume': resume,
+            'details': qs.order_by('nom', '-entretien__date_entretien'),
+            'date_export': timezone.now(),
+            'user': request.user,
+        },
+        filename=f"pieces_changees_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf",
+    )
+
+
+@login_required
+@user_passes_test(is_admin_or_dispatch_or_superuser)
+def exporter_pieces_excel(request):
+    qs = _pieces_filtered_qs(request).order_by('nom', '-entretien__date_entretien')
+    data = []
+    for p in qs:
+        data.append({
+            'Pièce': p.nom,
+            'Référence': p.reference or '',
+            'Quantité': p.quantite,
+            'Prix unitaire ($)': float(p.prix_unitaire),
+            'Montant ($)': float(p.montant),
+            'Véhicule': p.entretien.vehicule.immatriculation,
+            'Date entretien': p.entretien.date_entretien.strftime('%d/%m/%Y') if p.entretien.date_entretien else '',
+            'Entretien #': p.entretien_id,
+        })
+    ActionTraceur.objects.create(utilisateur=request.user, action="Export Excel pièces changées")
+    return export_to_excel(
+        'Pièces changées — Maintenance',
+        data,
+        f"pieces_changees_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx",
     )

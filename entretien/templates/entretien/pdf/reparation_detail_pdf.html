@@ -133,6 +133,36 @@
         {% endif %}
     </div>
 
+    <div class="section">
+        <div class="section-title">Détail du devis</div>
+        <table class="grid" style="width:100%;border-collapse:collapse;">
+            <tr>
+                <td style="font-weight:bold;padding:6px;border-bottom:1px solid #ddd;">Type</td>
+                <td style="font-weight:bold;padding:6px;border-bottom:1px solid #ddd;">Désignation</td>
+                <td style="font-weight:bold;padding:6px;border-bottom:1px solid #ddd;text-align:right;">Qté</td>
+                <td style="font-weight:bold;padding:6px;border-bottom:1px solid #ddd;text-align:right;">Prix u.</td>
+                <td style="font-weight:bold;padding:6px;border-bottom:1px solid #ddd;text-align:right;">Montant</td>
+            </tr>
+            {% for l in lignes_devis %}
+            <tr>
+                <td style="padding:6px;border-bottom:1px solid #eee;">{{ l.get_type_ligne_display }}</td>
+                <td style="padding:6px;border-bottom:1px solid #eee;">{{ l.designation }}{% if l.reference %} ({{ l.reference }}){% endif %}</td>
+                <td style="padding:6px;border-bottom:1px solid #eee;text-align:right;">{{ l.quantite }}</td>
+                <td style="padding:6px;border-bottom:1px solid #eee;text-align:right;">{{ l.prix_unitaire|floatformat:2 }} $</td>
+                <td style="padding:6px;border-bottom:1px solid #eee;text-align:right;">{{ l.montant|floatformat:2 }} $</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="padding:8px;text-align:center;color:#888;">Aucune ligne de devis</td></tr>
+            {% endfor %}
+            {% if lignes_devis %}
+            <tr>
+                <td colspan="4" style="padding:8px;text-align:right;font-weight:bold;">Total</td>
+                <td style="padding:8px;text-align:right;font-weight:bold;">{{ total_lignes|floatformat:2 }} $</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
     <div class="footer">MINEXX — Fiche réparation #{{ reparation.id }}</div>
 </body>
 </html>

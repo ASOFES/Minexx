@@ -11,6 +11,9 @@
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Tableau de bord - Maintenance</h5>
                     <div>
+                        <a href="{% url 'entretien:rapport_pieces' %}" class="btn btn-outline-light btn-sm me-1">
+                            <i class="fas fa-cogs me-1"></i>Pièces changées
+                        </a>
                         <a href="{% url 'entretien:creer_reparation' %}" class="btn btn-warning btn-sm me-1">
                             <i class="fas fa-wrench me-1"></i>Signaler un problème
                         </a>

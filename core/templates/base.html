@@ -340,8 +340,10 @@
                                     <li><a class="dropdown-item {% if 'chauffeur' in request.path %}active{% endif %}" href="{% url 'chauffeur:dashboard' %}"><i class="fas fa-car-side me-2"></i>Chauffeur</a></li>
                                     <li><a class="dropdown-item {% if 'securite' in request.path %}active{% endif %}" href="{% url 'securite:dashboard' %}"><i class="fas fa-shield-alt me-2"></i>Sécurité</a></li>
                                     {% if user.role == 'admin' or user.role == 'dispatch' %}
-                                    <li><a class="dropdown-item {% if 'entretien' in request.path %}active{% endif %}" href="{% url 'entretien:dashboard' %}"><i class="fas fa-tools me-2"></i>Maintenance</a></li>
-                                    <li><a class="dropdown-item {% if 'reparations' in request.path %}active{% endif %}" href="{% url 'entretien:liste_reparations' %}"><i class="fas fa-wrench me-2"></i>Réparations mécaniques</a></li>
+                                    <li><a class="dropdown-item {% if 'entretien' in request.path and 'reparations' not in request.path and 'pieces' not in request.path %}active{% endif %}" href="{% url 'entretien:dashboard' %}"><i class="fas fa-tools me-2"></i>Maintenance</a></li>
+                                    <li><a class="dropdown-item {% if 'entretien/liste' in request.path or 'entretien/ajouter' in request.path or 'entretien/detail' in request.path %}active{% endif %}" href="{% url 'entretien:liste_entretiens' %}"><i class="fas fa-oil-can me-2"></i>Entretiens</a></li>
+                                    <li><a class="dropdown-item {% if 'reparations' in request.path %}active{% endif %}" href="{% url 'entretien:liste_reparations' %}"><i class="fas fa-wrench me-2"></i>Réparations &amp; devis</a></li>
+                                    <li><a class="dropdown-item {% if 'pieces-changees' in request.path %}active{% endif %}" href="{% url 'entretien:rapport_pieces' %}"><i class="fas fa-cogs me-2"></i>Pièces changées</a></li>
                                     {% endif %}
                                     <li><a class="dropdown-item {% if 'ravitaillement' in request.path %}active{% endif %}" href="{% url 'ravitaillement:dashboard' %}"><i class="fas fa-gas-pump me-2"></i>Ravitaillement</a></li>
                                     {% if user.role == 'admin' or user.role == 'dispatch' or user.is_superuser %}

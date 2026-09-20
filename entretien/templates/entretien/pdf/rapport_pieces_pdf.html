@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #2c3e50; }
+        h1 { font-size: 16px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th { background: #2c3e50; color: #fff; padding: 6px; font-size: 10px; }
+        td { border: 1px solid #ddd; padding: 5px; }
+        .right { text-align: right; }
+        .footer { margin-top: 16px; text-align: center; color: #7f8c8d; font-size: 9px; }
+    </style>
+</head>
+<body>
+    <h1>Pièces déjà remplacées</h1>
+    <p style="text-align:center;color:#7f8c8d;">Généré le {{ date_export|date:"d/m/Y H:i" }}</p>
+    <h3>Synthèse</h3>
+    <table>
+        <thead>
+            <tr><th>Pièce</th><th>Nb fois</th><th>Qté</th><th>Coût total</th></tr>
+        </thead>
+        <tbody>
+            {% for r in resume %}
+            <tr>
+                <td>{{ r.libelle }}</td>
+                <td class="right">{{ r.nb_fois }}</td>
+                <td class="right">{{ r.qte_totale }}</td>
+                <td class="right">{{ r.cout_total|floatformat:2 }} $</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center">Aucune donnée</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="footer">MINEXX — Maintenance — {{ user.get_full_name|default:user.username }}</div>
+</body>
+</html>

@@ -127,6 +127,55 @@
                                 </div>
                             {% endif %}
                         </div>
+
+                        <div class="card border mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <strong><i class="fas fa-cogs me-2"></i>Pièces remplacées</strong>
+                                <small class="text-muted">Nom + quantité + prix unitaire</small>
+                            </div>
+                            <div class="card-body">
+                                {{ formset.management_form }}
+                                {% if formset.non_form_errors %}
+                                <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+                                {% endif %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle" id="pieces-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="min-width:180px">Pièce</th>
+                                                <th style="min-width:100px">Réf.</th>
+                                                <th style="width:90px">Qté</th>
+                                                <th style="width:120px">Prix u. ($)</th>
+                                                <th style="width:70px">Suppr.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for f in formset %}
+                                            <tr class="piece-row">
+                                                <td>
+                                                    {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                                                    {{ f.nom }}
+                                                    {% if f.nom.errors %}<div class="text-danger small">{{ f.nom.errors }}</div>{% endif %}
+                                                </td>
+                                                <td>{{ f.reference }}</td>
+                                                <td>{{ f.quantite }}</td>
+                                                <td>
+                                                    {{ f.prix_unitaire }}
+                                                    {% if f.prix_unitaire.errors %}<div class="text-danger small">{{ f.prix_unitaire.errors }}</div>{% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if f.DELETE %}{{ f.DELETE }}{% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="add-piece-row">
+                                    <i class="fas fa-plus me-1"></i>Ajouter une ligne
+                                </button>
+                            </div>
+                        </div>
                         
                         <div class="form-group mb-3">
                             <label for="{{ form.piece_justificative.id_for_label }}" class="form-label">{{ form.piece_justificative.label }}</label>
@@ -178,11 +227,33 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Pièces remplacées — ajouter une ligne
+        const addBtn = document.getElementById('add-piece-row');
+        const tableBody = document.querySelector('#pieces-table tbody');
+        const totalForms = document.getElementById('id_pieces-TOTAL_FORMS');
+        if (addBtn && tableBody && totalForms) {
+            addBtn.addEventListener('click', function() {
+                const idx = parseInt(totalForms.value, 10);
+                const row = document.createElement('tr');
+                row.className = 'piece-row';
+                row.innerHTML = `
+                    <td><input type="text" name="pieces-${idx}-nom" class="form-control form-control-sm" placeholder="Ex: Filtre à huile…" id="id_pieces-${idx}-nom"></td>
+                    <td><input type="text" name="pieces-${idx}-reference" class="form-control form-control-sm" placeholder="Réf." id="id_pieces-${idx}-reference"></td>
+                    <td><input type="number" name="pieces-${idx}-quantite" class="form-control form-control-sm" min="1" value="1" id="id_pieces-${idx}-quantite"></td>
+                    <td><input type="number" name="pieces-${idx}-prix_unitaire" class="form-control form-control-sm" step="0.01" min="0" placeholder="0.00" id="id_pieces-${idx}-prix_unitaire"></td>
+                    <td class="text-center"><input type="checkbox" name="pieces-${idx}-DELETE" id="id_pieces-${idx}-DELETE"></td>
+                `;
+                tableBody.appendChild(row);
+                totalForms.value = idx + 1;
+            });
+        }
+
         // Initialiser les sélecteurs avec Select2 pour une meilleure expérience utilisateur
         if (typeof $.fn.select2 !== 'undefined') {
             $('#id_vehicule, #id_statut').select2({

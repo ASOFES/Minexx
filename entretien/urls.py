@@ -15,6 +15,9 @@ urlpatterns = [
     path('supprimer/<int:entretien_id>/', views.supprimer_entretien, name='supprimer_entretien'),
     path('exporter-entretien-pdf/<int:entretien_id>/', views.exporter_entretien_pdf, name='exporter_entretien_pdf'),
     path('exporter-entretien-excel/<int:entretien_id>/', views.exporter_entretien_excel, name='exporter_entretien_excel'),
+    path('pieces-changees/', views.rapport_pieces, name='rapport_pieces'),
+    path('pieces-changees/exporter-pdf/', views.exporter_pieces_pdf, name='exporter_pieces_pdf'),
+    path('pieces-changees/exporter-excel/', views.exporter_pieces_excel, name='exporter_pieces_excel'),
     # Réparations mécaniques
     path('reparations/', views.liste_reparations, name='liste_reparations'),
     path('reparations/ajouter/', views.creer_reparation, name='creer_reparation'),

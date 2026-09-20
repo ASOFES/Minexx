@@ -6,20 +6,56 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-lg-7">
+        <div class="col-lg-10">
             <div class="card shadow">
-                <div class="card-header bg-success text-white">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>{{ title }}</h5>
+                    <a href="{% url 'entretien:detail_reparation' reparation.id %}" class="btn btn-outline-light btn-sm">Retour</a>
                 </div>
                 <div class="card-body">
                     <div class="mb-3 p-3 border rounded bg-light">
                         <strong>{{ reparation.vehicule.immatriculation }}</strong> — {{ reparation.titre }}<br>
                         <span class="text-muted">Devis provisoire : {{ reparation.devis_provisoire }} $</span>
                     </div>
-                    <p class="text-muted">Saisissez le <strong>montant réel</strong> (facture / devis final). Le statut passera à <strong>Réparé</strong> et le montant entrera dans le bilan comptable du véhicule.</p>
-                    <form method="post" enctype="multipart/form-data" novalidate>
+                    <p class="text-muted">Ajustez le devis (lignes) puis validez. Le montant confirmé entre dans le bilan / budget réparations.</p>
+                    <form method="post" enctype="multipart/form-data" novalidate id="form-confirmer">
                         {% csrf_token %}
                         {{ form.non_field_errors }}
+
+                        <div class="card border mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <strong><i class="fas fa-file-invoice-dollar me-2"></i>Devis réel (lignes)</strong>
+                                <span class="badge bg-success" id="devis-total-badge">Total : 0.00 $</span>
+                            </div>
+                            <div class="card-body">
+                                {{ formset.management_form }}
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle" id="devis-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th><th>Désignation</th><th>Réf.</th><th>Qté</th><th>Prix u.</th><th>Suppr.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for f in formset %}
+                                            <tr>
+                                                <td>{% for h in f.hidden_fields %}{{ h }}{% endfor %}{{ f.type_ligne }}</td>
+                                                <td>{{ f.designation }}</td>
+                                                <td>{{ f.reference }}</td>
+                                                <td>{{ f.quantite }}</td>
+                                                <td>{{ f.prix_unitaire }}</td>
+                                                <td class="text-center">{% if f.DELETE %}{{ f.DELETE }}{% endif %}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="add-devis-row">
+                                    <i class="fas fa-plus me-1"></i>Ajouter une ligne
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label" for="{{ form.devis_confirme.id_for_label }}">{{ form.devis_confirme.label }} *</label>
                             {{ form.devis_confirme }}
@@ -52,4 +88,48 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const totalForms = document.getElementById('id_devis-TOTAL_FORMS');
+    const tableBody = document.querySelector('#devis-table tbody');
+    const addBtn = document.getElementById('add-devis-row');
+    const devisField = document.getElementById('id_devis_confirme');
+    const badge = document.getElementById('devis-total-badge');
+    function recalc() {
+        let total = 0;
+        document.querySelectorAll('#devis-table tbody tr').forEach(function (row) {
+            const del = row.querySelector('input[type=checkbox][name$="-DELETE"]');
+            if (del && del.checked) return;
+            const q = parseFloat((row.querySelector('.ligne-qte') || {}).value || 0);
+            const p = parseFloat((row.querySelector('.ligne-prix') || {}).value || 0);
+            if (!isNaN(q) && !isNaN(p)) total += q * p;
+        });
+        const txt = total.toFixed(2);
+        if (devisField && total > 0) devisField.value = txt;
+        if (badge) badge.textContent = 'Total : ' + txt + ' $';
+    }
+    document.getElementById('devis-table')?.addEventListener('input', recalc);
+    document.getElementById('devis-table')?.addEventListener('change', recalc);
+    if (addBtn && tableBody && totalForms) {
+        addBtn.addEventListener('click', function () {
+            const idx = parseInt(totalForms.value, 10);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><select name="devis-${idx}-type_ligne" class="form-select form-select-sm"><option value="piece">Pièce</option><option value="main_oeuvre">Main-d'œuvre</option><option value="frais">Frais / divers</option><option value="autre">Autre</option></select></td>
+                <td><input type="text" name="devis-${idx}-designation" class="form-control form-control-sm"></td>
+                <td><input type="text" name="devis-${idx}-reference" class="form-control form-control-sm"></td>
+                <td><input type="number" name="devis-${idx}-quantite" class="form-control form-control-sm ligne-qte" min="1" value="1"></td>
+                <td><input type="number" name="devis-${idx}-prix_unitaire" class="form-control form-control-sm ligne-prix" step="0.01" min="0"></td>
+                <td class="text-center"><input type="checkbox" name="devis-${idx}-DELETE"></td>`;
+            tableBody.appendChild(tr);
+            totalForms.value = idx + 1;
+            recalc();
+        });
+    }
+    recalc();
+});
+</script>
 {% endblock %}
