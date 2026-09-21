@@ -5,35 +5,32 @@
     <title>{{ title }}</title>
     <style>
         @page { size: A4; margin: 0.8cm; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #2c3e50; margin: 0; line-height: 1.25; }
-        .header { text-align: center; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #e0e6ed; }
-        .title { font-size: 12px; font-weight: 600; margin: 0; text-transform: uppercase; }
-        .subtitle { font-size: 8px; color: #7f8c8d; margin-top: 1px; }
-        .section { margin-bottom: 8px; border: 1px solid #e0e6ed; }
-        .section-title { background: #f5f7fa; padding: 3px 8px; font-weight: 600; font-size: 10px; border-left: 3px solid #4a6ea9; text-transform: uppercase; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; margin: 0; line-height: 1.25; }
+        .header { text-align: center; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #000; }
+        .title { font-size: 12px; font-weight: 700; margin: 0; text-transform: uppercase; color: #000; }
+        .subtitle { font-size: 8px; color: #000; margin-top: 1px; }
+        .section { margin-bottom: 8px; border: 1px solid #000; }
+        .section-title { background: #fff; padding: 3px 8px; font-weight: 700; font-size: 10px; border-left: 3px solid #000; border-bottom: 1px solid #000; text-transform: uppercase; color: #000; }
         .grid { width: 100%; border-collapse: collapse; }
-        .grid td { padding: 3px 8px; vertical-align: top; width: 50%; border-bottom: 1px solid #eef2f5; }
+        .grid td { padding: 3px 8px; vertical-align: top; width: 50%; border-bottom: 1px solid #000; }
         .grid tr:last-child td { border-bottom: none; }
-        .label { font-size: 8px; color: #5c6b7b; text-transform: uppercase; letter-spacing: 0.3px; }
-        .value { font-size: 11px; }
-        .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; color: #fff; }
-        .ok { background: #2ecc71; }
-        .warn { background: #f39c12; }
-        .info { background: #3498db; }
-        .muted { background: #95a5a6; }
-        .immat { background: #e3f2fd; color: #0d6efd; padding: 1px 6px; font-weight: 600; }
-        .block { padding: 4px 8px; }
-        .footer { margin-top: 8px; text-align: center; font-size: 8px; color: #7f8c8d; border-top: 1px solid #e0e6ed; padding-top: 4px; }
-        .money { font-family: "Courier New", monospace; font-weight: 600; }
+        .label { font-size: 8px; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+        .value { font-size: 11px; color: #000; }
+        .badge { display: inline-block; padding: 1px 6px; border: 1px solid #000; font-size: 9px; font-weight: bold; color: #000; background: #fff; }
+        .ok, .warn, .info, .muted { background: #fff; color: #000; }
+        .immat { color: #000; padding: 0; font-weight: 700; }
+        .block { padding: 4px 8px; color: #000; }
+        .footer { margin-top: 8px; text-align: center; font-size: 8px; color: #000; border-top: 1px solid #000; padding-top: 4px; }
+        .money { font-family: "Courier New", monospace; font-weight: 700; color: #000; }
         .lines { width: 100%; border-collapse: collapse; }
-        .lines th { background: #f5f7fa; font-size: 9px; padding: 3px 5px; border-bottom: 1px solid #d0d7de; text-align: left; }
-        .lines td { padding: 2px 5px; border-bottom: 1px solid #eef2f5; font-size: 10px; }
+        .lines th { background: #fff; color: #000; font-size: 9px; padding: 3px 5px; border-bottom: 1px solid #000; text-align: left; font-weight: 700; }
+        .lines td { padding: 2px 5px; border-bottom: 1px solid #000; font-size: 10px; color: #000; }
         .lines .num { text-align: right; }
-        .total-row td { font-weight: bold; border-top: 1px solid #cfd8dc; padding-top: 4px; }
+        .total-row td { font-weight: 700; border-top: 1px solid #000; padding-top: 4px; color: #000; }
     </style>
 </head>
 <body>
-    <table class="header" style="width:100%;border-collapse:collapse;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #e0e6ed;">
+    <table class="header" style="width:100%;border-collapse:collapse;margin-bottom:4px;border-bottom:1px solid #000;">
         <tr>
             <td style="width:70px;vertical-align:middle;">
                 {% if logo_data_uri %}
@@ -165,7 +162,7 @@
             {% for l in lignes_devis %}
             <tr>
                 <td>{{ l.get_type_ligne_display }}</td>
-                <td>{{ l.designation }}{% if l.reference %} <span style="color:#7f8c8d;">({{ l.reference }})</span>{% endif %}</td>
+                <td>{{ l.designation }}{% if l.reference %} ({{ l.reference }}){% endif %}</td>
                 <td class="num">{{ l.quantite }}</td>
                 <td class="num">{{ l.prix_unitaire|floatformat:2 }} $</td>
                 <td class="num">{{ l.montant|floatformat:2 }} $</td>
