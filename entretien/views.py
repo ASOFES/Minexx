@@ -925,7 +925,7 @@ def creer_reparation(request):
         incident_lie = incident_qs.filter(pk=incident_id).first()
 
     if request.method == 'POST':
-        form = ReparationMecaniqueForm(request.POST, createur=request.user, user=request.user)
+        form = ReparationMecaniqueForm(request.POST, request.FILES, createur=request.user, user=request.user)
         formset = _devis_formset(request)
         if form.is_valid() and formset.is_valid():
             reparation = form.save(commit=False)
@@ -985,7 +985,7 @@ def modifier_reparation(request, reparation_id):
 
     if request.method == 'POST':
         form = ReparationMecaniqueForm(
-            request.POST, instance=reparation, createur=request.user, user=request.user
+            request.POST, request.FILES, instance=reparation, createur=request.user, user=request.user
         )
         formset = _devis_formset(request, reparation)
         if form.is_valid() and formset.is_valid():

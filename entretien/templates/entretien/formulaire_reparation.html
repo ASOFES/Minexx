@@ -26,7 +26,7 @@
                         <br><strong>N° dossier :</strong> {{ reparation.numero_dossier }}
                         {% endif %}
                     </div>
-                    <form method="post" novalidate id="form-reparation">
+                    <form method="post" enctype="multipart/form-data" novalidate id="form-reparation">
                         {% csrf_token %}
                         {{ form.non_field_errors }}
                         <div class="row">
@@ -74,6 +74,21 @@
                                 <label class="form-label" for="{{ form.commentaires.id_for_label }}">{{ form.commentaires.label }}</label>
                                 {{ form.commentaires }}
                             </div>
+                            {% if form.bon_garage %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label" for="{{ form.bon_garage.id_for_label }}">{{ form.bon_garage.label }}</label>
+                                {{ form.bon_garage }}
+                                {% if form.bon_garage.help_text %}<div class="form-text">{{ form.bon_garage.help_text }}</div>{% endif %}
+                                {% for e in form.bon_garage.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                                {% if reparation and reparation.bon_garage %}
+                                <div class="mt-2">
+                                    <a href="{{ reparation.bon_garage.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        Bon actuel
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="card border mb-4">

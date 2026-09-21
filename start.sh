@@ -27,6 +27,9 @@ fi
 echo "🔄 Application des migrations Django..."
 python manage.py migrate --noinput
 
+echo "🔧 Import des bons COMIDE (devis Hilux / Land Cruiser)…"
+python manage.py importer_bons_comide || true
+
 # Collecter les fichiers statiques si nécessaire
 if [ ! -d "staticfiles" ]; then
     echo "📁 Collecte des fichiers statiques..."

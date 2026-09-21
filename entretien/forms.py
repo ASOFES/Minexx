@@ -158,7 +158,7 @@ class ReparationMecaniqueForm(forms.ModelForm):
         model = ReparationMecanique
         fields = [
             'vehicule', 'incident', 'titre', 'description', 'garage', 'statut',
-            'devis_provisoire', 'date_signalement', 'commentaires',
+            'devis_provisoire', 'date_signalement', 'bon_garage', 'commentaires',
         ]
         widgets = {
             'vehicule': forms.Select(attrs={'class': 'form-select'}),
@@ -182,6 +182,10 @@ class ReparationMecaniqueForm(forms.ModelForm):
                 'readonly': 'readonly',
             }),
             'commentaires': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'bon_garage': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*,.pdf',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -199,6 +203,9 @@ class ReparationMecaniqueForm(forms.ModelForm):
         self.fields['statut'].label = "Statut"
         self.fields['date_signalement'].label = "Date du signalement"
         self.fields['commentaires'].label = "Commentaires"
+        self.fields['bon_garage'].label = "Bon garage (COMIDE / atelier)"
+        self.fields['bon_garage'].required = False
+        self.fields['bon_garage'].help_text = "Joindre le bon établi par le garage ; les prix du devis doivent correspondre à ce bon."
         self.fields['devis_provisoire'].label = "Devis provisoire ($) — total des lignes"
         self.fields['devis_provisoire'].required = False
         self.fields['devis_provisoire'].help_text = (

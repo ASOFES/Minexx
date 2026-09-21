@@ -203,6 +203,11 @@ class ReparationMecanique(models.Model):
         upload_to=piece_reparation_path, blank=True, null=True,
         verbose_name="Facture / devis confirmé (PDF, JPG)",
     )
+    bon_garage = models.FileField(
+        upload_to=piece_reparation_path, blank=True, null=True,
+        verbose_name="Bon garage (COMIDE, etc.)",
+        help_text="Photo ou scan du bon d'atelier servant de base au devis",
+    )
     commentaires = models.TextField(blank=True, default='')
 
     createur = models.ForeignKey(

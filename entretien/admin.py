@@ -32,6 +32,13 @@ class ReparationMecaniqueAdmin(admin.ModelAdmin):
     date_hierarchy = 'date_signalement'
     readonly_fields = ('date_creation', 'date_modification', 'confirme_par')
     inlines = [LigneDevisInline]
+    fields = (
+        'vehicule', 'incident', 'numero_dossier', 'titre', 'description', 'garage',
+        'statut', 'devis_provisoire', 'devis_confirme',
+        'date_signalement', 'date_debut_reparation', 'date_reparation',
+        'bon_garage', 'piece_justificative', 'commentaires',
+        'createur', 'confirme_par', 'date_creation', 'date_modification',
+    )
 
 
 admin.site.register(Entretien, EntretienAdmin)

@@ -81,6 +81,11 @@
                         {% if reparation.confirme_par %}
                         <p class="mb-1 small">Confirmé par : {{ reparation.confirme_par.get_full_name|default:reparation.confirme_par.username }}</p>
                         {% endif %}
+                        {% if reparation.bon_garage %}
+                        <p class="mb-0 small mt-2">
+                            <a href="{{ reparation.bon_garage.url }}" target="_blank"><i class="fas fa-file-image me-1"></i>Bon garage (COMIDE)</a>
+                        </p>
+                        {% endif %}
                         {% if reparation.piece_justificative %}
                         <p class="mb-0 small mt-2">
                             <a href="{{ reparation.piece_justificative.url }}" target="_blank"><i class="fas fa-file me-1"></i>Pièce justificative</a>
@@ -89,6 +94,22 @@
                     </div>
                 </div>
             </div>
+
+            {% if reparation.bon_garage %}
+            <h5 class="mb-2"><i class="fas fa-file-alt me-2"></i>Bon garage</h5>
+            <p class="mb-3">
+                <a href="{{ reparation.bon_garage.url }}" target="_blank" class="btn btn-outline-secondary btn-sm">Ouvrir le bon</a>
+            </p>
+            {% with ext=reparation.bon_garage.name|lower %}
+            {% if '.jpg' in ext or '.jpeg' in ext or '.png' in ext or '.webp' in ext %}
+            <p class="mb-4">
+                <a href="{{ reparation.bon_garage.url }}" target="_blank">
+                    <img src="{{ reparation.bon_garage.url }}" alt="Bon garage" class="img-fluid rounded border" style="max-height:420px;">
+                </a>
+            </p>
+            {% endif %}
+            {% endwith %}
+            {% endif %}
 
             <h5 class="mb-3"><i class="fas fa-file-invoice-dollar me-2"></i>Détail du devis</h5>
             <div class="table-responsive mb-3">
