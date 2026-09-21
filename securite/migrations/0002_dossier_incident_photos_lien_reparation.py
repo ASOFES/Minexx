@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
             model_name='incidentsecurite',
             name='numero_dossier',
             field=models.CharField(
-                blank=True, null=True, max_length=32, db_index=True,
+                blank=True, null=True, max_length=32,
                 help_text='Référence unique partagée avec devis / réparations',
                 verbose_name='N° de dossier',
             ),
@@ -98,6 +98,14 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(populate_numeros_et_photos, migrations.RunPython.noop),
+        # db_index puis unique recréait le même index _like PostgreSQL.
+        migrations.RunSQL(
+            sql=(
+                'DROP INDEX IF EXISTS "securite_incidentsecurite_numero_dossier_447e482f_like";'
+                'DROP INDEX IF EXISTS "securite_incidentsecurite_numero_dossier_447e482f";'
+            ),
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.AlterField(
             model_name='incidentsecurite',
             name='numero_dossier',
